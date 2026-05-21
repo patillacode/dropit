@@ -41,11 +41,13 @@ def test_serve_html(client_with_db):
     page_id = "abc123"
     (tmp_path / "pages" / page_id).write_bytes(html)
     with Session(engine) as session:
-        session.add(Page(
-            id=page_id,
-            expires_at=datetime.now(UTC) + timedelta(hours=24),
-            token_hint="alice",
-        ))
+        session.add(
+            Page(
+                id=page_id,
+                expires_at=datetime.now(UTC) + timedelta(hours=24),
+                token_hint="alice",
+            )
+        )
         session.commit()
     response = client.get(f"/p/{page_id}")
     assert response.status_code == 200
@@ -64,11 +66,13 @@ def test_expired_page_returns_404(client_with_db):
     page_id = "exp123"
     (tmp_path / "pages" / page_id).write_bytes(b"<h1>Old</h1>")
     with Session(engine) as session:
-        session.add(Page(
-            id=page_id,
-            expires_at=datetime.now(UTC) - timedelta(hours=1),
-            token_hint="alice",
-        ))
+        session.add(
+            Page(
+                id=page_id,
+                expires_at=datetime.now(UTC) - timedelta(hours=1),
+                token_hint="alice",
+            )
+        )
         session.commit()
     response = client.get(f"/p/{page_id}")
     assert response.status_code == 404
@@ -79,11 +83,13 @@ def test_serve_returns_raw_html_not_download(client_with_db):
     page_id = "dl1234"
     (tmp_path / "pages" / page_id).write_bytes(b"<h1>Download test</h1>")
     with Session(engine) as session:
-        session.add(Page(
-            id=page_id,
-            expires_at=datetime.now(UTC) + timedelta(hours=1),
-            token_hint="alice",
-        ))
+        session.add(
+            Page(
+                id=page_id,
+                expires_at=datetime.now(UTC) + timedelta(hours=1),
+                token_hint="alice",
+            )
+        )
         session.commit()
     response = client.get(f"/p/{page_id}")
     assert "content-disposition" not in response.headers
