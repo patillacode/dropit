@@ -1,0 +1,10 @@
+.venv/
+.env
+data/
+__pycache__/
+*.py[cod]
+.coverage
+htmlcov/
+.git/
+tests/
+docs/
