@@ -10,7 +10,7 @@ install:
 
 # Run dev server with hot reload on :52031
 dev:
-    uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 52031
+    uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 # Run tests
 test:
