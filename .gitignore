@@ -7,3 +7,5 @@ data/
 dist/
 .coverage
 htmlcov/
+dev-docs/
+todo/
