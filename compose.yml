@@ -1,0 +1,10 @@
+services:
+  dropit:
+    build: .
+    container_name: dropit-dev
+    ports:
+      - "52031:52031"
+    env_file:
+      - .env
+    volumes:
+      - ./data:/data
