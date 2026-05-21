@@ -15,7 +15,7 @@ router = APIRouter()
 
 def _generate_id(session: Session) -> str:
     for _ in range(10):
-        candidate = secrets.token_urlsafe(6)[:6]
+        candidate = secrets.token_urlsafe(6)
         existing = session.exec(select(Page).where(Page.id == candidate)).first()
         if existing is None:
             return candidate

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from sqlmodel import Session, SQLModel, create_engine, select
 from sqlmodel.pool import StaticPool
@@ -26,16 +26,20 @@ def test_cleanup_removes_expired(tmp_path):
     (pages_dir / live_id).write_bytes(b"<h1>New</h1>")
 
     with Session(engine) as session:
-        session.add(Page(
-            id=expired_id,
-            expires_at=datetime.now(timezone.utc) - timedelta(hours=1),
-            token_hint="alice",
-        ))
-        session.add(Page(
-            id=live_id,
-            expires_at=datetime.now(timezone.utc) + timedelta(hours=24),
-            token_hint="alice",
-        ))
+        session.add(
+            Page(
+                id=expired_id,
+                expires_at=datetime.now(UTC) - timedelta(hours=1),
+                token_hint="alice",
+            )
+        )
+        session.add(
+            Page(
+                id=live_id,
+                expires_at=datetime.now(UTC) + timedelta(hours=24),
+                token_hint="alice",
+            )
+        )
         session.commit()
 
     deleted = delete_expired_pages(engine, str(tmp_path))
@@ -56,11 +60,13 @@ def test_cleanup_tolerates_missing_file(tmp_path):
     pages_dir.mkdir()
 
     with Session(engine) as session:
-        session.add(Page(
-            id="ghost1",
-            expires_at=datetime.now(timezone.utc) - timedelta(hours=1),
-            token_hint="alice",
-        ))
+        session.add(
+            Page(
+                id="ghost1",
+                expires_at=datetime.now(UTC) - timedelta(hours=1),
+                token_hint="alice",
+            )
+        )
         session.commit()
 
     delete_expired_pages(engine, str(tmp_path))

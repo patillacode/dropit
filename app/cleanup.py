@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from sqlmodel import Session, select
@@ -7,7 +7,7 @@ from app.models import Page
 
 
 def delete_expired_pages(engine, data_dir: str) -> int:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     deleted = 0
     with Session(engine) as session:
         expired = session.exec(select(Page).where(Page.expires_at < now)).all()
