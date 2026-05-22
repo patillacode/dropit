@@ -26,6 +26,7 @@ def test_page_id_unique(db_session: Session):
     p2 = Page(id="dup", expires_at=datetime(2099, 1, 1, tzinfo=UTC), token_hint="y")
     db_session.add(p1)
     db_session.commit()
+    db_session.expunge(p1)
     db_session.add(p2)
     with pytest.raises(IntegrityError):
         db_session.commit()

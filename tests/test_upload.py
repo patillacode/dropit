@@ -1,35 +1,6 @@
 import pytest
-from fastapi.testclient import TestClient
-from sqlmodel import Session, SQLModel, create_engine
-from sqlmodel.pool import StaticPool
 
-from app.database import get_session
-from app.main import create_app
 from app.settings import get_settings
-
-
-@pytest.fixture
-def client(tmp_path, monkeypatch):
-    monkeypatch.setenv("UPLOAD_TOKENS", "alice:tok_test123")
-    monkeypatch.setenv("DATA_DIR", str(tmp_path))
-    monkeypatch.setenv("BASE_URL", "http://testserver")
-    get_settings.cache_clear()
-    (tmp_path / "pages").mkdir()
-
-    engine = create_engine(
-        "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
-    )
-    SQLModel.metadata.create_all(engine)
-
-    def override_session():
-        with Session(engine) as session:
-            yield session
-
-    app = create_app()
-    app.dependency_overrides[get_session] = override_session
-
-    with TestClient(app) as c:
-        yield c
 
 
 def test_upload_returns_url(client, tmp_path):
@@ -93,3 +64,50 @@ def test_upload_stores_file(client, tmp_path):
     assert response.status_code == 200
     page_id = response.json()["url"].split("/p/")[1]
     assert (tmp_path / "pages" / page_id).read_bytes() == html
+
+
+def test_upload_forever_ttl_rejected_for_user(client, monkeypatch):
+    monkeypatch.setenv("ALLOWED_TTLS", "1h,6h,24h,forever")
+    get_settings.cache_clear()
+    response = client.post(
+        "/upload?ttl=forever",
+        headers={"Authorization": "Bearer tok_test123"},
+        files={"file": ("test.html", b"<h1>Hi</h1>", "text/html")},
+    )
+    assert response.status_code == 403
+
+
+def test_upload_forever_ttl_allowed_for_admin(client, monkeypatch):
+    monkeypatch.setenv("ALLOWED_TTLS", "1h,6h,24h,forever")
+    get_settings.cache_clear()
+    response = client.post(
+        "/upload?ttl=forever",
+        headers={"Authorization": "Bearer admin_tok_xyz"},
+        files={"file": ("test.html", b"<h1>Hi</h1>", "text/html")},
+    )
+    assert response.status_code == 200
+    assert response.json()["expires_at"] is None
+
+
+def test_upload_ttl_exceeds_max_user_ttl(client, monkeypatch):
+    monkeypatch.setenv("ALLOWED_TTLS", "1h,6h,24h,48h,7d")
+    monkeypatch.setenv("MAX_USER_TTL", "24h")
+    get_settings.cache_clear()
+    response = client.post(
+        "/upload?ttl=48h",
+        headers={"Authorization": "Bearer tok_test123"},
+        files={"file": ("test.html", b"<h1>Hi</h1>", "text/html")},
+    )
+    assert response.status_code == 403
+
+
+def test_upload_admin_bypasses_max_user_ttl(client, monkeypatch):
+    monkeypatch.setenv("ALLOWED_TTLS", "1h,6h,24h,48h,7d")
+    monkeypatch.setenv("MAX_USER_TTL", "24h")
+    get_settings.cache_clear()
+    response = client.post(
+        "/upload?ttl=7d",
+        headers={"Authorization": "Bearer admin_tok_xyz"},
+        files={"file": ("test.html", b"<h1>Hi</h1>", "text/html")},
+    )
+    assert response.status_code == 200
