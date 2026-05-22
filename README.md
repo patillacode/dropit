@@ -1,4 +1,4 @@
-#drop•it
+# drop•it
 
 Self-hosted HTML file sharing. Upload an HTML file, get a short-lived public URL.
 
