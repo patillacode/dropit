@@ -1,4 +1,6 @@
-# dropit
+<p align="center">
+  <img src="app/static/images/banner.png" alt="drop·it" width="480">
+</p>
 
 Self-hosted HTML file sharing. Upload an HTML file, get a short-lived public URL.
 
