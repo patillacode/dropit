@@ -52,7 +52,51 @@ curl -X POST "http://localhost:8000/upload?ttl=forever" \
   -F "file=@page.html"
 ```
 
-## Docker
+## Self-hosting
+
+Pre-built images are published for **amd64** and **arm64** (Raspberry Pi 4/5):
+
+| Registry | Image |
+|---|---|
+| Forgejo | `forgejo.patilla.es/patillacode/dropit:latest` |
+
+Create a `compose.yml` on your server:
+
+```yaml
+services:
+  dropit:
+    image: forgejo.patilla.es/patillacode/dropit:latest
+    ports:
+      - "52031:52031"
+    volumes:
+      - ./data:/data
+    environment:
+      # At least one upload token — share it with whoever should be able to upload
+      UPLOAD_TOKENS: alice:your-token-here
+      # Admin token — generate with: openssl rand -hex 32
+      ADMIN_TOKEN: your-admin-token-here
+      # Your public URL — important for the share links in upload responses
+      BASE_URL: http://your-server-ip:52031
+      # Optional: allow permanent uploads (admin only)
+      # ALLOWED_TTLS: 1h,6h,24h,48h,7d,forever
+    restart: unless-stopped
+```
+
+```bash
+docker compose up -d
+```
+
+Open `http://your-server-ip:52031`.
+
+**Behind a reverse proxy** (nginx, Caddy, Traefik): remove the `ports` mapping, set `BASE_URL` to your public domain (e.g. `https://dropit.example.com`), and proxy to the container on port 52031.
+
+**To update:**
+
+```bash
+docker compose pull && docker compose up -d
+```
+
+## Docker (local build)
 
 ```bash
 # Build
