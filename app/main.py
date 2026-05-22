@@ -5,7 +5,7 @@ from fastapi import FastAPI
 
 from app.cleanup import delete_expired_pages
 from app.database import get_engine, init_db
-from app.routers import health, pages, upload
+from app.routers import admin, config, health, landing, me, pages, upload
 from app.settings import get_settings
 
 
@@ -27,9 +27,13 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     app = FastAPI(title="dropit", lifespan=lifespan)
+    app.include_router(landing.router)
+    app.include_router(config.router)
     app.include_router(health.router)
+    app.include_router(me.router)
     app.include_router(upload.router)
     app.include_router(pages.router)
+    app.include_router(admin.router)
     return app
 
 
