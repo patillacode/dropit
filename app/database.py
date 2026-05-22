@@ -37,10 +37,12 @@ def _migrate_schema(engine) -> None:
         conn.commit()
     SQLModel.metadata.create_all(engine)
     with engine.connect() as conn:
-        conn.execute(text(
-            "INSERT INTO page (id, expires_at, token_hint) "
-            "SELECT id, expires_at, token_hint FROM _page_bak"
-        ))
+        conn.execute(
+            text(
+                "INSERT INTO page (id, expires_at, token_hint) "
+                "SELECT id, expires_at, token_hint FROM _page_bak"
+            )
+        )
         conn.execute(text("DROP TABLE _page_bak"))
         conn.commit()
 

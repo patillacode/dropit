@@ -29,13 +29,15 @@ def list_pages(session: Session = Depends(get_session)):
     for page in pages:
         file_path = Path(settings.data_dir) / "pages" / page.id
         size = file_path.stat().st_size if file_path.exists() else 0
-        result.append({
-            "id": page.id,
-            "url": f"{settings.base_url}/p/{page.id}",
-            "token_hint": page.token_hint,
-            "expires_at": page.expires_at.isoformat() if page.expires_at else None,
-            "file_size": size,
-        })
+        result.append(
+            {
+                "id": page.id,
+                "url": f"{settings.base_url}/p/{page.id}",
+                "token_hint": page.token_hint,
+                "expires_at": page.expires_at.isoformat() if page.expires_at else None,
+                "file_size": size,
+            }
+        )
     return result
 
 
