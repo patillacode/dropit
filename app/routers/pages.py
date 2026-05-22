@@ -20,7 +20,7 @@ def serve_page(page_id: str, session: Session = Depends(get_session)):
     if page is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Page not found")
 
-    if page.expires_at.replace(tzinfo=UTC) < datetime.now(UTC):
+    if page.expires_at is not None and page.expires_at.replace(tzinfo=UTC) < datetime.now(UTC):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Page has expired")
 
     file_path = Path(settings.data_dir) / "pages" / page_id

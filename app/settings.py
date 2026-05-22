@@ -4,7 +4,6 @@ from pydantic_settings import BaseSettings
 
 
 def parse_tokens(raw: str) -> dict[str, str]:
-    """Return {token: name} from 'name:token,name:token' or 'token,token'."""
     result = {}
     for entry in raw.split(","):
         entry = entry.strip()
@@ -16,27 +15,44 @@ def parse_tokens(raw: str) -> dict[str, str]:
     return result
 
 
-def parse_ttl_duration(ttl: str) -> int:
-    """Return seconds from a TTL string like '1h', '7d'."""
+def parse_ttl_duration(ttl: str) -> int | None:
+    if ttl == "forever":
+        return None
     if ttl.endswith("h"):
         return int(ttl[:-1]) * 3600
     if ttl.endswith("d"):
         return int(ttl[:-1]) * 86400
-    raise ValueError(f"Invalid TTL format: {ttl!r}. Use e.g. '24h' or '7d'.")
+    raise ValueError(f"Invalid TTL format: {ttl!r}. Use e.g. '24h', '7d', or 'forever'.")
 
 
 class Settings(BaseSettings):
     upload_tokens: str
-    allowed_ttls: list[str] = ["1h", "6h", "24h", "48h", "7d"]
+    allowed_ttls: str = "1h,6h,24h,48h,7d"
     default_ttl: str = "24h"
+    max_user_ttl: str = "24h"
     max_upload_size: int = 5_242_880
     cleanup_interval_hours: int = 1
     data_dir: str = "./data"
     base_url: str = "http://localhost:52031"
+    admin_token: str | None = None
 
     @property
     def token_map(self) -> dict[str, str]:
         return parse_tokens(self.upload_tokens)
+
+    @property
+    def ttl_list(self) -> list[str]:
+        return [t.strip() for t in self.allowed_ttls.split(",")]
+
+    @property
+    def user_ttl_list(self) -> list[str]:
+        max_secs = parse_ttl_duration(self.max_user_ttl)
+        result = []
+        for t in self.ttl_list:
+            secs = parse_ttl_duration(t)
+            if secs is not None and max_secs is not None and secs <= max_secs:
+                result.append(t)
+        return result
 
 
 @lru_cache
