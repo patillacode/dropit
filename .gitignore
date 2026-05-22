@@ -10,3 +10,4 @@ htmlcov/
 dev-docs/
 todo/
 .claude/
+.playwright-mcp/
