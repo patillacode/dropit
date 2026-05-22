@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>dropit</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=DM+Mono:ital,wght@0,300;0,400;1,300&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #09090a;
+            --surface: #111114;
+            --border: #222226;
+            --text: #ece9e0;
+            --muted: #5a5a60;
+            --accent: #c8ff00;
+            --accent-d: rgba(200, 255, 0, 0.10);
+            --ok: #00d68f;
+            --ok-d: rgba(0, 214, 143, 0.08);
+            --err: #ff5252;
+            --err-d: rgba(255, 82, 82, 0.07);
+            --mono: 'DM Mono', monospace;
+            --serif: 'Cormorant Garamond', Georgia, serif;
+            --r: 5px;
+        }
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            height: 100%;
+        }
+
+        body {
+            font-family: var(--mono);
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem 1.5rem;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Subtle grid lines */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+            background-size: 48px 48px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Noise grain */
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='250' height='250'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='250' height='250' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+            opacity: 0.045;
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        /* Giant watermark */
+        .watermark {
+            position: fixed;
+            bottom: -0.12em;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: var(--serif);
+            font-weight: 300;
+            font-size: clamp(9rem, 25vw, 20rem);
+            color: transparent;
+            -webkit-text-stroke: 1px rgba(255, 255, 255, 0.04);
+            pointer-events: none;
+            user-select: none;
+            white-space: nowrap;
+            letter-spacing: -0.03em;
+            z-index: 0;
+            line-height: 1;
+        }
+
+        /* Ambient glow */
+        .glow {
+            position: fixed;
+            top: -20vh;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60vw;
+            height: 60vw;
+            background: radial-gradient(ellipse, rgba(200, 255, 0, 0.04) 0%, transparent 65%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Layout */
+        .main {
+            width: 100%;
+            max-width: 500px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Header */
+        .header {
+            margin-bottom: 2.75rem;
+            opacity: 0;
+            animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.05s forwards;
+        }
+
+        .logo {
+            font-family: var(--serif);
+            font-size: clamp(4rem, 12vw, 6rem);
+            font-weight: 300;
+            line-height: 0.88;
+            letter-spacing: -0.025em;
+            color: var(--text);
+        }
+
+        .logo-dot {
+            color: var(--accent);
+        }
+
+        .tagline {
+            margin-top: 2rem;
+            font-size: 0.68rem;
+            color: var(--muted);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        /* Field row */
+        .row {
+            display: grid;
+            grid-template-columns: 1fr 110px;
+            gap: 0.75rem;
+            margin-bottom: 1.1rem;
+            opacity: 0;
+            animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.18s forwards;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 0.38rem;
+        }
+
+        label {
+            font-size: 0.62rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        input[type="password"],
+        select {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text);
+            font-family: var(--mono);
+            font-size: 0.83rem;
+            padding: 0.6rem 0.8rem;
+            border-radius: var(--r);
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+        }
+
+        input[type="password"]::placeholder {
+            color: var(--muted);
+            opacity: 0.6;
+        }
+
+        input[type="password"]:focus,
+        select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 1px var(--accent);
+        }
+
+        select {
+            cursor: pointer;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%235a5a60' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.7rem center;
+            padding-right: 2rem;
+        }
+
+        /* Drop zone */
+        .drop-zone {
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+            padding: 3.25rem 2rem 2.75rem;
+            text-align: center;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: border-color 0.25s, transform 0.2s;
+            opacity: 0;
+            animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.3s forwards;
+        }
+
+        /* Radial glow that blooms on hover */
+        .drop-zone::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse at 50% 110%, var(--accent-d) 0%, transparent 65%);
+            opacity: 0;
+            transition: opacity 0.4s;
+            pointer-events: none;
+        }
+
+        .drop-zone:hover::before,
+        .drop-zone.drag-over::before {
+            opacity: 1;
+        }
+
+        .drop-zone:hover {
+            border-color: rgba(200, 255, 0, 0.35);
+            transform: translateY(-2px);
+        }
+
+        .drop-zone.drag-over {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+        }
+
+        .drop-icon {
+            width: 38px;
+            height: 38px;
+            margin: 0 auto 1.1rem;
+            color: var(--muted);
+            transition: color 0.25s, transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+            display: block;
+        }
+
+        .drop-zone:hover .drop-icon,
+        .drop-zone.drag-over .drop-icon {
+            color: var(--accent);
+            transform: translateY(-5px);
+        }
+
+        .drop-title {
+            font-family: var(--serif);
+            font-size: 1.5rem;
+            font-weight: 300;
+            font-style: italic;
+            color: var(--text);
+            margin-bottom: 0.3rem;
+        }
+
+        .drop-sub {
+            font-size: 0.72rem;
+            color: var(--muted);
+            letter-spacing: 0.04em;
+        }
+
+        .drop-accent {
+            color: var(--accent);
+        }
+
+        .drop-filename {
+            margin-top: 0.85rem;
+            font-size: 0.76rem;
+            color: var(--accent);
+            min-height: 1.1em;
+            letter-spacing: 0.03em;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        /* Upload button */
+        .upload-btn {
+            width: 100%;
+            margin-top: 0.9rem;
+            padding: 0.85rem;
+            background: var(--accent);
+            color: #09090a;
+            border: none;
+            border-radius: var(--r);
+            font-family: var(--mono);
+            font-size: 0.72rem;
+            font-weight: 400;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.15s;
+            position: relative;
+            overflow: hidden;
+            opacity: 0;
+            animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.42s forwards;
+        }
+
+        /* Shimmer sweep */
+        .upload-btn::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: -100%;
+            width: 60%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+            transition: left 0.55s ease;
+        }
+
+        .upload-btn:hover:not(:disabled)::after {
+            left: 150%;
+        }
+
+        .upload-btn:hover:not(:disabled) {
+            opacity: 0.88;
+            transform: translateY(-1px);
+        }
+
+        .upload-btn:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .upload-btn:disabled {
+            opacity: 0.18;
+            cursor: not-allowed;
+        }
+
+        /* Result */
+        .result {
+            display: none;
+            margin-top: 1.1rem;
+            padding: 1rem 1.1rem;
+            border: 1px solid rgba(0, 214, 143, 0.25);
+            border-radius: var(--r);
+            background: var(--ok-d);
+            animation: pop 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .result.visible {
+            display: block;
+        }
+
+        .result-label {
+            font-size: 0.6rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--ok);
+            margin-bottom: 0.55rem;
+        }
+
+        .result-row {
+            display: flex;
+            gap: 0.45rem;
+            align-items: stretch;
+        }
+
+        .result-url {
+            flex: 1;
+            font-family: var(--mono);
+            font-size: 0.8rem;
+            padding: 0.48rem 0.65rem;
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(0, 214, 143, 0.18);
+            border-radius: 3px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: var(--ok);
+        }
+
+        .copy-btn {
+            padding: 0.48rem 0.85rem;
+            background: transparent;
+            border: 1px solid rgba(0, 214, 143, 0.25);
+            border-radius: 3px;
+            font-family: var(--mono);
+            font-size: 0.68rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--ok);
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background 0.15s, border-color 0.15s;
+        }
+
+        .copy-btn:hover {
+            background: rgba(0, 214, 143, 0.1);
+            border-color: var(--ok);
+        }
+
+        .result-expires {
+            font-size: 0.68rem;
+            color: var(--muted);
+            margin-top: 0.45rem;
+            letter-spacing: 0.03em;
+        }
+
+        /* Error */
+        .error {
+            display: none;
+            margin-top: 1.1rem;
+            padding: 0.8rem 1rem;
+            border: 1px solid rgba(255, 82, 82, 0.25);
+            border-radius: var(--r);
+            background: var(--err-d);
+            font-size: 0.8rem;
+            color: var(--err);
+            animation: pop 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+            letter-spacing: 0.02em;
+        }
+
+        .error.visible {
+            display: block;
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: 2.5rem;
+            font-size: 0.6rem;
+            color: var(--muted);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            text-align: center;
+            opacity: 0;
+            animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.55s forwards;
+        }
+
+        /* Token indicator */
+        .token-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6rem 0.8rem;
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+            font-size: 0.83rem;
+            color: var(--muted);
+            background: var(--surface);
+        }
+
+        .token-indicator strong {
+            color: var(--accent);
+        }
+
+        .token-badge {
+            font-size: 0.58rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--muted);
+            background: var(--border);
+            padding: 0.15rem 0.4rem;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+
+        .token-change-btn {
+            margin-left: auto;
+            background: none;
+            border: none;
+            color: var(--muted);
+            font-family: var(--mono);
+            font-size: 0.68rem;
+            cursor: pointer;
+            letter-spacing: 0.05em;
+            padding: 0;
+            text-decoration: underline;
+            text-underline-offset: 2px;
+            flex-shrink: 0;
+        }
+
+        .token-change-btn:hover {
+            color: var(--text);
+        }
+
+        .token-hint {
+            margin-top: 0.3rem;
+            font-size: 0.68rem;
+            color: var(--muted);
+            letter-spacing: 0.02em;
+        }
+
+        /* History */
+        .history {
+            display: none;
+            margin-top: 1.1rem;
+            padding: 0.85rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+        }
+
+        .history.visible {
+            display: block;
+        }
+
+        .history-label {
+            font-size: 0.6rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 0.6rem;
+        }
+
+        .history-item {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.38rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .history-filename {
+            font-size: 0.75rem;
+            color: var(--muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 130px;
+            flex-shrink: 0;
+        }
+
+        .history-url {
+            flex: 1;
+            font-family: var(--mono);
+            font-size: 0.73rem;
+            color: var(--accent);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-decoration: none;
+        }
+
+        .history-url:hover {
+            text-decoration: underline;
+            text-underline-offset: 2px;
+        }
+
+        .history-exp {
+            font-size: 0.68rem;
+            color: var(--muted);
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        /* Animations */
+        @keyframes rise {
+            from {
+                opacity: 0;
+                transform: translateY(18px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pop {
+            from {
+                opacity: 0;
+                transform: scale(0.97) translateY(6px);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="watermark" aria-hidden="true">dropit</div>
+    <div class="glow" aria-hidden="true"></div>
+
+    <main class="main">
+        <header class="header">
+            <h1 class="logo">drop<span class="logo-dot">.</span>it</h1>
+            <p class="tagline">HTML file sharing &mdash; ephemeral by design</p>
+        </header>
+
+        <div class="row">
+            <div class="field">
+                <label for="token">API token</label>
+                <div id="tokenField">
+                    <input type="password" id="token" placeholder="your-api-token" autocomplete="off"
+                        spellcheck="false">
+                    <p class="token-hint" id="tokenHint" style="display:none"></p>
+                </div>
+                <div class="token-indicator" id="tokenIndicator" style="display:none">
+                    <span class="token-badge">Connected</span>
+                    Uploading as <strong id="tokenName"></strong>
+                    <button class="token-change-btn" id="tokenChangeBtn">change</button>
+                </div>
+            </div>
+            <div class="field">
+                <label for="ttl">Expires</label>
+                <select id="ttl"></select>
+            </div>
+        </div>
+
+        <div class="drop-zone" id="dropZone">
+            <svg class="drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"
+                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            <p class="drop-title">Drop your HTML file here</p>
+            <p class="drop-sub">or <span class="drop-accent">click to browse</span></p>
+            <p class="drop-filename" id="fileName"></p>
+        </div>
+        <input type="file" id="fileInput" accept=".html,.htm">
+
+        <button class="upload-btn" id="uploadBtn" disabled>Upload</button>
+
+        <div class="result" id="result">
+            <div class="result-label">Live &mdash; ready to share</div>
+            <div class="result-row">
+                <span class="result-url" id="resultUrl"></span>
+                <button class="copy-btn" id="copyBtn">Copy</button>
+            </div>
+            <p class="result-expires" id="resultExpires"></p>
+        </div>
+
+        <div class="error" id="errorEl"></div>
+
+        <div class="history" id="history">
+            <div class="history-label">Recent uploads</div>
+            <div id="historyList"></div>
+        </div>
+
+        <footer class="footer" id="footer">Self-hosted &bull; Open source</footer>
+    </main>
+
+    <script>
+        const tokenInputEl = document.getElementById('token');
+        const tokenFieldEl = document.getElementById('tokenField');
+        const tokenIndicator = document.getElementById('tokenIndicator');
+        const tokenNameEl = document.getElementById('tokenName');
+        const tokenHintEl = document.getElementById('tokenHint');
+        const tokenChangeBtn = document.getElementById('tokenChangeBtn');
+        const ttlSelect = document.getElementById('ttl');
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileNameEl = document.getElementById('fileName');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const resultEl = document.getElementById('result');
+        const resultUrl = document.getElementById('resultUrl');
+        const copyBtn = document.getElementById('copyBtn');
+        const resultExp = document.getElementById('resultExpires');
+        const errorEl = document.getElementById('errorEl');
+        const historyEl = document.getElementById('history');
+        const historyList = document.getElementById('historyList');
+        const footerEl = document.getElementById('footer');
+
+        let selectedFile = null;
+        let currentUser = null;
+        let appConfig = null;
+
+        // ---- Init ----
+        async function init() {
+            appConfig = await fetch('/config').then(r => r.json());
+            const stored = localStorage.getItem('dropit_token');
+            if (stored) {
+                await checkToken(stored);
+            } else {
+                showField('Contact your admin to get a token');
+                populateTTL(false);
+            }
+            renderHistory();
+        }
+
+        async function checkToken(token) {
+            try {
+                const res = await fetch('/me', {headers: {Authorization: `Bearer ${token}`}});
+                if (res.ok) {
+                    currentUser = await res.json();
+                    showIndicator(currentUser.name);
+                    populateTTL(currentUser.is_admin);
+                    if (currentUser.is_admin) {
+                        footerEl.innerHTML = 'Self-hosted &bull; Open source &bull; <a href="/admin" style="color:var(--muted);text-decoration:underline;text-underline-offset:3px">Admin</a>';
+                    }
+                } else {
+                    localStorage.removeItem('dropit_token');
+                    currentUser = null;
+                    showField('Invalid token — ask your admin for a new one');
+                    populateTTL(false);
+                }
+            } catch {
+                showField('Contact your admin to get a token');
+                populateTTL(false);
+            }
+        }
+
+        function showField(hint) {
+            tokenFieldEl.style.display = '';
+            tokenIndicator.style.display = 'none';
+            if (hint) {
+                tokenHintEl.textContent = hint;
+                tokenHintEl.style.display = '';
+            } else {
+                tokenHintEl.style.display = 'none';
+            }
+            sync();
+        }
+
+        function showIndicator(name) {
+            tokenFieldEl.style.display = 'none';
+            tokenIndicator.style.display = '';
+            tokenNameEl.textContent = name;
+            sync();
+        }
+
+        function populateTTL(isAdmin) {
+            if (!appConfig) return;
+            const ttls = isAdmin ? appConfig.allowed_ttls : appConfig.user_ttls;
+            while (ttlSelect.firstChild) ttlSelect.removeChild(ttlSelect.firstChild);
+            ttls.forEach(t => {
+                const opt = document.createElement('option');
+                opt.value = t;
+                opt.textContent = t;
+                opt.selected = t === appConfig.default_ttl;
+                ttlSelect.appendChild(opt);
+            });
+        }
+
+        // ---- Token field events ----
+        tokenInputEl.addEventListener('keydown', e => {if (e.key === 'Enter') saveToken();});
+        tokenInputEl.addEventListener('blur', () => {if (tokenInputEl.value.trim()) saveToken();});
+        tokenInputEl.addEventListener('input', sync);
+
+        async function saveToken() {
+            const token = tokenInputEl.value.trim();
+            if (!token) return;
+            localStorage.setItem('dropit_token', token);
+            await checkToken(token);
+        }
+
+        tokenChangeBtn.addEventListener('click', () => {
+            localStorage.removeItem('dropit_token');
+            currentUser = null;
+            tokenInputEl.value = '';
+            showField();
+            populateTTL(false);
+            footerEl.innerHTML = 'Self-hosted &bull; Open source';
+        });
+
+        // ---- Drop zone ----
+        dropZone.addEventListener('click', () => fileInput.click());
+        dropZone.addEventListener('dragover', e => {e.preventDefault(); dropZone.classList.add('drag-over');});
+        dropZone.addEventListener('dragleave', e => {if (!dropZone.contains(e.relatedTarget)) dropZone.classList.remove('drag-over');});
+        dropZone.addEventListener('drop', e => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            const f = e.dataTransfer.files[0];
+            if (f) pick(f);
+        });
+        fileInput.addEventListener('change', () => {if (fileInput.files[0]) pick(fileInput.files[0]);});
+
+        function pick(f) {
+            selectedFile = f;
+            fileNameEl.textContent = f.name;
+            sync();
+        }
+
+        function getToken() {
+            return localStorage.getItem('dropit_token') || tokenInputEl.value.trim();
+        }
+
+        function sync() {
+            const indicatorShown = tokenIndicator.style.display !== 'none';
+            const hasToken = indicatorShown ? (currentUser !== null) : tokenInputEl.value.trim().length > 0;
+            uploadBtn.disabled = !selectedFile || !hasToken;
+        }
+
+        sync();
+
+        // ---- Upload ----
+        uploadBtn.addEventListener('click', async () => {
+            errorEl.classList.remove('visible');
+            resultEl.classList.remove('visible');
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = 'Uploading...';
+
+            const token = getToken();
+            if (!currentUser) localStorage.setItem('dropit_token', token);
+
+            const body = new FormData();
+            body.append('file', selectedFile);
+
+            try {
+                const res = await fetch(`/upload?ttl=${encodeURIComponent(ttlSelect.value)}`, {
+                    method: 'POST',
+                    headers: {Authorization: `Bearer ${token}`},
+                    body,
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || `Error ${res.status}`);
+
+                resultUrl.textContent = data.url;
+                resultUrl.title = data.url;
+                resultExp.textContent = data.expires_at
+                    ? `Expires ${new Date(data.expires_at).toLocaleString()}`
+                    : 'Never expires — permanent';
+                resultEl.classList.add('visible');
+
+                addToHistory(data.url, selectedFile.name, data.expires_at);
+                renderHistory();
+
+                if (!currentUser) await checkToken(token);
+            } catch (err) {
+                errorEl.textContent = err.message;
+                errorEl.classList.add('visible');
+            } finally {
+                uploadBtn.textContent = 'Upload';
+                sync();
+            }
+        });
+
+        // ---- Copy ----
+        copyBtn.addEventListener('click', () => {
+            navigator.clipboard.writeText(resultUrl.textContent).then(() => {
+                copyBtn.textContent = 'Copied!';
+                setTimeout(() => {copyBtn.textContent = 'Copy';}, 2000);
+            });
+        });
+
+        // ---- History ----
+        const HISTORY_KEY = 'dropit_history';
+
+        function addToHistory(url, filename, expires_at) {
+            let hist = [];
+            try {hist = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');} catch { }
+            hist.unshift({url, filename, expires_at});
+            localStorage.setItem(HISTORY_KEY, JSON.stringify(hist.slice(0, 5)));
+        }
+
+        function renderHistory() {
+            const now = Date.now();
+            let hist = [];
+            try {hist = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');} catch { }
+            const alive = hist.filter(item => !item.expires_at || new Date(item.expires_at).getTime() > now);
+            if (!alive.length) {historyEl.classList.remove('visible'); return;}
+
+            while (historyList.firstChild) historyList.removeChild(historyList.firstChild);
+            alive.forEach(item => {
+                const row = document.createElement('div');
+                row.className = 'history-item';
+
+                const name = document.createElement('span');
+                name.className = 'history-filename';
+                name.textContent = item.filename;
+                name.title = item.filename;
+
+                const link = document.createElement('a');
+                link.className = 'history-url';
+                link.href = item.url;
+                link.textContent = item.url;
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+
+                const exp = document.createElement('span');
+                exp.className = 'history-exp';
+                exp.textContent = item.expires_at ? new Date(item.expires_at).toLocaleDateString() : 'permanent';
+
+                row.appendChild(name);
+                row.appendChild(link);
+                row.appendChild(exp);
+                historyList.appendChild(row);
+            });
+            historyEl.classList.add('visible');
+        }
+
+        init();
+    </script>
+</body>
+
+</html>
