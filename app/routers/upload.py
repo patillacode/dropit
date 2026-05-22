@@ -32,7 +32,7 @@ async def upload(
     settings = get_settings()
 
     effective_ttl = ttl or settings.default_ttl
-    if effective_ttl not in settings.ttl_list:
+    if effective_ttl != "forever" and effective_ttl not in settings.ttl_list:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"Invalid TTL. Allowed: {settings.ttl_list}",
