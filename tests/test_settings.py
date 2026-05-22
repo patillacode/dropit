@@ -35,7 +35,7 @@ def test_parse_ttl_duration_invalid():
 
 def test_settings_defaults(monkeypatch):
     monkeypatch.setenv("UPLOAD_TOKENS", "alice:tok_abc")
-    monkeypatch.setenv("BASE_URL", "http://localhost:52031")
+    monkeypatch.setenv("BASE_URL", "http://localhost:8000")
     s = Settings()
     assert s.default_ttl == "24h"
     assert s.cleanup_interval_hours == 1

@@ -67,7 +67,7 @@ services:
   dropit:
     image: forgejo.patilla.es/patillacode/dropit:latest
     ports:
-      - "52031:52031"
+      - "8000:8000"
     volumes:
       - ./data:/data
     environment:
@@ -76,7 +76,7 @@ services:
       # Admin token — generate with: openssl rand -hex 32
       ADMIN_TOKEN: your-admin-token-here
       # Your public URL — important for the share links in upload responses
-      BASE_URL: http://your-server-ip:52031
+      BASE_URL: http://your-server-ip:8000
       # Optional: allow permanent uploads (admin only)
       # ALLOWED_TTLS: 1h,6h,24h,48h,7d,forever
     restart: unless-stopped
@@ -86,9 +86,9 @@ services:
 docker compose up -d
 ```
 
-Open `http://your-server-ip:52031`.
+Open `http://your-server-ip:8000`.
 
-**Behind a reverse proxy** (nginx, Caddy, Traefik): remove the `ports` mapping, set `BASE_URL` to your public domain (e.g. `https://dropit.example.com`), and proxy to the container on port 52031.
+**Behind a reverse proxy** (nginx, Caddy, Traefik): remove the `ports` mapping, set `BASE_URL` to your public domain (e.g. `https://dropit.example.com`), and proxy to the container on port 8000.
 
 **To update:**
 
@@ -138,7 +138,7 @@ All settings via environment variables (see `.env.example`):
 | `MAX_UPLOAD_SIZE` | `5242880` | Max upload size in bytes (5 MB) |
 | `CLEANUP_INTERVAL_HOURS` | `1` | How often expired pages are purged |
 | `DATA_DIR` | `./data` | Directory for SQLite DB and uploaded files |
-| `BASE_URL` | `http://localhost:52031` | Base URL for generated share links |
+| `BASE_URL` | `http://localhost:8000` | Base URL for generated share links |
 
 ## Release
 
