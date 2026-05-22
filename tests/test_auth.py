@@ -11,7 +11,9 @@ def make_creds(token: str) -> HTTPAuthorizationCredentials:
 
 
 def make_settings(**kwargs):
-    return Settings(upload_tokens="alice:tok_test123", base_url="http://localhost", data_dir="/tmp", **kwargs)
+    return Settings(
+        upload_tokens="alice:tok_test123", base_url="http://localhost", data_dir="/tmp", **kwargs
+    )
 
 
 def test_valid_token_returns_name(monkeypatch):

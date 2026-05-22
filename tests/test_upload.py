@@ -1,5 +1,3 @@
-import pytest
-
 from app.settings import get_settings
 
 

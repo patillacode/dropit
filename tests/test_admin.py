@@ -1,5 +1,3 @@
-from datetime import UTC, datetime, timedelta
-
 from sqlmodel import Session
 
 from app.models import Page
@@ -24,8 +22,8 @@ def test_admin_list_empty(client):
 
 
 def test_admin_list_shows_pages(client, tmp_path):
-    from app.database import get_engine
     from app.settings import get_settings
+
     get_settings.cache_clear()
 
     res_upload = client.post(
@@ -74,6 +72,7 @@ def test_admin_delete_nonexistent_returns_404(client):
 
 def test_admin_permanent_page_shows_null_expires(client, monkeypatch):
     from app.settings import get_settings
+
     monkeypatch.setenv("ALLOWED_TTLS", "1h,forever")
     get_settings.cache_clear()
 
