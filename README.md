@@ -52,6 +52,10 @@ curl -X POST "http://localhost:8000/upload?ttl=forever" \
   -F "file=@page.html"
 ```
 
+## Claude Code integration
+
+A [Claude Code skill](https://forgejo.patilla.es/patillacode/dotfiles/src/branch/main/dot_claude/skills/dropit/SKILL.md) is available for uploading HTML files directly from Claude Code sessions via `/dropit`. It handles file resolution, TTL selection, and upload in one step.
+
 ## Self-hosting
 
 Pre-built images are published for **amd64** and **arm64** (Raspberry Pi 4/5):
