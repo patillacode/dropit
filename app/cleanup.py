@@ -25,9 +25,7 @@ def delete_expired_pages(engine, data_dir: str, triggered_by: str = "scheduler")
         session.add(CleanupRun(deleted_count=deleted, triggered_by=triggered_by))
         session.commit()
 
-        all_runs = session.exec(
-            select(CleanupRun).order_by(col(CleanupRun.ran_at).asc())
-        ).all()
+        all_runs = session.exec(select(CleanupRun).order_by(col(CleanupRun.ran_at).asc())).all()
         excess = len(all_runs) - _MAX_HISTORY
         if excess > 0:
             for old_run in all_runs[:excess]:
