@@ -55,13 +55,15 @@ def test_serve_html(client_with_db):
     assert response.content == html
 
 
-def test_missing_id_returns_404(client_with_db):
+def test_missing_id_returns_404_html(client_with_db):
     client, _, _ = client_with_db
     response = client.get("/p/xxxxxx")
     assert response.status_code == 404
+    assert response.headers["content-type"].startswith("text/html")
+    assert "This page doesn&#x27;t exist" in response.text or "This page doesn't exist" in response.text
 
 
-def test_expired_page_returns_404(client_with_db):
+def test_expired_page_returns_404_html(client_with_db):
     client, engine, tmp_path = client_with_db
     page_id = "exp123"
     (tmp_path / "pages" / page_id).write_bytes(b"<h1>Old</h1>")
@@ -76,6 +78,15 @@ def test_expired_page_returns_404(client_with_db):
         session.commit()
     response = client.get(f"/p/{page_id}")
     assert response.status_code == 404
+    assert response.headers["content-type"].startswith("text/html")
+    assert "This page has expired" in response.text
+
+
+def test_api_404_still_returns_json(client_with_db):
+    client, _, _ = client_with_db
+    response = client.get("/nonexistent-route")
+    assert response.status_code == 404
+    assert response.headers["content-type"].startswith("application/json")
 
 
 def test_serve_returns_raw_html_not_download(client_with_db):
