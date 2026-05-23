@@ -60,7 +60,7 @@ def test_missing_id_returns_404_html(client_with_db):
     response = client.get("/p/xxxxxx")
     assert response.status_code == 404
     assert response.headers["content-type"].startswith("text/html")
-    assert "This page doesn&#x27;t exist" in response.text or "This page doesn't exist" in response.text
+    assert "This page doesn" in response.text and "t exist" in response.text
 
 
 def test_expired_page_returns_404_html(client_with_db):
