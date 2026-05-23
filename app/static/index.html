@@ -650,7 +650,7 @@
             <div id="historyList"></div>
         </div>
 
-        <footer class="footer" id="footer">Self-hosted &bull; Open source</footer>
+        <footer class="footer" id="footer">Self-hosted &bull; <a href="https://github.com/patillacode/dropit" target="_blank" rel="noopener noreferrer" style="color:var(--muted);text-decoration:underline;text-underline-offset:3px">Open source</a></footer>
     </main>
 
     <script>
@@ -699,7 +699,7 @@
                     showIndicator(currentUser.name);
                     populateTTL(currentUser.is_admin);
                     if (currentUser.is_admin) {
-                        footerEl.innerHTML = 'Self-hosted &bull; Open source &bull; <a href="/admin" style="color:var(--muted);text-decoration:underline;text-underline-offset:3px">Admin</a>';
+                        footerEl.innerHTML = 'Self-hosted &bull; <a href="https://github.com/patillacode/dropit" target="_blank" rel="noopener noreferrer" style="color:var(--muted);text-decoration:underline;text-underline-offset:3px">Open source</a> &bull; <a href="/admin" style="color:var(--muted);text-decoration:underline;text-underline-offset:3px">Admin</a>';
                     }
                 } else {
                     localStorage.removeItem('dropit_token');
@@ -763,7 +763,7 @@
             tokenInputEl.value = '';
             showField();
             populateTTL(false);
-            footerEl.innerHTML = 'Self-hosted &bull; Open source';
+            footerEl.innerHTML = 'Self-hosted &bull; <a href="https://github.com/patillacode/dropit" target="_blank" rel="noopener noreferrer" style="color:var(--muted);text-decoration:underline;text-underline-offset:3px">Open source</a>';
         });
 
         // ---- Drop zone ----
