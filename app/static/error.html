@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>dropit &mdash; __TITLE__</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=DM+Mono:ital,wght@0,300;0,400;1,300&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #09090a;
+            --surface: #111114;
+            --border: #222226;
+            --text: #ece9e0;
+            --muted: #5a5a60;
+            --accent: #c8ff00;
+            --err: #ff5252;
+            --err-d: rgba(255, 82, 82, 0.07);
+            --mono: 'DM Mono', monospace;
+            --serif: 'Cormorant Garamond', Georgia, serif;
+            --r: 5px;
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html { height: 100%; }
+
+        body {
+            font-family: var(--mono);
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem 1.5rem;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+            background-size: 48px 48px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='250' height='250'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='250' height='250' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+            opacity: 0.045;
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        .watermark {
+            position: fixed;
+            bottom: -0.12em;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: var(--serif);
+            font-weight: 300;
+            font-size: clamp(9rem, 25vw, 20rem);
+            color: transparent;
+            -webkit-text-stroke: 1px rgba(255, 255, 255, 0.04);
+            pointer-events: none;
+            user-select: none;
+            white-space: nowrap;
+            letter-spacing: -0.03em;
+            z-index: 0;
+            line-height: 1;
+        }
+
+        .glow {
+            position: fixed;
+            top: -20vh;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60vw;
+            height: 60vw;
+            background: radial-gradient(ellipse, rgba(255, 82, 82, 0.05) 0%, transparent 65%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .main {
+            width: 100%;
+            max-width: 500px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header {
+            margin-bottom: 3rem;
+            opacity: 0;
+            animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.05s forwards;
+        }
+
+        .logo {
+            font-family: var(--serif);
+            font-size: clamp(4rem, 12vw, 6rem);
+            font-weight: 300;
+            line-height: 0.88;
+            letter-spacing: -0.025em;
+            color: var(--text);
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .logo-dot { color: var(--err); }
+
+        .error-block {
+            border: 1px solid rgba(255, 82, 82, 0.2);
+            border-radius: var(--r);
+            padding: 2.5rem 2rem;
+            background: var(--err-d);
+            opacity: 0;
+            animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.2s forwards;
+        }
+
+        .error-code {
+            font-family: var(--serif);
+            font-size: clamp(5rem, 18vw, 9rem);
+            font-weight: 300;
+            line-height: 1;
+            color: var(--err);
+            opacity: 0.25;
+            letter-spacing: -0.04em;
+            margin-bottom: 1.25rem;
+        }
+
+        .error-title {
+            font-family: var(--serif);
+            font-size: clamp(1.4rem, 4vw, 1.9rem);
+            font-weight: 300;
+            font-style: italic;
+            color: var(--text);
+            margin-bottom: 0.6rem;
+            line-height: 1.2;
+        }
+
+        .error-sub {
+            font-size: 0.72rem;
+            color: var(--muted);
+            letter-spacing: 0.04em;
+            margin-bottom: 2rem;
+        }
+
+        .home-link {
+            display: inline-block;
+            font-size: 0.68rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--muted);
+            text-decoration: none;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 1px;
+            transition: color 0.2s, border-color 0.2s;
+        }
+
+        .home-link:hover {
+            color: var(--text);
+            border-color: var(--muted);
+        }
+
+        @keyframes rise {
+            from { opacity: 0; transform: translateY(18px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="watermark" aria-hidden="true">dropit</div>
+    <div class="glow" aria-hidden="true"></div>
+
+    <main class="main">
+        <header class="header">
+            <a href="/" class="logo">drop<span class="logo-dot">.</span>it</a>
+        </header>
+
+        <div class="error-block">
+            <div class="error-code">404</div>
+            <p class="error-title">__TITLE__</p>
+            <p class="error-sub">__SUBTITLE__</p>
+            <a href="/" class="home-link">← back to dropit</a>
+        </div>
+    </main>
+</body>
+
+</html>
