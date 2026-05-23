@@ -2,6 +2,8 @@
 
 Self-hosted HTML file sharing. Upload an HTML file, get a short-lived public URL.
 
+> **See it in action:** [this README is hosted on dropit](https://dropit.patilla.es/p/ckJuZfhf)
+
 <p align="center">
   <img src="app/static/images/screenshot-index.png" alt="Landing page" width="48%">
   &nbsp;
