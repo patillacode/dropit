@@ -1,13 +1,15 @@
 from datetime import UTC, datetime
 from pathlib import Path
 
-from sqlmodel import Session, select
+from sqlmodel import Session, col, select
 
-from app.models import Page
+from app.models import CleanupRun, Page
+
+_MAX_HISTORY = 50
 
 
-def delete_expired_pages(engine, data_dir: str) -> int:
-    now = datetime.now(UTC)
+def delete_expired_pages(engine, data_dir: str, triggered_by: str = "scheduler") -> int:
+    now = datetime.now(UTC).replace(tzinfo=None)
     deleted = 0
     with Session(engine) as session:
         expired = session.exec(
@@ -19,4 +21,17 @@ def delete_expired_pages(engine, data_dir: str) -> int:
             session.delete(page)
             deleted += 1
         session.commit()
+
+        session.add(CleanupRun(deleted_count=deleted, triggered_by=triggered_by))
+        session.commit()
+
+        all_runs = session.exec(
+            select(CleanupRun).order_by(col(CleanupRun.ran_at).asc())
+        ).all()
+        excess = len(all_runs) - _MAX_HISTORY
+        if excess > 0:
+            for old_run in all_runs[:excess]:
+                session.delete(old_run)
+            session.commit()
+
     return deleted

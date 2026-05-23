@@ -89,6 +89,25 @@ def test_api_404_still_returns_json(client_with_db):
     assert response.headers["content-type"].startswith("application/json")
 
 
+def test_expired_naive_utc_returns_404(client_with_db):
+    """Regression: naive UTC expires_at must be caught by the serve check (timezone bug fix)."""
+    client, engine, tmp_path = client_with_db
+    page_id = "naivexp"
+    (tmp_path / "pages" / page_id).write_bytes(b"<h1>Old</h1>")
+    with Session(engine) as session:
+        session.add(
+            Page(
+                id=page_id,
+                expires_at=datetime.now(UTC).replace(tzinfo=None) - timedelta(seconds=1),
+                token_hint="alice",
+            )
+        )
+        session.commit()
+    response = client.get(f"/p/{page_id}")
+    assert response.status_code == 404
+    assert "expired" in response.text
+
+
 def test_serve_returns_raw_html_not_download(client_with_db):
     client, engine, tmp_path = client_with_db
     page_id = "dl1234"

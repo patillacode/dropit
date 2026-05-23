@@ -20,12 +20,14 @@ async def lifespan(app: FastAPI):
     init_db()
     settings = get_settings()
     scheduler = BackgroundScheduler()
-    scheduler.add_job(
+    job = scheduler.add_job(
         delete_expired_pages,
         "interval",
         hours=settings.cleanup_interval_hours,
         args=[get_engine(), settings.data_dir],
     )
+    app.state.cleanup_job = job
+    app.state.engine = get_engine()
     scheduler.start()
     yield
     scheduler.shutdown(wait=False)

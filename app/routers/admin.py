@@ -1,11 +1,12 @@
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlmodel import Session, select
+from sqlmodel import Session, col, select
 
+from app.cleanup import delete_expired_pages
 from app.database import get_session
-from app.models import Page
+from app.models import CleanupRun, Page
 from app.settings import get_settings
 
 router = APIRouter(prefix="/admin")
@@ -39,6 +40,51 @@ def list_pages(session: Session = Depends(get_session)):
             }
         )
     return result
+
+
+@router.get("/cleanup/status", dependencies=[Depends(verify_admin)])
+def cleanup_status(request: Request, session: Session = Depends(get_session)):
+    last_run = session.exec(
+        select(CleanupRun).order_by(col(CleanupRun.ran_at).desc())
+    ).first()
+    job = getattr(request.app.state, "cleanup_job", None)
+    next_run = job.next_run_time.isoformat() if job and job.next_run_time else None
+    return {
+        "last_run": {
+            "ran_at": last_run.ran_at.isoformat(),
+            "deleted_count": last_run.deleted_count,
+            "triggered_by": last_run.triggered_by,
+        }
+        if last_run
+        else None,
+        "next_run": next_run,
+    }
+
+
+@router.get("/cleanup/history", dependencies=[Depends(verify_admin)])
+def cleanup_history(session: Session = Depends(get_session)):
+    runs = session.exec(
+        select(CleanupRun).order_by(col(CleanupRun.ran_at).desc())
+    ).all()
+    return [
+        {
+            "id": run.id,
+            "ran_at": run.ran_at.isoformat(),
+            "deleted_count": run.deleted_count,
+            "triggered_by": run.triggered_by,
+        }
+        for run in runs
+    ]
+
+
+@router.post("/cleanup/trigger", dependencies=[Depends(verify_admin)])
+def trigger_cleanup(request: Request):
+    settings = get_settings()
+    engine = getattr(request.app.state, "engine", None)
+    if engine is None:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Engine not available")
+    deleted = delete_expired_pages(engine, settings.data_dir, triggered_by="admin")
+    return {"deleted": deleted}
 
 
 @router.delete("/pages/{page_id}", dependencies=[Depends(verify_admin)])

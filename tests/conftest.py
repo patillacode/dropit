@@ -53,4 +53,5 @@ def client(tmp_path, monkeypatch):
     app.dependency_overrides[get_session] = override_session
 
     with TestClient(app) as c:
+        c.app.state.engine = engine
         yield c
