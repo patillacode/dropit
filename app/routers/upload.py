@@ -80,7 +80,11 @@ async def upload(
             )
 
     page_id = _generate_id(session)
-    expires_at = None if ttl_seconds is None else (datetime.now(UTC) + timedelta(seconds=ttl_seconds)).replace(tzinfo=None)
+    expires_at = (
+        None
+        if ttl_seconds is None
+        else (datetime.now(UTC) + timedelta(seconds=ttl_seconds)).replace(tzinfo=None)
+    )
 
     pages_dir = Path(settings.data_dir) / "pages"
     pages_dir.mkdir(parents=True, exist_ok=True)

@@ -44,9 +44,7 @@ def list_pages(session: Session = Depends(get_session)):
 
 @router.get("/cleanup/status", dependencies=[Depends(verify_admin)])
 def cleanup_status(request: Request, session: Session = Depends(get_session)):
-    last_run = session.exec(
-        select(CleanupRun).order_by(col(CleanupRun.ran_at).desc())
-    ).first()
+    last_run = session.exec(select(CleanupRun).order_by(col(CleanupRun.ran_at).desc())).first()
     job = getattr(request.app.state, "cleanup_job", None)
     next_run = job.next_run_time.isoformat() if job and job.next_run_time else None
     return {
@@ -63,9 +61,7 @@ def cleanup_status(request: Request, session: Session = Depends(get_session)):
 
 @router.get("/cleanup/history", dependencies=[Depends(verify_admin)])
 def cleanup_history(session: Session = Depends(get_session)):
-    runs = session.exec(
-        select(CleanupRun).order_by(col(CleanupRun.ran_at).desc())
-    ).all()
+    runs = session.exec(select(CleanupRun).order_by(col(CleanupRun.ran_at).desc())).all()
     return [
         {
             "id": run.id,
@@ -82,7 +78,9 @@ def trigger_cleanup(request: Request):
     settings = get_settings()
     engine = getattr(request.app.state, "engine", None)
     if engine is None:
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Engine not available")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Engine not available"
+        )
     deleted = delete_expired_pages(engine, settings.data_dir, triggered_by="admin")
     return {"deleted": deleted}
 

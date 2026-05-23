@@ -31,8 +31,12 @@ def test_cleanup_removes_expired(tmp_path):
     (pages_dir / live_id).write_bytes(b"<h1>New</h1>")
 
     with Session(engine) as session:
-        session.add(Page(id=expired_id, expires_at=_naive_utc(-timedelta(hours=1)), token_hint="alice"))
-        session.add(Page(id=live_id, expires_at=_naive_utc(timedelta(hours=24)), token_hint="alice"))
+        session.add(
+            Page(id=expired_id, expires_at=_naive_utc(-timedelta(hours=1)), token_hint="alice")
+        )
+        session.add(
+            Page(id=live_id, expires_at=_naive_utc(timedelta(hours=24)), token_hint="alice")
+        )
         session.commit()
 
     deleted = delete_expired_pages(engine, str(tmp_path))
@@ -53,7 +57,9 @@ def test_cleanup_tolerates_missing_file(tmp_path):
     pages_dir.mkdir()
 
     with Session(engine) as session:
-        session.add(Page(id="ghost1", expires_at=_naive_utc(-timedelta(hours=1)), token_hint="alice"))
+        session.add(
+            Page(id="ghost1", expires_at=_naive_utc(-timedelta(hours=1)), token_hint="alice")
+        )
         session.commit()
 
     delete_expired_pages(engine, str(tmp_path))
@@ -72,7 +78,9 @@ def test_cleanup_records_run(tmp_path):
     assert deleted == 0
     with engine.connect() as conn:
         count = conn.execute(text("SELECT COUNT(*) FROM cleanuprun")).scalar()
-        row = conn.execute(text("SELECT deleted_count, triggered_by FROM cleanuprun LIMIT 1")).fetchone()
+        row = conn.execute(
+            text("SELECT deleted_count, triggered_by FROM cleanuprun LIMIT 1")
+        ).fetchone()
     assert count == 1
     assert row.deleted_count == 0
     assert row.triggered_by == "scheduler"
