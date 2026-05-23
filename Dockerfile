@@ -14,7 +14,7 @@ RUN addgroup --system --gid 1000 appuser && \
     mkdir -p /data/pages && \
     chown -R appuser:appuser /app /data
 
-LABEL org.opencontainers.image.source=https://forgejo.patilla.es/patillacode/dropit
+LABEL org.opencontainers.image.source=https://github.com/patillacode/dropit
 
 USER appuser
 

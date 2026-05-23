@@ -62,6 +62,7 @@ Pre-built images are published for **amd64** and **arm64** (Raspberry Pi 4/5):
 
 | Registry | Image |
 |---|---|
+| GitHub (GHCR) | `ghcr.io/patillacode/dropit:latest` |
 | Forgejo | `forgejo.patilla.es/patillacode/dropit:latest` |
 
 Create a `compose.yml` on your server:
@@ -69,7 +70,7 @@ Create a `compose.yml` on your server:
 ```yaml
 services:
   dropit:
-    image: forgejo.patilla.es/patillacode/dropit:latest
+    image: ghcr.io/patillacode/dropit:latest
     ports:
       - "8000:8000"
     volumes:
