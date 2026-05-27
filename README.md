@@ -1,6 +1,4 @@
-<img src="app/static/images/dropit-logo.png" alt="dropit logo" height="40" align="left" style="margin-right:10px">
-
-# drop•it
+<h1><img src="app/static/images/dropit-logo.png" alt="dropit logo" height="60" style="vertical-align:middle;margin-right:12px"> drop•it</h1>
 
 Self-hosted HTML file sharing. Upload an HTML file, get a short-lived public URL.
 
