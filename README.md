@@ -147,6 +147,14 @@ All settings via environment variables (see `.env.example`):
 | `DATA_DIR` | `./data` | Directory for SQLite DB and uploaded files |
 | `BASE_URL` | `http://localhost:8000` | Base URL for generated share links |
 
+## Cleanup
+
+Expired pages are purged automatically by a background scheduler running inside the FastAPI process (APScheduler). On each run it deletes all pages whose `expires_at` has passed, removes the corresponding files from disk, and records the result.
+
+The interval is controlled by `CLEANUP_INTERVAL_HOURS` (default: `1`). No cron job or external worker is needed.
+
+The admin panel shows a **Cleanup scheduler** card with the last run timestamp, how many pages were deleted, whether it was triggered by the scheduler or manually, and the next scheduled run time. You can also trigger a cleanup immediately from the panel without waiting for the next interval.
+
 ## Release
 
 Tag a version to trigger Docker build and push:
