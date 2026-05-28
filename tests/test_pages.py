@@ -116,6 +116,27 @@ def test_expired_naive_utc_returns_404(client_with_db):
     assert "expired" in response.text
 
 
+def test_mixed_case_id_served_via_lowercase_subdomain(client_with_db):
+    """Regression: pages with mixed-case IDs (from old token_urlsafe generator) must be
+    accessible via their lowercase subdomain, since HTTP hostnames are case-insensitive."""
+    client, engine, tmp_path = client_with_db
+    stored_id = "aBcD1234"
+    html = b"<h1>Mixed case</h1>"
+    (tmp_path / "pages" / stored_id).write_bytes(html)
+    with Session(engine) as session:
+        session.add(
+            Page(
+                id=stored_id,
+                expires_at=datetime.now(UTC) + timedelta(hours=24),
+                token_hint="alice",
+            )
+        )
+        session.commit()
+    response = client.get("/", headers={"host": _content_host(stored_id.lower())})
+    assert response.status_code == 200
+    assert response.content == html
+
+
 def test_serve_returns_raw_html_not_download(client_with_db):
     client, engine, tmp_path = client_with_db
     page_id = "dl1234"
