@@ -47,9 +47,16 @@ def create_app() -> FastAPI:
     app.include_router(pages.router)
     app.include_router(admin.router)
 
+    @app.get("/{path:path}", include_in_schema=False)
+    async def catch_all(path: str):
+        html = _ERROR_HTML.replace("__TITLE__", "This page doesn't exist").replace(
+            "__SUBTITLE__", "Nothing was ever uploaded here."
+        )
+        return HTMLResponse(content=html, status_code=404)
+
     @app.exception_handler(HTTPException)
     async def custom_http_exception_handler(request: Request, exc: HTTPException):
-        if exc.status_code == 404 and request.url.path.startswith("/p/"):
+        if exc.status_code == 404:
             if exc.detail == "Page has expired":
                 title = "This page has expired"
                 subtitle = "The link is no longer valid."

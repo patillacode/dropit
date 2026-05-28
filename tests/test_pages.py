@@ -90,11 +90,11 @@ def test_expired_page_returns_404_html(client_with_db):
     assert "This page has expired" in response.text
 
 
-def test_api_404_still_returns_json(client_with_db):
+def test_unknown_route_returns_404_html(client_with_db):
     client, _, _ = client_with_db
     response = client.get("/nonexistent-route")
     assert response.status_code == 404
-    assert response.headers["content-type"].startswith("application/json")
+    assert response.headers["content-type"].startswith("text/html")
 
 
 def test_expired_naive_utc_returns_404(client_with_db):
