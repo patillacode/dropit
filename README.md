@@ -2,7 +2,7 @@
 
 Self-hosted HTML file sharing. Upload an HTML file, get a short-lived public URL.
 
-> **See it in action:** [this README is hosted on dropit](https://dropit.patilla.es/p/ckJuZfhf)
+> **See it in action:** [this README is hosted on dropit](https://ckjuzfhf.dropit.patilla.es)
 
 <p align="center">
   <img src="app/static/images/screenshot-index.png" alt="Landing page" width="48%">
@@ -41,7 +41,7 @@ The admin token also unlocks the `forever` TTL and bypasses the per-user TTL lim
 curl -X POST http://localhost:8000/upload \
   -H "Authorization: Bearer tok_abc123" \
   -F "file=@page.html"
-# {"url": "http://localhost:8000/p/a3f8c1d2", "expires_at": "..."}
+# {"url": "http://a3f8c1d2.localhost:8000", "expires_at": "..."}
 
 # Custom TTL (1h, 6h, 24h, 48h, 7d — or "forever" with admin token)
 curl -X POST "http://localhost:8000/upload?ttl=6h" \
@@ -82,8 +82,11 @@ services:
       UPLOAD_TOKENS: alice:your-token-here
       # Admin token — generate with: openssl rand -hex 32
       ADMIN_TOKEN: your-admin-token-here
-      # Your public URL — important for the share links in upload responses
-      BASE_URL: http://your-server-ip:8000
+      # Your public URL
+      BASE_URL: https://dropit.example.com
+      # Domain used for per-page share links (each page gets its own subdomain)
+      # Requires a wildcard DNS record and SSL cert for *.dropit.example.com
+      CONTENT_DOMAIN: dropit.example.com
       # Optional: allow permanent uploads (admin only)
       # ALLOWED_TTLS: 1h,6h,24h,48h,7d,forever
     restart: unless-stopped
@@ -95,7 +98,7 @@ docker compose up -d
 
 Open `http://your-server-ip:8000`.
 
-**Behind a reverse proxy** (nginx, Caddy, Traefik): remove the `ports` mapping, set `BASE_URL` to your public domain (e.g. `https://dropit.example.com`), and proxy to the container on port 8000.
+**Behind a reverse proxy** (nginx, Caddy, Traefik): remove the `ports` mapping, set `BASE_URL` to your public domain (e.g. `https://dropit.example.com`), set `CONTENT_DOMAIN` to the same domain (e.g. `dropit.example.com`), and proxy **both** `dropit.example.com` and `*.dropit.example.com` to the container on port 8000. You will need a wildcard SSL cert for `*.dropit.example.com` (Let's Encrypt DNS-01 challenge).
 
 **To update:**
 
@@ -145,7 +148,8 @@ All settings via environment variables (see `.env.example`):
 | `MAX_UPLOAD_SIZE` | `5242880` | Max upload size in bytes (5 MB) |
 | `CLEANUP_INTERVAL_HOURS` | `1` | How often expired pages are purged |
 | `DATA_DIR` | `./data` | Directory for SQLite DB and uploaded files |
-| `BASE_URL` | `http://localhost:8000` | Base URL for generated share links |
+| `BASE_URL` | `http://localhost:8000` | Base URL for the app (used in OpenAPI docs, health checks) |
+| `CONTENT_DOMAIN` | `localhost:8000` | Domain for per-page share links — each page is served at `{id}.{CONTENT_DOMAIN}`; requires wildcard DNS + SSL in production |
 
 ## Cleanup
 
