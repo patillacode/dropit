@@ -87,7 +87,7 @@ select:focus { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent);
   cursor: pointer;
   position: relative;
   overflow: hidden;
-  transition: border-color 0.25s, transform 0.2s;
+  transition: border-color 0.3s, transform 0.2s;
   opacity: 0;
   animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.3s forwards;
 }
@@ -100,10 +100,58 @@ select:focus { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent);
   transition: opacity 0.4s;
   pointer-events: none;
 }
-.drop-zone:hover::before,
+.drop-zone[data-state="idle"]:hover::before,
 .drop-zone.drag-over::before  { opacity: 1; }
-.drop-zone:hover               { border-color: rgba(200, 255, 0, 0.35); transform: translateY(-2px); }
-.drop-zone.drag-over           { border-color: var(--accent); transform: translateY(-2px); }
+.drop-zone[data-state="idle"]:hover { border-color: rgba(200, 255, 0, 0.35); transform: translateY(-2px); }
+.drop-zone.drag-over               { border-color: var(--accent); transform: translateY(-2px); }
+
+/* uploading */
+@keyframes dz-breathe {
+  0%, 100% { border-color: var(--accent); box-shadow: 0 0 0 0 transparent; }
+  50%       { border-color: rgba(200, 255, 0, 0.3); box-shadow: 0 0 18px 2px var(--accent-d); }
+}
+.drop-zone[data-state="uploading"] {
+  animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.3s forwards,
+             dz-breathe 1.8s ease-in-out 0.9s infinite;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* success */
+.drop-zone[data-state="success"] {
+  border-color: var(--ok);
+  cursor: default;
+  animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.3s forwards;
+}
+.drop-zone[data-state="success"]::before {
+  background: radial-gradient(ellipse at 50% 110%, rgba(0, 214, 143, 0.12) 0%, transparent 65%);
+  opacity: 1;
+}
+
+/* error */
+.drop-zone[data-state="error"] {
+  border-color: var(--err);
+  cursor: pointer;
+  animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.3s forwards;
+}
+.drop-zone[data-state="error"]::before {
+  background: radial-gradient(ellipse at 50% 110%, rgba(255, 82, 82, 0.1) 0%, transparent 65%);
+  opacity: 1;
+}
+
+/* panel visibility */
+.drop-zone[data-state="idle"]      .dz-uploading,
+.drop-zone[data-state="idle"]      .dz-success,
+.drop-zone[data-state="idle"]      .dz-error     { display: none; }
+.drop-zone[data-state="uploading"] .dz-idle,
+.drop-zone[data-state="uploading"] .dz-success,
+.drop-zone[data-state="uploading"] .dz-error     { display: none; }
+.drop-zone[data-state="success"]   .dz-idle,
+.drop-zone[data-state="success"]   .dz-uploading,
+.drop-zone[data-state="success"]   .dz-error     { display: none; }
+.drop-zone[data-state="error"]     .dz-idle,
+.drop-zone[data-state="error"]     .dz-uploading,
+.drop-zone[data-state="error"]     .dz-success   { display: none; }
 
 .drop-icon {
   width: 38px;
@@ -113,7 +161,7 @@ select:focus { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent);
   transition: color 0.25s, transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
   display: block;
 }
-.drop-zone:hover .drop-icon,
+.drop-zone[data-state="idle"]:hover .drop-icon,
 .drop-zone.drag-over .drop-icon { color: var(--accent); transform: translateY(-5px); }
 
 .drop-title {
@@ -126,71 +174,46 @@ select:focus { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent);
 }
 .drop-sub    { font-size: 0.72rem; color: var(--muted); letter-spacing: 0.04em; }
 .drop-accent { color: var(--accent); }
-.drop-filename {
-  margin-top: 0.85rem;
-  font-size: 0.76rem;
-  color: var(--accent);
-  min-height: 1.1em;
-  letter-spacing: 0.03em;
-}
 
 input[type="file"] { display: none; }
 
-.upload-btn {
-  width: 100%;
-  margin-top: 0.9rem;
-  padding: 0.85rem;
-  background: var(--accent);
-  color: #09090a;
-  border: none;
-  border-radius: var(--r);
-  font-family: var(--mono);
-  font-size: 0.72rem;
-  font-weight: 400;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: opacity 0.2s, transform 0.15s;
-  position: relative;
-  overflow: hidden;
-  opacity: 0;
-  animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.42s forwards;
+/* spinner */
+@keyframes dz-spin { to { transform: rotate(360deg); } }
+.dz-spinner {
+  width: 34px;
+  height: 34px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: dz-spin 0.75s linear infinite;
+  margin: 0 auto 1.1rem;
 }
-.upload-btn::after {
-  content: '';
-  position: absolute;
-  top: 0; bottom: 0; left: -100%;
-  width: 60%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28), transparent);
-  transition: left 0.55s ease;
-}
-.upload-btn:hover:not(:disabled)::after { left: 150%; }
-.upload-btn:hover:not(:disabled)        { opacity: 0.88; transform: translateY(-1px); }
-.upload-btn:active:not(:disabled)       { transform: translateY(0); }
-.upload-btn:disabled                    { opacity: 0.18; cursor: not-allowed; }
 
-.result {
-  display: none;
-  margin-top: 1.1rem;
-  padding: 1rem 1.1rem;
-  border: 1px solid rgba(0, 214, 143, 0.25);
-  border-radius: var(--r);
-  background: var(--ok-d);
-  animation: pop 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+/* state icons */
+.dz-state-icon {
+  width: 38px;
+  height: 38px;
+  margin: 0 auto 1rem;
+  display: block;
 }
-.result.visible { display: block; }
+.dz-success .dz-state-icon { color: var(--ok); }
+.dz-error   .dz-state-icon { color: var(--err); }
 
-.result-label {
+/* success panel */
+.dz-success-label {
   font-size: 0.6rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--ok);
-  margin-bottom: 0.55rem;
+  margin-bottom: 0.65rem;
 }
-
-.result-row { display: flex; gap: 0.45rem; align-items: stretch; }
-
-.result-url {
+.dz-url-row {
+  display: flex;
+  gap: 0.45rem;
+  align-items: stretch;
+  margin-bottom: 0.45rem;
+}
+.dz-url {
   flex: 1;
   font-family: var(--mono);
   font-size: 0.8rem;
@@ -203,8 +226,7 @@ input[type="file"] { display: none; }
   white-space: nowrap;
   color: var(--ok);
 }
-
-.copy-btn {
+.dz-copy-btn {
   padding: 0.48rem 0.85rem;
   background: transparent;
   border: 1px solid rgba(0, 214, 143, 0.25);
@@ -218,28 +240,41 @@ input[type="file"] { display: none; }
   white-space: nowrap;
   transition: background 0.15s, border-color 0.15s;
 }
-.copy-btn:hover { background: rgba(0, 214, 143, 0.1); border-color: var(--ok); }
-
-.result-expires {
+.dz-copy-btn:hover { background: rgba(0, 214, 143, 0.1); border-color: var(--ok); }
+.dz-expires {
   font-size: 0.68rem;
   color: var(--muted);
-  margin-top: 0.45rem;
   letter-spacing: 0.03em;
+  margin-bottom: 1rem;
 }
-
-.error {
-  display: none;
-  margin-top: 1.1rem;
-  padding: 0.8rem 1rem;
-  border: 1px solid rgba(255, 82, 82, 0.25);
+.dz-reset-btn {
+  background: transparent;
+  border: 1px solid var(--accent);
   border-radius: var(--r);
-  background: var(--err-d);
-  font-size: 0.8rem;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  cursor: pointer;
+  padding: 0.45rem 1rem;
+  transition: opacity 0.2s;
+}
+.dz-reset-btn:hover { opacity: 0.7; }
+
+/* error panel */
+.dz-error-msg {
+  font-size: 0.82rem;
   color: var(--err);
-  animation: pop 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  margin-bottom: 0.4rem;
   letter-spacing: 0.02em;
 }
-.error.visible { display: block; }
+.dz-error-hint {
+  font-size: 0.68rem;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
 
 .footer {
   margin-top: 2.5rem;

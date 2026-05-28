@@ -1,101 +1,107 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>dropit — admin</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=DM+Mono:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/base.css">
-  <link rel="stylesheet" href="/static/css/admin.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>dropit — admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=DM+Mono:ital,wght@0,300;0,400;1,300&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/base.css">
+    <link rel="stylesheet" href="/static/css/admin.css">
 </head>
+
 <body>
-  <main class="main">
-    <header class="header">
-      <h1 class="logo">drop<span class="logo-dot">.</span>it</h1>
-      <span class="logo-suffix">Admin</span>
-    </header>
+    <main class="main">
+        <header class="header">
+            <h1 class="logo">drop<span class="logo-dot">•</span>it</h1>
+            <span class="logo-suffix">Admin</span>
+        </header>
 
-    <div class="auth-section">
-      <label>Admin token</label>
-      <div id="tokenField">
-        <input type="password" id="tokenInput" placeholder="your-admin-token" autocomplete="off" spellcheck="false">
-        <p class="token-hint" id="tokenHint" style="display:none"></p>
-      </div>
-      <div class="token-indicator" id="tokenIndicator" style="display:none">
-        <span class="token-badge">Admin</span>
-        <strong>Connected</strong>
-        <button class="token-change-btn" id="tokenChangeBtn">disconnect</button>
-      </div>
-    </div>
-
-    <div class="error" id="errorEl"></div>
-
-    <div class="stats" id="stats">
-      <span><strong id="statTotal">0</strong> pages</span>
-      <span><strong id="statPermanent">0</strong> permanent</span>
-      <span><strong id="statSize">0 B</strong> total</span>
-    </div>
-
-    <div class="cleanup-card" id="cleanupCard">
-      <div class="cleanup-section-label">Cleanup scheduler</div>
-      <div class="cleanup-meta">
-        <div class="cleanup-meta-item">
-          <span class="cleanup-meta-key">Last run</span>
-          <span class="cleanup-meta-val" id="cleanupLastRun">—</span>
+        <div class="auth-section">
+            <label>Admin token</label>
+            <div id="tokenField">
+                <input type="password" id="tokenInput" placeholder="your-admin-token" autocomplete="off"
+                    spellcheck="false">
+                <p class="token-hint" id="tokenHint" style="display:none"></p>
+            </div>
+            <div class="token-indicator" id="tokenIndicator" style="display:none">
+                <span class="token-badge">Admin</span>
+                <strong>Connected</strong>
+                <button class="token-change-btn" id="tokenChangeBtn">disconnect</button>
+            </div>
         </div>
-        <div class="cleanup-meta-item">
-          <span class="cleanup-meta-key">Deleted</span>
-          <span class="cleanup-meta-val" id="cleanupDeletedCount">—</span>
+
+        <div class="error" id="errorEl"></div>
+
+        <div class="stats" id="stats">
+            <span><strong id="statTotal">0</strong> pages</span>
+            <span><strong id="statPermanent">0</strong> permanent</span>
+            <span><strong id="statSize">0 B</strong> total</span>
         </div>
-        <div class="cleanup-meta-item">
-          <span class="cleanup-meta-key">Triggered by</span>
-          <span class="cleanup-meta-val" id="cleanupTriggeredBy"></span>
+
+        <div class="cleanup-card" id="cleanupCard">
+            <div class="cleanup-section-label">Cleanup scheduler</div>
+            <div class="cleanup-meta">
+                <div class="cleanup-meta-item">
+                    <span class="cleanup-meta-key">Last run</span>
+                    <span class="cleanup-meta-val" id="cleanupLastRun">—</span>
+                </div>
+                <div class="cleanup-meta-item">
+                    <span class="cleanup-meta-key">Deleted</span>
+                    <span class="cleanup-meta-val" id="cleanupDeletedCount">—</span>
+                </div>
+                <div class="cleanup-meta-item">
+                    <span class="cleanup-meta-key">Triggered by</span>
+                    <span class="cleanup-meta-val" id="cleanupTriggeredBy"></span>
+                </div>
+                <div class="cleanup-meta-item">
+                    <span class="cleanup-meta-key">Next run</span>
+                    <span class="cleanup-meta-val" id="cleanupNextRun">—</span>
+                </div>
+            </div>
+            <div class="cleanup-actions">
+                <button class="trigger-btn" id="triggerBtn">Run now</button>
+                <button class="history-toggle-btn" id="historyToggleBtn">Show history</button>
+            </div>
+            <div class="cleanup-history-wrap" id="cleanupHistoryWrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Ran at</th>
+                            <th>Deleted</th>
+                            <th>Triggered by</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cleanupHistoryBody"></tbody>
+                </table>
+            </div>
         </div>
-        <div class="cleanup-meta-item">
-          <span class="cleanup-meta-key">Next run</span>
-          <span class="cleanup-meta-val" id="cleanupNextRun">—</span>
+
+        <div class="table-wrap" id="tableWrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>URL</th>
+                        <th>Uploaded by</th>
+                        <th>Expires</th>
+                        <th>Size</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
         </div>
-      </div>
-      <div class="cleanup-actions">
-        <button class="trigger-btn" id="triggerBtn">Run now</button>
-        <button class="history-toggle-btn" id="historyToggleBtn">Show history</button>
-      </div>
-      <div class="cleanup-history-wrap" id="cleanupHistoryWrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Ran at</th>
-              <th>Deleted</th>
-              <th>Triggered by</th>
-            </tr>
-          </thead>
-          <tbody id="cleanupHistoryBody"></tbody>
-        </table>
-      </div>
-    </div>
 
-    <div class="table-wrap" id="tableWrap">
-      <table>
-        <thead>
-          <tr>
-            <th>URL</th>
-            <th>Uploaded by</th>
-            <th>Expires</th>
-            <th>Size</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="tableBody"></tbody>
-      </table>
-    </div>
+        <div class="empty" id="emptyEl">No pages yet.</div>
 
-    <div class="empty" id="emptyEl">No pages yet.</div>
+        <a href="/" class="back-link">&larr; Back to dropit</a>
+    </main>
 
-    <a href="/" class="back-link">&larr; Back to dropit</a>
-  </main>
-
-  <script src="/static/js/admin.js"></script>
+    <script src="/static/js/admin.js"></script>
 </body>
+
 </html>
