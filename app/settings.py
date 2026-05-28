@@ -38,6 +38,13 @@ class Settings(BaseSettings):
     admin_token: str | None = None
 
     @property
+    def content_scheme(self) -> str:
+        return "http" if self.content_domain.split(":")[0] == "localhost" else "https"
+
+    def page_url(self, page_id: str) -> str:
+        return f"{self.content_scheme}://{page_id}.{self.content_domain}"
+
+    @property
     def token_map(self) -> dict[str, str]:
         return parse_tokens(self.upload_tokens)
 
