@@ -12,9 +12,7 @@ from app.settings import get_settings
 def serve_page_content(page_id: str, session: Session) -> HTMLResponse:
     settings = get_settings()
 
-    page = session.exec(
-        select(Page).where(func.lower(Page.id) == page_id.lower())
-    ).first()
+    page = session.exec(select(Page).where(func.lower(Page.id) == page_id.lower())).first()
     if page is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Page not found")
 
