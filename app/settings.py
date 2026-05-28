@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     cleanup_interval_hours: int = 1
     data_dir: str = "./data"
     base_url: str = "http://localhost:8000"
+    content_domain: str = "localhost:8000"
     admin_token: str | None = None
 
     @property

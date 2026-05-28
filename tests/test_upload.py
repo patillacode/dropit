@@ -11,7 +11,7 @@ def test_upload_returns_url(client, tmp_path):
     data = response.json()
     assert "url" in data
     assert "expires_at" in data
-    assert data["url"].startswith("http://testserver/p/")
+    assert data["url"].startswith("https://") and data["url"].endswith(".testcontent.test")
 
 
 def test_upload_rejects_invalid_token(client):
@@ -60,7 +60,7 @@ def test_upload_stores_file(client, tmp_path):
         files={"file": ("test.html", html, "text/html")},
     )
     assert response.status_code == 200
-    page_id = response.json()["url"].split("/p/")[1]
+    page_id = response.json()["url"].split("//")[1].split(".")[0]
     assert (tmp_path / "pages" / page_id).read_bytes() == html
 
 

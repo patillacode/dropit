@@ -7,10 +7,12 @@ from fastapi.exception_handlers import http_exception_handler as default_http_ex
 from fastapi.exceptions import HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
+from sqlmodel import Session
 
 from app.cleanup import delete_expired_pages
 from app.database import get_engine, init_db
 from app.routers import admin, config, health, landing, me, pages, upload
+from app.routers.pages import serve_page_content
 from app.settings import get_settings
 
 _ERROR_HTML = (Path(__file__).parent / "static" / "error.html").read_text()
@@ -57,6 +59,43 @@ def create_app() -> FastAPI:
             html = _ERROR_HTML.replace("__TITLE__", title).replace("__SUBTITLE__", subtitle)
             return HTMLResponse(content=html, status_code=404)
         return await default_http_exception_handler(request, exc)
+
+    @app.middleware("http")
+    async def security_headers_middleware(request: Request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "geolocation=(), camera=(), microphone=()"
+        return response
+
+    @app.middleware("http")
+    async def content_subdomain_middleware(request: Request, call_next):
+        settings = get_settings()
+        host = request.headers.get("host", "").split(":")[0]
+        content_host = settings.content_domain.split(":")[0]
+        suffix = f".{content_host}"
+
+        if host != content_host and host.endswith(suffix):
+            page_id = host[: -len(suffix)]
+            with Session(request.app.state.engine) as session:
+                try:
+                    response = serve_page_content(page_id, session)
+                except HTTPException as exc:
+                    if exc.detail == "Page has expired":
+                        title = "This page has expired"
+                        subtitle = "The link is no longer valid."
+                    else:
+                        title = "This page doesn't exist"
+                        subtitle = "Nothing was ever uploaded here."
+                    html = _ERROR_HTML.replace("__TITLE__", title).replace("__SUBTITLE__", subtitle)
+                    response = HTMLResponse(content=html, status_code=404)
+            response.headers["X-Robots-Tag"] = "noindex, nofollow"
+            response.headers["Cache-Control"] = "private, no-store"
+            response.headers["X-Content-Type-Options"] = "nosniff"
+            return response
+
+        return await call_next(request)
 
     return app
 

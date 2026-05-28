@@ -95,6 +95,6 @@ async def upload(
     session.commit()
 
     return {
-        "url": f"{settings.base_url}/p/{page_id}",
+        "url": f"https://{page_id}.{settings.content_domain}",
         "expires_at": expires_at.isoformat() if expires_at else None,
     }

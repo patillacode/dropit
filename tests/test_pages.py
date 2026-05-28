@@ -10,12 +10,15 @@ from app.main import create_app
 from app.models import Page
 from app.settings import get_settings
 
+CONTENT_DOMAIN = "testcontent.test"
+
 
 @pytest.fixture
 def client_with_db(tmp_path, monkeypatch):
     monkeypatch.setenv("UPLOAD_TOKENS", "alice:tok_test123")
     monkeypatch.setenv("DATA_DIR", str(tmp_path))
     monkeypatch.setenv("BASE_URL", "http://testserver")
+    monkeypatch.setenv("CONTENT_DOMAIN", CONTENT_DOMAIN)
     get_settings.cache_clear()
     (tmp_path / "pages").mkdir()
 
@@ -32,7 +35,12 @@ def client_with_db(tmp_path, monkeypatch):
     app.dependency_overrides[get_session] = override_session
 
     with TestClient(app) as c:
+        c.app.state.engine = engine
         yield c, engine, tmp_path
+
+
+def _content_host(page_id: str) -> str:
+    return f"{page_id}.{CONTENT_DOMAIN}"
 
 
 def test_serve_html(client_with_db):
@@ -49,7 +57,7 @@ def test_serve_html(client_with_db):
             )
         )
         session.commit()
-    response = client.get(f"/p/{page_id}")
+    response = client.get("/", headers={"host": _content_host(page_id)})
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/html")
     assert response.content == html
@@ -76,7 +84,7 @@ def test_expired_page_returns_404_html(client_with_db):
             )
         )
         session.commit()
-    response = client.get(f"/p/{page_id}")
+    response = client.get("/", headers={"host": _content_host(page_id)})
     assert response.status_code == 404
     assert response.headers["content-type"].startswith("text/html")
     assert "This page has expired" in response.text
@@ -103,7 +111,7 @@ def test_expired_naive_utc_returns_404(client_with_db):
             )
         )
         session.commit()
-    response = client.get(f"/p/{page_id}")
+    response = client.get("/", headers={"host": _content_host(page_id)})
     assert response.status_code == 404
     assert "expired" in response.text
 
@@ -121,5 +129,6 @@ def test_serve_returns_raw_html_not_download(client_with_db):
             )
         )
         session.commit()
-    response = client.get(f"/p/{page_id}")
+    response = client.get("/", headers={"host": _content_host(page_id)})
+    assert response.status_code == 200
     assert "content-disposition" not in response.headers

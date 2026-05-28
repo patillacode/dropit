@@ -52,7 +52,7 @@ def test_admin_delete_page(client, tmp_path):
         files={"file": ("page.html", b"<h1>Hi</h1>", "text/html")},
     )
     assert res_upload.status_code == 200
-    page_id = res_upload.json()["url"].split("/p/")[1]
+    page_id = res_upload.json()["url"].split("//")[1].split(".")[0]
 
     res_del = client.delete(
         f"/admin/pages/{page_id}",
