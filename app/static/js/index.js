@@ -7,13 +7,11 @@ const tokenChangeBtn = document.getElementById('tokenChangeBtn');
 const ttlSelect      = document.getElementById('ttl');
 const dropZone       = document.getElementById('dropZone');
 const fileInput      = document.getElementById('fileInput');
-const fileNameEl     = document.getElementById('fileName');
-const uploadBtn      = document.getElementById('uploadBtn');
-const resultEl       = document.getElementById('result');
-const resultUrl      = document.getElementById('resultUrl');
-const copyBtn        = document.getElementById('copyBtn');
-const resultExp      = document.getElementById('resultExpires');
-const errorEl        = document.getElementById('errorEl');
+const dzUrl          = document.getElementById('dzUrl');
+const dzCopyBtn      = document.getElementById('dzCopyBtn');
+const dzExpires      = document.getElementById('dzExpires');
+const dzResetBtn     = document.getElementById('dzResetBtn');
+const dzErrorMsg     = document.getElementById('dzErrorMsg');
 const historyEl      = document.getElementById('history');
 const historyList    = document.getElementById('historyList');
 const adminSepEl     = document.getElementById('adminSep');
@@ -22,6 +20,10 @@ const adminLinkEl    = document.getElementById('adminLink');
 let selectedFile = null;
 let currentUser  = null;
 let appConfig    = null;
+
+function setState(state) {
+  dropZone.dataset.state = state;
+}
 
 async function init() {
   appConfig = await fetch('/config').then(r => r.json());
@@ -67,14 +69,12 @@ function showField(hint) {
   } else {
     tokenHintEl.style.display  = 'none';
   }
-  sync();
 }
 
 function showIndicator(name) {
   tokenFieldEl.style.display   = 'none';
   tokenIndicator.style.display = '';
   tokenNameEl.textContent      = name;
-  sync();
 }
 
 function populateTTL(isAdmin) {
@@ -92,7 +92,6 @@ function populateTTL(isAdmin) {
 
 tokenInputEl.addEventListener('keydown', e => { if (e.key === 'Enter') saveToken(); });
 tokenInputEl.addEventListener('blur',    () => { if (tokenInputEl.value.trim()) saveToken(); });
-tokenInputEl.addEventListener('input',   sync);
 
 async function saveToken() {
   const token = tokenInputEl.value.trim();
@@ -111,7 +110,10 @@ tokenChangeBtn.addEventListener('click', () => {
   populateTTL(false);
 });
 
-dropZone.addEventListener('click',    () => fileInput.click());
+dropZone.addEventListener('click', () => {
+  const state = dropZone.dataset.state;
+  if (state === 'idle' || state === 'error') fileInput.click();
+});
 dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
 dropZone.addEventListener('dragleave', e => {
   if (!dropZone.contains(e.relatedTarget)) dropZone.classList.remove('drag-over');
@@ -126,29 +128,23 @@ fileInput.addEventListener('change', () => { if (fileInput.files[0]) pick(fileIn
 
 function pick(f) {
   selectedFile = f;
-  fileNameEl.textContent = f.name;
-  sync();
+  doUpload();
 }
 
 function getToken() {
   return localStorage.getItem('dropit_token') || tokenInputEl.value.trim();
 }
 
-function sync() {
-  const indicatorShown = tokenIndicator.style.display !== 'none';
-  const hasToken = indicatorShown ? (currentUser !== null) : tokenInputEl.value.trim().length > 0;
-  uploadBtn.disabled = !selectedFile || !hasToken;
-}
-
-sync();
-
-uploadBtn.addEventListener('click', async () => {
-  errorEl.classList.remove('visible');
-  resultEl.classList.remove('visible');
-  uploadBtn.disabled  = true;
-  uploadBtn.textContent = 'Uploading...';
-
+async function doUpload() {
   const token = getToken();
+  if (!token) {
+    dzErrorMsg.textContent = 'No token — enter your API token above';
+    setState('error');
+    return;
+  }
+
+  setState('uploading');
+
   if (!currentUser) localStorage.setItem('dropit_token', token);
 
   const body = new FormData();
@@ -164,31 +160,36 @@ uploadBtn.addEventListener('click', async () => {
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || `Error ${res.status}`);
 
-    resultUrl.textContent = data.url;
-    resultUrl.title       = data.url;
-    resultExp.textContent = data.expires_at
+    dzUrl.textContent     = data.url;
+    dzUrl.title           = data.url;
+    dzExpires.textContent = data.expires_at
       ? `Expires ${new Date(data.expires_at).toLocaleString()}`
       : 'Never expires — permanent';
-    resultEl.classList.add('visible');
+    setState('success');
 
     addToHistory(data.url, selectedFile.name, data.expires_at);
     renderHistory();
 
     if (!currentUser) await checkToken(token);
   } catch (err) {
-    errorEl.textContent = err.message;
-    errorEl.classList.add('visible');
-  } finally {
-    uploadBtn.textContent = 'Upload';
-    sync();
+    dzErrorMsg.textContent = err.message;
+    setState('error');
   }
+}
+
+dzCopyBtn.addEventListener('click', e => {
+  e.stopPropagation();
+  navigator.clipboard.writeText(dzUrl.textContent).then(() => {
+    dzCopyBtn.textContent = 'Copied!';
+    setTimeout(() => { dzCopyBtn.textContent = 'Copy'; }, 2000);
+  });
 });
 
-copyBtn.addEventListener('click', () => {
-  navigator.clipboard.writeText(resultUrl.textContent).then(() => {
-    copyBtn.textContent = 'Copied!';
-    setTimeout(() => { copyBtn.textContent = 'Copy'; }, 2000);
-  });
+dzResetBtn.addEventListener('click', e => {
+  e.stopPropagation();
+  selectedFile = null;
+  fileInput.value = '';
+  setState('idle');
 });
 
 const HISTORY_KEY = 'dropit_history';
