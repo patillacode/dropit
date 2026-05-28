@@ -11,7 +11,7 @@ from sqlmodel import Session
 
 from app.cleanup import delete_expired_pages
 from app.database import get_engine, init_db
-from app.routers import admin, config, health, landing, me, pages, upload
+from app.routers import admin, config, health, landing, me, upload
 from app.routers.pages import serve_page_content
 from app.settings import get_settings
 
@@ -44,7 +44,6 @@ def create_app() -> FastAPI:
     app.include_router(health.router)
     app.include_router(me.router)
     app.include_router(upload.router)
-    app.include_router(pages.router)
     app.include_router(admin.router)
 
     @app.get("/{path:path}", include_in_schema=False)
