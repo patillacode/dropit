@@ -8,7 +8,6 @@ const ttlSelect      = document.getElementById('ttl');
 const dropZone       = document.getElementById('dropZone');
 const fileInput      = document.getElementById('fileInput');
 const dzUrl          = document.getElementById('dzUrl');
-const dzCopyBtn      = document.getElementById('dzCopyBtn');
 const dzExpires      = document.getElementById('dzExpires');
 const dzResetBtn     = document.getElementById('dzResetBtn');
 const dzErrorMsg     = document.getElementById('dzErrorMsg');
@@ -161,6 +160,7 @@ async function doUpload() {
     if (!res.ok) throw new Error(data.detail || `Error ${res.status}`);
 
     dzUrl.textContent     = data.url;
+    dzUrl.href            = data.url;
     dzUrl.title           = data.url;
     dzExpires.textContent = data.expires_at
       ? `Expires ${new Date(data.expires_at).toLocaleString()}`
@@ -177,13 +177,6 @@ async function doUpload() {
   }
 }
 
-dzCopyBtn.addEventListener('click', e => {
-  e.stopPropagation();
-  navigator.clipboard.writeText(dzUrl.textContent).then(() => {
-    dzCopyBtn.textContent = 'Copied!';
-    setTimeout(() => { dzCopyBtn.textContent = 'Copy'; }, 2000);
-  });
-});
 
 dzResetBtn.addEventListener('click', e => {
   e.stopPropagation();
