@@ -27,6 +27,7 @@ def db_session_fixture():
 def set_env(monkeypatch):
     monkeypatch.setenv("UPLOAD_TOKENS", "alice:tok_test123")
     monkeypatch.setenv("BASE_URL", "http://localhost:8000")
+    monkeypatch.setenv("CONTENT_DOMAIN", "testcontent.test")
     monkeypatch.setenv("DATA_DIR", "/tmp/dropit-test")
     os.makedirs("/tmp/dropit-test/pages", exist_ok=True)
 

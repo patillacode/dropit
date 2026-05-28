@@ -33,7 +33,7 @@ def list_pages(session: Session = Depends(get_session)):
         result.append(
             {
                 "id": page.id,
-                "url": f"{settings.base_url}/p/{page.id}",
+                "url": settings.page_url(page.id),
                 "token_hint": page.token_hint,
                 "expires_at": page.expires_at.isoformat() if page.expires_at else None,
                 "file_size": size,

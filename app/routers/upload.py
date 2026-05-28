@@ -15,7 +15,7 @@ router = APIRouter()
 
 def _generate_id(session: Session) -> str:
     for _ in range(10):
-        candidate = secrets.token_urlsafe(6)
+        candidate = secrets.token_hex(4)
         existing = session.exec(select(Page).where(Page.id == candidate)).first()
         if existing is None:
             return candidate
@@ -95,6 +95,6 @@ async def upload(
     session.commit()
 
     return {
-        "url": f"{settings.base_url}/p/{page_id}",
+        "url": settings.page_url(page_id),
         "expires_at": expires_at.isoformat() if expires_at else None,
     }

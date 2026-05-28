@@ -34,7 +34,15 @@ class Settings(BaseSettings):
     cleanup_interval_hours: int = 1
     data_dir: str = "./data"
     base_url: str = "http://localhost:8000"
+    content_domain: str = "localhost:8000"
     admin_token: str | None = None
+
+    @property
+    def content_scheme(self) -> str:
+        return "http" if self.content_domain.split(":")[0] == "localhost" else "https"
+
+    def page_url(self, page_id: str) -> str:
+        return f"{self.content_scheme}://{page_id}.{self.content_domain}"
 
     @property
     def token_map(self) -> dict[str, str]:
