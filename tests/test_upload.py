@@ -111,7 +111,7 @@ def test_upload_admin_bypasses_max_user_ttl(client, monkeypatch):
     assert response.status_code == 200
 
 
-def test_upload_rejects_oversized_chunked(client, monkeypatch):
+def test_upload_rejects_oversized_via_body_read(client, monkeypatch):
     monkeypatch.setenv("MAX_UPLOAD_SIZE", "20")
     get_settings.cache_clear()
     # 25-byte body — exceeds 20-byte limit
