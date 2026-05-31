@@ -190,7 +190,7 @@ const HISTORY_KEY = 'dropit_history';
 function addToHistory(url, filename, expires_at) {
   let hist = [];
   try { hist = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch { }
-  hist.unshift({ url, filename, expires_at });
+  hist.unshift({ url, filename, expires_at, uploaded_at: new Date().toISOString() });
   localStorage.setItem(HISTORY_KEY, JSON.stringify(hist.slice(0, 5)));
 }
 
@@ -222,8 +222,15 @@ function renderHistory() {
     exp.className   = 'history-exp';
     exp.textContent = item.expires_at ? new Date(item.expires_at).toLocaleDateString() : 'permanent';
 
+    const uploaded = document.createElement('span');
+    uploaded.className   = 'history-uploaded';
+    uploaded.textContent = item.uploaded_at
+      ? new Date(item.uploaded_at).toLocaleString()
+      : '—';
+
     row.appendChild(name);
     row.appendChild(link);
+    row.appendChild(uploaded);
     row.appendChild(exp);
     historyList.appendChild(row);
   });

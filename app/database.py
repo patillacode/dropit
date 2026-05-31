@@ -47,10 +47,25 @@ def _migrate_schema(engine) -> None:
         conn.commit()
 
 
+def _add_columns(engine) -> None:
+    with engine.connect() as conn:
+        rows = conn.execute(text("PRAGMA table_info(page)")).fetchall()
+    if not rows:
+        return
+    existing = {r[1] for r in rows}
+    with engine.connect() as conn:
+        if "filename" not in existing:
+            conn.execute(text("ALTER TABLE page ADD COLUMN filename TEXT"))
+        if "created_at" not in existing:
+            conn.execute(text("ALTER TABLE page ADD COLUMN created_at DATETIME"))
+        conn.commit()
+
+
 def init_db() -> None:
     engine = get_engine()
     _migrate_schema(engine)
     SQLModel.metadata.create_all(engine)
+    _add_columns(engine)
 
 
 def get_session() -> Generator[Session, None, None]:

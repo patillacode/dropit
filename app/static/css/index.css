@@ -325,7 +325,8 @@ input[type="file"] { display: none; }
 }
 .history-url:hover { text-decoration: underline; text-underline-offset: 2px; }
 
-.history-exp { font-size: 0.68rem; color: var(--muted); white-space: nowrap; flex-shrink: 0; }
+.history-exp      { font-size: 0.68rem; color: var(--muted); white-space: nowrap; flex-shrink: 0; }
+.history-uploaded { font-size: 0.68rem; color: var(--muted); white-space: nowrap; flex-shrink: 0; }
 
 @keyframes pop {
   from { opacity: 0; transform: scale(0.97) translateY(6px); }
