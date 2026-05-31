@@ -1,9 +1,9 @@
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlmodel import Session, col, select
 
+from app.auth import require_admin
 from app.cleanup import delete_expired_pages
 from app.database import get_session
 from app.models import CleanupRun, Page
@@ -11,18 +11,8 @@ from app.settings import get_settings
 
 router = APIRouter(prefix="/admin")
 
-_bearer = HTTPBearer()
 
-
-def verify_admin(
-    credentials: HTTPAuthorizationCredentials = Depends(_bearer),
-) -> None:
-    settings = get_settings()
-    if not settings.admin_token or credentials.credentials != settings.admin_token:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
-
-
-@router.get("/pages", dependencies=[Depends(verify_admin)])
+@router.get("/pages", dependencies=[Depends(require_admin)])
 def list_pages(session: Session = Depends(get_session)):
     settings = get_settings()
     pages = session.exec(select(Page)).all()
@@ -44,7 +34,7 @@ def list_pages(session: Session = Depends(get_session)):
     return result
 
 
-@router.get("/cleanup/status", dependencies=[Depends(verify_admin)])
+@router.get("/cleanup/status", dependencies=[Depends(require_admin)])
 def cleanup_status(request: Request, session: Session = Depends(get_session)):
     last_run = session.exec(select(CleanupRun).order_by(col(CleanupRun.ran_at).desc())).first()
     job = getattr(request.app.state, "cleanup_job", None)
@@ -61,7 +51,7 @@ def cleanup_status(request: Request, session: Session = Depends(get_session)):
     }
 
 
-@router.get("/cleanup/history", dependencies=[Depends(verify_admin)])
+@router.get("/cleanup/history", dependencies=[Depends(require_admin)])
 def cleanup_history(session: Session = Depends(get_session)):
     runs = session.exec(select(CleanupRun).order_by(col(CleanupRun.ran_at).desc())).all()
     return [
@@ -75,7 +65,7 @@ def cleanup_history(session: Session = Depends(get_session)):
     ]
 
 
-@router.post("/cleanup/trigger", dependencies=[Depends(verify_admin)])
+@router.post("/cleanup/trigger", dependencies=[Depends(require_admin)])
 def trigger_cleanup(request: Request):
     settings = get_settings()
     engine = getattr(request.app.state, "engine", None)
@@ -87,7 +77,7 @@ def trigger_cleanup(request: Request):
     return {"deleted": deleted}
 
 
-@router.delete("/pages/{page_id}", dependencies=[Depends(verify_admin)])
+@router.delete("/pages/{page_id}", dependencies=[Depends(require_admin)])
 def delete_page(page_id: str, session: Session = Depends(get_session)):
     settings = get_settings()
     page = session.exec(select(Page).where(Page.id == page_id)).first()

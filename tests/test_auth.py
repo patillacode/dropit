@@ -2,7 +2,7 @@ import pytest
 from fastapi import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
 
-from app.auth import get_current_user, verify_token
+from app.auth import get_current_user, require_admin, verify_token
 from app.settings import Settings, get_settings
 
 
@@ -48,3 +48,28 @@ def test_regular_token_is_not_admin(monkeypatch):
     user = get_current_user(make_creds("tok_test123"))
     assert user.is_admin is False
     assert user.name == "alice"
+
+
+def test_require_admin_passes_for_admin_token(monkeypatch):
+    settings = make_settings(admin_token="secret_admin")
+    monkeypatch.setattr("app.auth.get_settings", lambda: settings)
+    get_settings.cache_clear()
+    require_admin(make_creds("secret_admin"))  # must not raise
+
+
+def test_require_admin_raises_403_for_unknown_token(monkeypatch):
+    settings = make_settings(admin_token="secret_admin")
+    monkeypatch.setattr("app.auth.get_settings", lambda: settings)
+    get_settings.cache_clear()
+    with pytest.raises(HTTPException) as exc:
+        require_admin(make_creds("totally_unknown"))
+    assert exc.value.status_code == 403
+
+
+def test_require_admin_raises_403_for_non_admin_token(monkeypatch):
+    settings = make_settings(admin_token="secret_admin")
+    monkeypatch.setattr("app.auth.get_settings", lambda: settings)
+    get_settings.cache_clear()
+    with pytest.raises(HTTPException) as exc:
+        require_admin(make_creds("tok_test123"))
+    assert exc.value.status_code == 403
