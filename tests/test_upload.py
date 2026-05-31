@@ -109,3 +109,16 @@ def test_upload_admin_bypasses_max_user_ttl(client, monkeypatch):
         files={"file": ("test.html", b"<h1>Hi</h1>", "text/html")},
     )
     assert response.status_code == 200
+
+
+def test_upload_rejects_oversized_chunked(client, monkeypatch):
+    monkeypatch.setenv("MAX_UPLOAD_SIZE", "20")
+    get_settings.cache_clear()
+    # 25-byte body — exceeds 20-byte limit
+    oversized = b"<h1>Oversized file!!</h1>"
+    response = client.post(
+        "/upload",
+        headers={"Authorization": "Bearer tok_test123"},
+        files={"file": ("test.html", oversized, "text/html")},
+    )
+    assert response.status_code == 413
