@@ -2,7 +2,7 @@ import secrets
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, status
 from sqlmodel import Session, select
 
 from app.auth import TokenUser, get_current_user
@@ -24,12 +24,24 @@ def _generate_id(session: Session) -> str:
 
 @router.post("/upload")
 async def upload(
+    request: Request,
     file: UploadFile,
     ttl: str | None = None,
     user: TokenUser = Depends(get_current_user),
     session: Session = Depends(get_session),
 ):
     settings = get_settings()
+
+    content_length_header = request.headers.get("content-length")
+    if content_length_header is not None:
+        try:
+            if int(content_length_header) > settings.max_upload_size:
+                raise HTTPException(
+                    status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+                    detail=f"File too large. Max size: {settings.max_upload_size} bytes",
+                )
+        except ValueError:
+            pass
 
     effective_ttl = ttl or settings.default_ttl
     if effective_ttl != "forever" and effective_ttl not in settings.ttl_list:
@@ -62,13 +74,18 @@ async def upload(
             detail="Only HTML files are accepted",
         )
 
-    content = await file.read()
-
-    if len(content) > settings.max_upload_size:
-        raise HTTPException(
-            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
-            detail=f"File too large. Max size: {settings.max_upload_size} bytes",
-        )
+    buf = bytearray()
+    while True:
+        chunk = await file.read(8192)
+        if not chunk:
+            break
+        buf += chunk
+        if len(buf) > settings.max_upload_size:
+            raise HTTPException(
+                status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+                detail=f"File too large. Max size: {settings.max_upload_size} bytes",
+            )
+    content = bytes(buf)
 
     if not is_html_ext:
         stripped = content.strip().lower()
