@@ -27,6 +27,8 @@ def list_pages(session: Session = Depends(get_session)):
                 "token_hint": page.token_hint,
                 "expires_at": page.expires_at.isoformat() if page.expires_at else None,
                 "file_size": size,
+                "filename": page.filename,
+                "created_at": page.created_at.isoformat() if page.created_at else None,
             }
         )
     return result

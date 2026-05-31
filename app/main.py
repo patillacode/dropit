@@ -16,6 +16,9 @@ from app.routers.pages import serve_page_content
 from app.settings import get_settings
 
 _ERROR_HTML = (Path(__file__).parent / "static" / "error.html").read_text()
+_RESERVED_SUBDOMAINS = {
+    "www",
+}
 
 
 @asynccontextmanager
@@ -82,8 +85,14 @@ def create_app() -> FastAPI:
         content_host = settings.content_domain.split(":")[0]
         suffix = f".{content_host}"
 
-        if host != content_host and host.endswith(suffix):
+        if (
+            host != content_host
+            and host.endswith(suffix)
+            and not request.url.path.startswith("/static/")
+        ):
             page_id = host[: -len(suffix)]
+            if page_id in _RESERVED_SUBDOMAINS:
+                return await call_next(request)
             with Session(request.app.state.engine) as session:
                 try:
                     response = serve_page_content(page_id, session)

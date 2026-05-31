@@ -156,6 +156,14 @@ function renderTable(pages) {
     a.rel = 'noopener noreferrer';
     tdUrl.appendChild(a);
 
+    const tdFile = document.createElement('td');
+    tdFile.className = 'td-filename';
+    tdFile.textContent = p.filename || '—';
+
+    const tdCreated = document.createElement('td');
+    tdCreated.className = 'td-created';
+    tdCreated.textContent = p.created_at ? fmtDate(p.created_at) : '—';
+
     const tdUp = document.createElement('td');
     tdUp.className = 'td-uploader';
     tdUp.textContent = p.token_hint;
@@ -176,6 +184,8 @@ function renderTable(pages) {
     tdAct.appendChild(btn);
 
     tr.appendChild(tdUrl);
+    tr.appendChild(tdFile);
+    tr.appendChild(tdCreated);
     tr.appendChild(tdUp);
     tr.appendChild(tdExp);
     tr.appendChild(tdSize);

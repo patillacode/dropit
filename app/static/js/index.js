@@ -8,7 +8,6 @@ const ttlSelect      = document.getElementById('ttl');
 const dropZone       = document.getElementById('dropZone');
 const fileInput      = document.getElementById('fileInput');
 const dzUrl          = document.getElementById('dzUrl');
-const dzCopyBtn      = document.getElementById('dzCopyBtn');
 const dzExpires      = document.getElementById('dzExpires');
 const dzResetBtn     = document.getElementById('dzResetBtn');
 const dzErrorMsg     = document.getElementById('dzErrorMsg');
@@ -161,6 +160,7 @@ async function doUpload() {
     if (!res.ok) throw new Error(data.detail || `Error ${res.status}`);
 
     dzUrl.textContent     = data.url;
+    dzUrl.href            = data.url;
     dzUrl.title           = data.url;
     dzExpires.textContent = data.expires_at
       ? `Expires ${new Date(data.expires_at).toLocaleString()}`
@@ -177,13 +177,6 @@ async function doUpload() {
   }
 }
 
-dzCopyBtn.addEventListener('click', e => {
-  e.stopPropagation();
-  navigator.clipboard.writeText(dzUrl.textContent).then(() => {
-    dzCopyBtn.textContent = 'Copied!';
-    setTimeout(() => { dzCopyBtn.textContent = 'Copy'; }, 2000);
-  });
-});
 
 dzResetBtn.addEventListener('click', e => {
   e.stopPropagation();
@@ -197,7 +190,7 @@ const HISTORY_KEY = 'dropit_history';
 function addToHistory(url, filename, expires_at) {
   let hist = [];
   try { hist = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch { }
-  hist.unshift({ url, filename, expires_at });
+  hist.unshift({ url, filename, expires_at, uploaded_at: new Date().toISOString() });
   localStorage.setItem(HISTORY_KEY, JSON.stringify(hist.slice(0, 5)));
 }
 
@@ -229,8 +222,15 @@ function renderHistory() {
     exp.className   = 'history-exp';
     exp.textContent = item.expires_at ? new Date(item.expires_at).toLocaleDateString() : 'permanent';
 
+    const uploaded = document.createElement('span');
+    uploaded.className   = 'history-uploaded';
+    uploaded.textContent = item.uploaded_at
+      ? new Date(item.uploaded_at).toLocaleString()
+      : '—';
+
     row.appendChild(name);
     row.appendChild(link);
+    row.appendChild(uploaded);
     row.appendChild(exp);
     historyList.appendChild(row);
   });

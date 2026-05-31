@@ -2,7 +2,7 @@
 
 Self-hosted HTML file sharing. Upload an HTML file, get a short-lived public URL.
 
-> **See it in action:** [this README is hosted on dropit](https://ckjuzfhf.dropit.patilla.es)
+> **See it in action:** [this README is hosted on dropit](https://3ed5f26c.dropit.patilla.es/)
 
 <p align="center">
   <img src="app/static/images/screenshot-index.png" alt="Landing page" width="48%">

@@ -212,6 +212,8 @@ tr:hover td      { background: rgba(255, 255, 255, 0.015); }
 .td-expires            { color: var(--muted); font-size: 0.75rem; white-space: nowrap; }
 .td-expires.permanent  { color: var(--ok); }
 .td-size               { color: var(--muted); font-size: 0.75rem; white-space: nowrap; }
+.td-filename           { color: var(--muted); font-size: 0.75rem; }
+.td-created            { color: var(--muted); font-size: 0.75rem; white-space: nowrap; }
 
 .del-btn {
   padding: 0.28rem 0.6rem;

@@ -90,7 +90,13 @@ async def upload(
     pages_dir.mkdir(parents=True, exist_ok=True)
     (pages_dir / page_id).write_bytes(content)
 
-    page = Page(id=page_id, expires_at=expires_at, token_hint=user.name)
+    page = Page(
+        id=page_id,
+        expires_at=expires_at,
+        token_hint=user.name,
+        filename=filename or None,
+        created_at=datetime.now(UTC).replace(tzinfo=None),
+    )
     session.add(page)
     session.commit()
 
