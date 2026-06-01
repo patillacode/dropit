@@ -58,7 +58,7 @@ async function copyToken(codeEl, btn, token) {
   btn.textContent = copied ? 'Copied!' : 'Copy failed';
 }
 
-function showTokenModal(token, opts) {
+export function showTokenModal(token, opts) {
   const { title = 'New token', subtitle = "Copy this token — it won't be shown again." } = opts || {};
 
   const sub = document.createElement('p');
@@ -77,7 +77,7 @@ function showTokenModal(token, opts) {
   closeBtn.addEventListener('click', close);
 }
 
-function showConfirmModal(opts) {
+export function showConfirmModal(opts) {
   const {
     title = 'Are you sure?',
     message = '',
@@ -114,7 +114,7 @@ function showConfirmModal(opts) {
   });
 }
 
-function showNoticeModal(opts) {
+export function showNoticeModal(opts) {
   const { title = 'Notice', message = '' } = opts || {};
   const msg = document.createElement('p');
   msg.className = 'token-modal-sub';

@@ -11,7 +11,7 @@ def test_error_response_expired():
 def test_error_response_not_found():
     r = error_response("anything else")
     assert r.status_code == 404
-    assert b"This page doesn't exist" in r.body
+    assert b"This page doesn&#39;t exist" in r.body
     assert b"Nothing was ever uploaded here." in r.body
 
 

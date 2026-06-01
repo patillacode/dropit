@@ -1,21 +1,7 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>dropit — admin</title>
-    <link rel="icon" href="/static/favicon.svg">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=DM+Mono:ital,wght@0,300;0,400;1,300&display=swap"
-        rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/base.css">
-    <link rel="stylesheet" href="/static/css/admin.css">
-</head>
-
-<body>
+{% extends "base.html" %}
+{% block title %}dropit — admin{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="/static/css/admin.css">{% endblock %}
+{% block content %}
     <main class="main">
         <header class="header">
             <h1 class="logo">drop<span class="logo-dot">•</span>it</h1>
@@ -135,9 +121,7 @@
 
         <a href="/" class="back-link">&larr; Back to dropit</a>
     </main>
-
-    <script src="/static/js/token-modal.js"></script>
-    <script src="/static/js/admin.js"></script>
-</body>
-
-</html>
+{% endblock %}
+{% block scripts %}
+    <script src="/static/js/admin.js" type="module"></script>
+{% endblock %}
