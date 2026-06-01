@@ -4,6 +4,7 @@ const tokenInd       = document.getElementById('tokenIndicator');
 const tokenHintEl    = document.getElementById('tokenHint');
 const tokenNameEl    = document.getElementById('tokenName');
 const tokenChgBtn    = document.getElementById('tokenChangeBtn');
+const tokenConnectBtn = document.getElementById('tokenConnectBtn');
 const usersCardEl    = document.getElementById('usersCard');
 const usersBodyEl    = document.getElementById('usersBody');
 const userCreateForm = document.getElementById('userCreateForm');
@@ -76,6 +77,7 @@ function showIndicator() {
 
 tokenInputEl.addEventListener('keydown', e => { if (e.key === 'Enter') tryConnect(); });
 tokenInputEl.addEventListener('blur', () => { if (tokenInputEl.value.trim()) tryConnect(); });
+tokenConnectBtn.addEventListener('click', () => tryConnect());
 
 tokenChgBtn.addEventListener('click', () => {
   localStorage.removeItem(STORAGE_KEY);
@@ -337,7 +339,13 @@ userCreateForm.addEventListener('submit', async e => {
 });
 
 async function regenerateUser(u) {
-  if (!confirm(`Regenerate ${u.name}'s token? Their current token stops working immediately.`)) return;
+  const ok = await showConfirmModal({
+    title: `Regenerate ${u.name}'s token?`,
+    message: 'Their current token stops working immediately, everywhere it is used.',
+    confirmLabel: 'Regenerate',
+    danger: true,
+  });
+  if (!ok) return;
   const token = getToken();
   errorEl.classList.remove('visible');
   try {
@@ -360,7 +368,13 @@ async function regenerateUser(u) {
 }
 
 async function deleteUser(u, tr) {
-  if (!confirm(`Delete user ${u.name}? Their uploaded pages are kept.`)) return;
+  const ok = await showConfirmModal({
+    title: `Delete user ${u.name}?`,
+    message: 'Their uploaded pages are kept. This cannot be undone.',
+    confirmLabel: 'Delete',
+    danger: true,
+  });
+  if (!ok) return;
   const token = getToken();
   errorEl.classList.remove('visible');
   try {

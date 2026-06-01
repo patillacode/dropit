@@ -28,13 +28,16 @@
             <div class="field">
                 <label for="token">API token</label>
                 <div id="tokenField">
-                    <input type="password" id="token" placeholder="your-api-token" autocomplete="off"
-                        spellcheck="false">
+                    <div class="token-input-row">
+                        <input type="password" id="token" placeholder="your-api-token" autocomplete="off"
+                            spellcheck="false">
+                        <button type="button" class="token-connect-btn" id="tokenConnectBtn">Connect</button>
+                    </div>
                     <p class="token-hint" id="tokenHint" style="display:none"></p>
                 </div>
                 <div class="token-indicator" id="tokenIndicator" style="display:none">
                     <span class="token-badge">Connected</span>
-                    Uploading as <strong id="tokenName"></strong>
+                    <strong id="tokenName"></strong>
                     <button class="token-change-btn" id="tokenRegenBtn">regenerate</button>
                     <button class="token-change-btn" id="tokenChangeBtn">change</button>
                 </div>
