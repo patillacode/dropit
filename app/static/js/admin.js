@@ -1,4 +1,5 @@
 import { getToken as _getToken, showTokenField, showTokenIndicator } from '/static/js/token-shared.js';
+import { showTokenModal, showConfirmModal } from '/static/js/token-modal.js';
 
 const tokenInputEl   = document.getElementById('tokenInput');
 const tokenFieldEl   = document.getElementById('tokenField');
