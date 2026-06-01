@@ -1,3 +1,8 @@
+import { showTokenField, showTokenIndicator } from '/static/js/token-shared.js';
+import { showTokenModal, showConfirmModal, showNoticeModal } from '/static/js/token-modal.js';
+
+const STORAGE_KEY = 'dropit_token';
+
 const tokenInputEl   = document.getElementById('token');
 const tokenFieldEl   = document.getElementById('tokenField');
 const tokenIndicator = document.getElementById('tokenIndicator');
@@ -18,6 +23,9 @@ const historyList    = document.getElementById('historyList');
 const adminSepEl     = document.getElementById('adminSep');
 const adminLinkEl    = document.getElementById('adminLink');
 
+const _tokenEls     = { fieldEl: tokenFieldEl, indicatorEl: tokenIndicator, hintEl: tokenHintEl };
+const _indicatorEls = { fieldEl: tokenFieldEl, indicatorEl: tokenIndicator, nameEl: tokenNameEl };
+
 let selectedFile = null;
 let currentUser  = null;
 let appConfig    = null;
@@ -32,7 +40,7 @@ async function init() {
   if (stored) {
     await checkToken(stored);
   } else {
-    showField('Contact your admin to get a token');
+    showTokenField(_tokenEls,'Contact your admin to get a token');
     populateTTL(false);
   }
   renderHistory();
@@ -43,7 +51,7 @@ async function checkToken(token) {
     const res = await fetch('/me', { headers: { Authorization: `Bearer ${token}` } });
     if (res.ok) {
       currentUser = await res.json();
-      showIndicator(currentUser.name);
+      showTokenIndicator(_indicatorEls,currentUser.name);
       populateTTL(currentUser.is_admin);
       if (currentUser.is_admin) {
         adminSepEl.style.display  = '';
@@ -52,31 +60,15 @@ async function checkToken(token) {
     } else {
       localStorage.removeItem('dropit_token');
       currentUser = null;
-      showField('Invalid token — ask your admin for a new one');
+      showTokenField(_tokenEls,'Invalid token — ask your admin for a new one');
       populateTTL(false);
     }
   } catch {
-    showField('Contact your admin to get a token');
+    showTokenField(_tokenEls,'Contact your admin to get a token');
     populateTTL(false);
   }
 }
 
-function showField(hint) {
-  tokenFieldEl.style.display  = '';
-  tokenIndicator.style.display = 'none';
-  if (hint) {
-    tokenHintEl.textContent    = hint;
-    tokenHintEl.style.display  = '';
-  } else {
-    tokenHintEl.style.display  = 'none';
-  }
-}
-
-function showIndicator(name) {
-  tokenFieldEl.style.display   = 'none';
-  tokenIndicator.style.display = '';
-  tokenNameEl.textContent      = name;
-}
 
 function populateTTL(isAdmin) {
   if (!appConfig) return;
@@ -107,12 +99,12 @@ tokenChangeBtn.addEventListener('click', () => {
   tokenInputEl.value = '';
   adminSepEl.style.display  = 'none';
   adminLinkEl.style.display = 'none';
-  showField();
+  showTokenField(_tokenEls);
   populateTTL(false);
 });
 
 tokenRegenBtn.addEventListener('click', async () => {
-  const token = getToken();
+  const token = localStorage.getItem(STORAGE_KEY) || tokenInputEl.value.trim();
   if (!token) return;
   const ok = await showConfirmModal({
     title: 'Regenerate your token?',
@@ -159,12 +151,8 @@ function pick(f) {
   doUpload();
 }
 
-function getToken() {
-  return localStorage.getItem('dropit_token') || tokenInputEl.value.trim();
-}
-
 async function doUpload() {
-  const token = getToken();
+  const token = localStorage.getItem(STORAGE_KEY) || tokenInputEl.value.trim();
   if (!token) {
     dzErrorMsg.textContent = 'No token — enter your API token above';
     setState('error');
