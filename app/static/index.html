@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>dropit</title>
+    <link rel="icon" href="/static/favicon.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -28,11 +29,11 @@
             <div class="field">
                 <label for="token">API token</label>
                 <div id="tokenField">
-                    <div class="token-input-row">
+                    <form class="token-input-row" id="tokenForm">
                         <input type="password" id="token" placeholder="your-api-token" autocomplete="off"
                             spellcheck="false">
-                        <button type="button" class="token-connect-btn" id="tokenConnectBtn">Connect</button>
-                    </div>
+                        <button type="submit" class="token-connect-btn" id="tokenConnectBtn">Connect</button>
+                    </form>
                     <p class="token-hint" id="tokenHint" style="display:none"></p>
                 </div>
                 <div class="token-indicator" id="tokenIndicator" style="display:none">
@@ -96,7 +97,16 @@
 
         <div class="history" id="history">
             <div class="history-label">Recent uploads</div>
-            <div id="historyList"></div>
+            <table class="history-table">
+                <thead>
+                    <tr>
+                        <th>File</th>
+                        <th>URL</th>
+                        <th>Expires</th>
+                    </tr>
+                </thead>
+                <tbody id="historyList"></tbody>
+            </table>
         </div>
 
         <footer class="footer" id="footer">

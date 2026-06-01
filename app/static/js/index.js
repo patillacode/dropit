@@ -5,7 +5,7 @@ const tokenNameEl    = document.getElementById('tokenName');
 const tokenHintEl    = document.getElementById('tokenHint');
 const tokenChangeBtn = document.getElementById('tokenChangeBtn');
 const tokenRegenBtn  = document.getElementById('tokenRegenBtn');
-const tokenConnectBtn = document.getElementById('tokenConnectBtn');
+const tokenForm      = document.getElementById('tokenForm');
 const ttlSelect      = document.getElementById('ttl');
 const dropZone       = document.getElementById('dropZone');
 const fileInput      = document.getElementById('fileInput');
@@ -91,9 +91,8 @@ function populateTTL(isAdmin) {
   });
 }
 
-tokenInputEl.addEventListener('keydown', e => { if (e.key === 'Enter') saveToken(); });
-tokenInputEl.addEventListener('blur',    () => { if (tokenInputEl.value.trim()) saveToken(); });
-tokenConnectBtn.addEventListener('click', () => saveToken());
+tokenForm.addEventListener('submit', e => { e.preventDefault(); saveToken(); });
+tokenInputEl.addEventListener('blur', () => { if (tokenInputEl.value.trim()) saveToken(); });
 
 async function saveToken() {
   const token = tokenInputEl.value.trim();
@@ -193,7 +192,7 @@ async function doUpload() {
     dzUrl.href            = data.url;
     dzUrl.title           = data.url;
     dzExpires.textContent = data.expires_at
-      ? `Expires ${new Date(data.expires_at).toLocaleString()}`
+      ? `Expires ${asUtc(data.expires_at).toLocaleString()}`
       : 'Never expires — permanent';
     setState('success');
 
@@ -217,6 +216,13 @@ dzResetBtn.addEventListener('click', e => {
 
 const HISTORY_KEY = 'dropit_history';
 
+// Upload timestamps come back as naive UTC; treat them as UTC, not local.
+function asUtc(iso) {
+  if (!iso) return null;
+  const normalized = iso.endsWith('Z') || iso.includes('+') ? iso : iso + 'Z';
+  return new Date(normalized);
+}
+
 function addToHistory(url, filename, expires_at) {
   let hist = [];
   try { hist = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch { }
@@ -228,43 +234,54 @@ function renderHistory() {
   const now  = Date.now();
   let hist   = [];
   try { hist = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch { }
-  const alive = hist.filter(item => !item.expires_at || new Date(item.expires_at).getTime() > now);
-  if (!alive.length) { historyEl.classList.remove('visible'); return; }
+  const alive = hist.filter(item => {
+    if (!item.expires_at) return true;
+    const exp = asUtc(item.expires_at);
+    return exp && exp.getTime() > now;
+  });
 
   while (historyList.firstChild) historyList.removeChild(historyList.firstChild);
+  historyEl.classList.add('visible');
+
+  if (!alive.length) {
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+    td.className = 'history-empty';
+    td.colSpan = 3;
+    td.textContent = 'No uploads yet';
+    tr.appendChild(td);
+    historyList.appendChild(tr);
+    return;
+  }
+
   alive.forEach(item => {
-    const row  = document.createElement('div');
+    const row = document.createElement('tr');
     row.className = 'history-item';
 
-    const name = document.createElement('span');
+    const name = document.createElement('td');
     name.className   = 'history-filename';
     name.textContent = item.filename;
     name.title       = item.filename;
 
+    const urlCell = document.createElement('td');
+    urlCell.className = 'history-url-cell';
     const link = document.createElement('a');
     link.className  = 'history-url';
     link.href       = item.url;
     link.textContent = item.url;
     link.target     = '_blank';
     link.rel        = 'noopener noreferrer';
+    urlCell.appendChild(link);
 
-    const exp = document.createElement('span');
+    const exp = document.createElement('td');
     exp.className   = 'history-exp';
-    exp.textContent = item.expires_at ? new Date(item.expires_at).toLocaleDateString() : 'permanent';
-
-    const uploaded = document.createElement('span');
-    uploaded.className   = 'history-uploaded';
-    uploaded.textContent = item.uploaded_at
-      ? new Date(item.uploaded_at).toLocaleString()
-      : '—';
+    exp.textContent = item.expires_at ? asUtc(item.expires_at).toLocaleDateString() : 'permanent';
 
     row.appendChild(name);
-    row.appendChild(link);
-    row.appendChild(uploaded);
+    row.appendChild(urlCell);
     row.appendChild(exp);
     historyList.appendChild(row);
   });
-  historyEl.classList.add('visible');
 }
 
 init();

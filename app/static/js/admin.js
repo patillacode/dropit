@@ -4,7 +4,7 @@ const tokenInd       = document.getElementById('tokenIndicator');
 const tokenHintEl    = document.getElementById('tokenHint');
 const tokenNameEl    = document.getElementById('tokenName');
 const tokenChgBtn    = document.getElementById('tokenChangeBtn');
-const tokenConnectBtn = document.getElementById('tokenConnectBtn');
+const tokenForm      = document.getElementById('tokenForm');
 const usersCardEl    = document.getElementById('usersCard');
 const usersBodyEl    = document.getElementById('usersBody');
 const userCreateForm = document.getElementById('userCreateForm');
@@ -14,6 +14,7 @@ const errorEl        = document.getElementById('errorEl');
 const statsEl        = document.getElementById('stats');
 const tableWrap      = document.getElementById('tableWrap');
 const tableBody      = document.getElementById('tableBody');
+const pagesSection   = document.getElementById('pagesSection');
 const emptyEl        = document.getElementById('emptyEl');
 const statTotal      = document.getElementById('statTotal');
 const statPermanent  = document.getElementById('statPermanent');
@@ -75,9 +76,8 @@ function showIndicator() {
   usersCardEl.classList.add('visible');
 }
 
-tokenInputEl.addEventListener('keydown', e => { if (e.key === 'Enter') tryConnect(); });
+tokenForm.addEventListener('submit', e => { e.preventDefault(); tryConnect(); });
 tokenInputEl.addEventListener('blur', () => { if (tokenInputEl.value.trim()) tryConnect(); });
-tokenConnectBtn.addEventListener('click', () => tryConnect());
 
 tokenChgBtn.addEventListener('click', () => {
   localStorage.removeItem(STORAGE_KEY);
@@ -153,6 +153,7 @@ async function loadPages() {
 function clearAll() {
   while (tableBody.firstChild) tableBody.removeChild(tableBody.firstChild);
   tableWrap.classList.remove('visible');
+  pagesSection.classList.remove('visible');
   statsEl.classList.remove('visible');
   emptyEl.classList.remove('visible');
   cleanupCardEl.classList.remove('visible');
@@ -180,6 +181,7 @@ function renderTable(pages) {
   statPermanent.textContent = permanentCount;
   statSize.textContent = fmtSize(totalSize);
   statsEl.classList.add('visible');
+  pagesSection.classList.add('visible');
 
   if (!pages.length) {
     emptyEl.classList.add('visible');
@@ -188,6 +190,7 @@ function renderTable(pages) {
 
   pages.forEach(p => {
     const tr = document.createElement('tr');
+    tr.className = 'page-row';
 
     const tdUrl = document.createElement('td');
     tdUrl.className = 'td-url';
@@ -198,47 +201,73 @@ function renderTable(pages) {
     a.rel = 'noopener noreferrer';
     tdUrl.appendChild(a);
 
-    const tdFile = document.createElement('td');
-    tdFile.className = 'td-filename';
-    tdFile.textContent = p.filename || '—';
-
-    const tdCreated = document.createElement('td');
-    tdCreated.className = 'td-created';
-    tdCreated.textContent = p.created_at ? fmtDate(p.created_at) : '—';
+    const tdExp = document.createElement('td');
+    tdExp.className = p.expires_at ? 'td-expires' : 'td-expires permanent';
+    tdExp.textContent = p.expires_at ? fmtDate(p.expires_at) : 'permanent';
 
     const tdUp = document.createElement('td');
     tdUp.className = 'td-uploader';
     tdUp.textContent = p.token_hint;
 
-    const tdExp = document.createElement('td');
-    tdExp.className = p.expires_at ? 'td-expires' : 'td-expires permanent';
-    tdExp.textContent = p.expires_at ? fmtDate(p.expires_at) : 'permanent';
-
-    const tdSize = document.createElement('td');
-    tdSize.className = 'td-size';
-    tdSize.textContent = fmtSize(p.file_size || 0);
-
     const tdAct = document.createElement('td');
-    const btn = document.createElement('button');
-    btn.className = 'del-btn';
-    btn.textContent = 'Delete';
-    btn.addEventListener('click', () => deletePage(p.id, tr));
-    tdAct.appendChild(btn);
+    tdAct.className = 'page-actions';
+
+    const detailsBtn = document.createElement('button');
+    detailsBtn.className = 'details-btn';
+    detailsBtn.textContent = 'Details';
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'del-btn';
+    delBtn.textContent = 'Delete';
+
+    tdAct.appendChild(detailsBtn);
+    tdAct.appendChild(delBtn);
 
     tr.appendChild(tdUrl);
-    tr.appendChild(tdFile);
-    tr.appendChild(tdCreated);
-    tr.appendChild(tdUp);
     tr.appendChild(tdExp);
-    tr.appendChild(tdSize);
+    tr.appendChild(tdUp);
     tr.appendChild(tdAct);
+
+    const detailTr = document.createElement('tr');
+    detailTr.className = 'page-detail';
+    const detailTd = document.createElement('td');
+    detailTd.colSpan = 4;
+    const grid = document.createElement('div');
+    grid.className = 'detail-grid';
+    grid.appendChild(detailItem('File', p.filename || '—'));
+    grid.appendChild(detailItem('Uploaded', p.created_at ? fmtDate(p.created_at) : '—'));
+    grid.appendChild(detailItem('Size', fmtSize(p.file_size || 0)));
+    detailTd.appendChild(grid);
+    detailTr.appendChild(detailTd);
+
+    detailsBtn.addEventListener('click', () => {
+      const open = detailTr.classList.toggle('open');
+      detailsBtn.textContent = open ? 'Hide' : 'Details';
+    });
+    delBtn.addEventListener('click', () => deletePage(p.id, tr, detailTr));
+
     tableBody.appendChild(tr);
+    tableBody.appendChild(detailTr);
   });
 
   tableWrap.classList.add('visible');
 }
 
-async function deletePage(id, tr) {
+function detailItem(key, value) {
+  const item = document.createElement('div');
+  item.className = 'detail-item';
+  const k = document.createElement('span');
+  k.className = 'detail-key';
+  k.textContent = key;
+  const v = document.createElement('span');
+  v.className = 'detail-val';
+  v.textContent = value;
+  item.appendChild(k);
+  item.appendChild(v);
+  return item;
+}
+
+async function deletePage(id, tr, detailTr) {
   const token = getToken();
   try {
     const res = await fetch(`/admin/pages/${encodeURIComponent(id)}`, {
@@ -247,6 +276,7 @@ async function deletePage(id, tr) {
     });
     if (!res.ok) throw new Error(`Error ${res.status}`);
     tr.remove();
+    detailTr.remove();
     if (!tableBody.firstChild) {
       tableWrap.classList.remove('visible');
       emptyEl.classList.add('visible');

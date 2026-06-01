@@ -3,7 +3,7 @@
   --surface:  #111114;
   --border:   #222226;
   --text:     #ece9e0;
-  --muted:    #5a5a60;
+  --muted:    #8b8b94;
   --accent:   #c8ff00;
   --accent-d: rgba(200, 255, 0, 0.10);
   --ok:       #00d68f;
@@ -21,6 +21,7 @@ html { height: 100%; }
 
 body {
   font-family: var(--mono);
+  font-size: 0.9375rem;
   background: var(--bg);
   color: var(--text);
   min-height: 100%;
@@ -83,7 +84,7 @@ body::after {
 
 label {
   display: block;
-  font-size: 0.62rem;
+  font-size: 0.75rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--muted);
@@ -95,7 +96,7 @@ input[type="password"] {
   border: 1px solid var(--border);
   color: var(--text);
   font-family: var(--mono);
-  font-size: 0.83rem;
+  font-size: 0.875rem;
   padding: 0.6rem 0.8rem;
   border-radius: var(--r);
   outline: none;
@@ -113,14 +114,14 @@ input[type="password"]:focus { border-color: var(--accent); box-shadow: 0 0 0 1p
   padding: 0.6rem 0.8rem;
   border: 1px solid var(--border);
   border-radius: var(--r);
-  font-size: 0.83rem;
+  font-size: 0.875rem;
   color: var(--muted);
   background: var(--surface);
 }
 .token-indicator strong { color: var(--accent); }
 
 .token-badge {
-  font-size: 0.58rem;
+  font-size: 0.69rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--muted);
@@ -135,7 +136,7 @@ input[type="password"]:focus { border-color: var(--accent); box-shadow: 0 0 0 1p
   border: 1px solid var(--border);
   color: var(--muted);
   font-family: var(--mono);
-  font-size: 0.62rem;
+  font-size: 0.75rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   cursor: pointer;
@@ -149,7 +150,7 @@ input[type="password"]:focus { border-color: var(--accent); box-shadow: 0 0 0 1p
 
 .token-hint {
   margin-top: 0.3rem;
-  font-size: 0.68rem;
+  font-size: 0.78rem;
   color: var(--muted);
   letter-spacing: 0.02em;
 }
@@ -189,7 +190,7 @@ input[type="password"]:focus { border-color: var(--accent); box-shadow: 0 0 0 1p
 }
 
 .token-modal-sub {
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   color: var(--muted);
   margin-bottom: 0.9rem;
   letter-spacing: 0.02em;
@@ -198,7 +199,7 @@ input[type="password"]:focus { border-color: var(--accent); box-shadow: 0 0 0 1p
 .token-modal-token {
   display: block;
   font-family: var(--mono);
-  font-size: 0.82rem;
+  font-size: 0.875rem;
   color: var(--accent);
   background: var(--bg);
   border: 1px solid var(--border);
@@ -221,7 +222,7 @@ input[type="password"]:focus { border-color: var(--accent); box-shadow: 0 0 0 1p
   border: 1px solid var(--border);
   color: var(--text);
   font-family: var(--mono);
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   letter-spacing: 0.05em;
   padding: 0.45rem 0.9rem;
   border-radius: var(--r);
@@ -247,7 +248,7 @@ input[type="password"]:focus { border-color: var(--accent); box-shadow: 0 0 0 1p
   border: 1px solid var(--accent);
   color: var(--accent);
   font-family: var(--mono);
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   padding: 0 0.9rem;
