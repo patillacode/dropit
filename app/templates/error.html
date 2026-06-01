@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}dropit &mdash; {{ title }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="/static/css/error.css">{% endblock %}
+{% block body_before %}
+    <div class="watermark" aria-hidden="true">dropit</div>
+    <div class="glow" aria-hidden="true"></div>
+{% endblock %}
+{% block content %}
+    <main class="main">
+        <header class="header">
+            <a href="/" class="logo">drop<span class="logo-dot">•</span>it</a>
+        </header>
+        <div class="error-block">
+            <div class="error-code">404</div>
+            <p class="error-title">{{ title }}</p>
+            <p class="error-sub">{{ subtitle }}</p>
+            <a href="/" class="home-link">← back to dropit</a>
+        </div>
+    </main>
+{% endblock %}
