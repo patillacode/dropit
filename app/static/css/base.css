@@ -141,6 +141,9 @@ input[type="password"]:focus {
 .token-indicator strong {
     color: var(--accent);
 }
+.token-indicator .btn:first-of-type {
+    margin-left: auto;
+}
 
 .token-badge {
     font-size: 0.69rem;
