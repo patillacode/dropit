@@ -4,6 +4,8 @@ const tokenIndicator = document.getElementById('tokenIndicator');
 const tokenNameEl    = document.getElementById('tokenName');
 const tokenHintEl    = document.getElementById('tokenHint');
 const tokenChangeBtn = document.getElementById('tokenChangeBtn');
+const tokenRegenBtn  = document.getElementById('tokenRegenBtn');
+const tokenConnectBtn = document.getElementById('tokenConnectBtn');
 const ttlSelect      = document.getElementById('ttl');
 const dropZone       = document.getElementById('dropZone');
 const fileInput      = document.getElementById('fileInput');
@@ -91,6 +93,7 @@ function populateTTL(isAdmin) {
 
 tokenInputEl.addEventListener('keydown', e => { if (e.key === 'Enter') saveToken(); });
 tokenInputEl.addEventListener('blur',    () => { if (tokenInputEl.value.trim()) saveToken(); });
+tokenConnectBtn.addEventListener('click', () => saveToken());
 
 async function saveToken() {
   const token = tokenInputEl.value.trim();
@@ -107,6 +110,33 @@ tokenChangeBtn.addEventListener('click', () => {
   adminLinkEl.style.display = 'none';
   showField();
   populateTTL(false);
+});
+
+tokenRegenBtn.addEventListener('click', async () => {
+  const token = getToken();
+  if (!token) return;
+  const ok = await showConfirmModal({
+    title: 'Regenerate your token?',
+    message: 'Your current token stops working everywhere immediately — other devices, the CLI, and other browsers.',
+    confirmLabel: 'Regenerate',
+    danger: true,
+  });
+  if (!ok) return;
+  try {
+    const res = await fetch('/me/regenerate', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || `Error ${res.status}`);
+    localStorage.setItem('dropit_token', data.token);
+    showTokenModal(data.token, {
+      title: 'Your new token',
+      subtitle: "Copy it now — it won't be shown again. Your old token no longer works.",
+    });
+  } catch (err) {
+    showNoticeModal({ title: 'Could not regenerate', message: err.message });
+  }
 });
 
 dropZone.addEventListener('click', () => {

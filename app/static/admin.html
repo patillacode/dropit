@@ -22,20 +22,45 @@
         </header>
 
         <div class="auth-section">
-            <label>Admin token</label>
+            <label>API token</label>
             <div id="tokenField">
-                <input type="password" id="tokenInput" placeholder="your-admin-token" autocomplete="off"
-                    spellcheck="false">
+                <div class="token-input-row">
+                    <input type="password" id="tokenInput" placeholder="your-api-token" autocomplete="off"
+                        spellcheck="false">
+                    <button type="button" class="token-connect-btn" id="tokenConnectBtn">Connect</button>
+                </div>
                 <p class="token-hint" id="tokenHint" style="display:none"></p>
             </div>
             <div class="token-indicator" id="tokenIndicator" style="display:none">
                 <span class="token-badge">Admin</span>
-                <strong>Connected</strong>
+                <strong id="tokenName"></strong>
                 <button class="token-change-btn" id="tokenChangeBtn">disconnect</button>
             </div>
         </div>
 
         <div class="error" id="errorEl"></div>
+
+        <div class="users-card" id="usersCard">
+            <div class="users-section-label">Users</div>
+            <form class="user-create" id="userCreateForm">
+                <input type="text" id="newUserName" placeholder="username" autocomplete="off" spellcheck="false">
+                <label class="user-admin-check"><input type="checkbox" id="newUserAdmin"> admin</label>
+                <button type="submit" class="user-create-btn">Create user</button>
+            </form>
+            <div class="table-wrap visible" id="usersTableWrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Admin</th>
+                            <th>Created</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersBody"></tbody>
+                </table>
+            </div>
+        </div>
 
         <div class="stats" id="stats">
             <span><strong id="statTotal">0</strong> pages</span>
@@ -103,6 +128,7 @@
         <a href="/" class="back-link">&larr; Back to dropit</a>
     </main>
 
+    <script src="/static/js/token-modal.js"></script>
     <script src="/static/js/admin.js"></script>
 </body>
 

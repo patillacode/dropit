@@ -2,7 +2,14 @@ const tokenInputEl   = document.getElementById('tokenInput');
 const tokenFieldEl   = document.getElementById('tokenField');
 const tokenInd       = document.getElementById('tokenIndicator');
 const tokenHintEl    = document.getElementById('tokenHint');
+const tokenNameEl    = document.getElementById('tokenName');
 const tokenChgBtn    = document.getElementById('tokenChangeBtn');
+const tokenConnectBtn = document.getElementById('tokenConnectBtn');
+const usersCardEl    = document.getElementById('usersCard');
+const usersBodyEl    = document.getElementById('usersBody');
+const userCreateForm = document.getElementById('userCreateForm');
+const newUserNameEl  = document.getElementById('newUserName');
+const newUserAdminEl = document.getElementById('newUserAdmin');
 const errorEl        = document.getElementById('errorEl');
 const statsEl        = document.getElementById('stats');
 const tableWrap      = document.getElementById('tableWrap');
@@ -17,8 +24,9 @@ const histToggleBtn  = document.getElementById('historyToggleBtn');
 const histWrap       = document.getElementById('cleanupHistoryWrap');
 const histBody       = document.getElementById('cleanupHistoryBody');
 
-const STORAGE_KEY = 'dropit_admin_token';
+const STORAGE_KEY = 'dropit_token';
 let historyVisible = false;
+let currentUserName = null;
 
 function fmtSize(bytes) {
   if (bytes < 1024) return bytes + ' B';
@@ -62,15 +70,19 @@ function showField(hint) {
 function showIndicator() {
   tokenFieldEl.style.display = 'none';
   tokenInd.style.display = '';
+  tokenNameEl.textContent = currentUserName || 'admin';
   cleanupCardEl.classList.add('visible');
+  usersCardEl.classList.add('visible');
 }
 
 tokenInputEl.addEventListener('keydown', e => { if (e.key === 'Enter') tryConnect(); });
 tokenInputEl.addEventListener('blur', () => { if (tokenInputEl.value.trim()) tryConnect(); });
+tokenConnectBtn.addEventListener('click', () => tryConnect());
 
 tokenChgBtn.addEventListener('click', () => {
   localStorage.removeItem(STORAGE_KEY);
   tokenInputEl.value = '';
+  currentUserName = null;
   showField();
   clearAll();
 });
@@ -79,8 +91,39 @@ async function tryConnect() {
   const token = tokenInputEl.value.trim();
   if (!token) return;
   localStorage.setItem(STORAGE_KEY, token);
+  await connect();
+}
+
+async function connect() {
+  const token = getToken();
+  if (!token) { showField(); return; }
+  errorEl.classList.remove('visible');
+  let me;
+  try {
+    const res = await fetch('/me', { headers: { Authorization: `Bearer ${token}` } });
+    if (res.status === 401) {
+      localStorage.removeItem(STORAGE_KEY);
+      showField('Invalid token');
+      clearAll();
+      return;
+    }
+    if (!res.ok) throw new Error(`Error ${res.status}`);
+    me = await res.json();
+  } catch (err) {
+    errorEl.textContent = err.message;
+    errorEl.classList.add('visible');
+    return;
+  }
+  currentUserName = me.name;
+  if (!me.is_admin) {
+    showField('This token does not have admin access');
+    clearAll();
+    return;
+  }
+  showIndicator();
   await loadPages();
   await loadCleanupStatus();
+  await loadUsers();
 }
 
 async function loadPages() {
@@ -93,15 +136,13 @@ async function loadPages() {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (res.status === 403 || res.status === 401) {
-      localStorage.removeItem(STORAGE_KEY);
-      showField('Invalid admin token');
+      showField('This token does not have admin access');
       clearAll();
       return;
     }
     if (!res.ok) throw new Error(`Error ${res.status}`);
 
     const pages = await res.json();
-    showIndicator();
     renderTable(pages);
   } catch (err) {
     errorEl.textContent = err.message;
@@ -115,6 +156,7 @@ function clearAll() {
   statsEl.classList.remove('visible');
   emptyEl.classList.remove('visible');
   cleanupCardEl.classList.remove('visible');
+  usersCardEl.classList.remove('visible');
   histWrap.classList.remove('visible');
   historyVisible = false;
   histToggleBtn.textContent = 'Show history';
@@ -209,6 +251,142 @@ async function deletePage(id, tr) {
       tableWrap.classList.remove('visible');
       emptyEl.classList.add('visible');
     }
+  } catch (err) {
+    errorEl.textContent = err.message;
+    errorEl.classList.add('visible');
+  }
+}
+
+async function loadUsers() {
+  const token = getToken();
+  if (!token) return;
+  try {
+    const res = await fetch('/admin/users', { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) return;
+    renderUsers(await res.json());
+  } catch (_) {
+    // non-critical
+  }
+}
+
+function renderUsers(users) {
+  while (usersBodyEl.firstChild) usersBodyEl.removeChild(usersBodyEl.firstChild);
+  users.forEach(u => {
+    const tr = document.createElement('tr');
+
+    const tdName = document.createElement('td');
+    tdName.textContent = u.name;
+
+    const tdAdmin = document.createElement('td');
+    tdAdmin.textContent = u.is_admin ? 'yes' : '—';
+
+    const tdCreated = document.createElement('td');
+    tdCreated.textContent = u.created_at ? fmtDate(u.created_at) : '—';
+
+    const tdAct = document.createElement('td');
+    tdAct.className = 'user-actions';
+
+    const regenBtn = document.createElement('button');
+    regenBtn.className = 'user-regen-btn';
+    regenBtn.textContent = 'Regenerate';
+    regenBtn.addEventListener('click', () => regenerateUser(u));
+    tdAct.appendChild(regenBtn);
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'del-btn';
+    delBtn.textContent = 'Delete';
+    if (u.name === currentUserName) {
+      delBtn.disabled = true;
+      delBtn.title = 'You cannot delete yourself';
+    } else {
+      delBtn.addEventListener('click', () => deleteUser(u, tr));
+    }
+    tdAct.appendChild(delBtn);
+
+    tr.appendChild(tdName);
+    tr.appendChild(tdAdmin);
+    tr.appendChild(tdCreated);
+    tr.appendChild(tdAct);
+    usersBodyEl.appendChild(tr);
+  });
+}
+
+userCreateForm.addEventListener('submit', async e => {
+  e.preventDefault();
+  const name = newUserNameEl.value.trim();
+  if (!name) return;
+  const token = getToken();
+  errorEl.classList.remove('visible');
+  try {
+    const res = await fetch('/admin/users', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, is_admin: newUserAdminEl.checked }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || `Error ${res.status}`);
+    newUserNameEl.value = '';
+    newUserAdminEl.checked = false;
+    showTokenModal(data.token, {
+      title: `Token for ${data.name}`,
+      subtitle: "Copy this token and hand it to the user — it won't be shown again.",
+    });
+    await loadUsers();
+  } catch (err) {
+    errorEl.textContent = err.message;
+    errorEl.classList.add('visible');
+  }
+});
+
+async function regenerateUser(u) {
+  const ok = await showConfirmModal({
+    title: `Regenerate ${u.name}'s token?`,
+    message: 'Their current token stops working immediately, everywhere it is used.',
+    confirmLabel: 'Regenerate',
+    danger: true,
+  });
+  if (!ok) return;
+  const token = getToken();
+  errorEl.classList.remove('visible');
+  try {
+    const res = await fetch(`/admin/users/${u.id}/regenerate`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || `Error ${res.status}`);
+    // if an admin regenerated their own token, keep this session alive
+    if (u.name === currentUserName) localStorage.setItem(STORAGE_KEY, data.token);
+    showTokenModal(data.token, {
+      title: `New token for ${u.name}`,
+      subtitle: "Copy it now — it won't be shown again. The old token no longer works.",
+    });
+  } catch (err) {
+    errorEl.textContent = err.message;
+    errorEl.classList.add('visible');
+  }
+}
+
+async function deleteUser(u, tr) {
+  const ok = await showConfirmModal({
+    title: `Delete user ${u.name}?`,
+    message: 'Their uploaded pages are kept. This cannot be undone.',
+    confirmLabel: 'Delete',
+    danger: true,
+  });
+  if (!ok) return;
+  const token = getToken();
+  errorEl.classList.remove('visible');
+  try {
+    const res = await fetch(`/admin/users/${u.id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.detail || `Error ${res.status}`);
+    }
+    tr.remove();
   } catch (err) {
     errorEl.textContent = err.message;
     errorEl.classList.add('visible');
@@ -317,8 +495,7 @@ histToggleBtn.addEventListener('click', async () => {
 const stored = localStorage.getItem(STORAGE_KEY);
 if (stored) {
   tokenInputEl.value = stored;
-  loadPages();
-  loadCleanupStatus();
+  connect();
 } else {
   showField();
 }

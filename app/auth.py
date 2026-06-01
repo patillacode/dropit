@@ -1,51 +1,51 @@
+import hashlib
 import secrets
 from dataclasses import dataclass
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlmodel import Session, select
 
+from app.database import get_session
+from app.models import User
 from app.settings import get_settings
 
 _bearer = HTTPBearer()
+
+
+def hash_token(token: str) -> str:
+    return hashlib.sha256(token.encode()).hexdigest()
+
+
+def generate_token() -> str:
+    return secrets.token_hex(16)
 
 
 @dataclass
 class TokenUser:
     name: str
     is_admin: bool
+    user_id: int | None = None
 
 
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(_bearer),
+    session: Session = Depends(get_session),
 ) -> TokenUser:
     settings = get_settings()
     token = credentials.credentials
     if settings.admin_token and secrets.compare_digest(token, settings.admin_token):
-        return TokenUser(name="admin", is_admin=True)
-    name = None
-    for stored_token, stored_name in settings.token_map.items():
-        if secrets.compare_digest(token, stored_token):
-            name = stored_name
-            break
-    if name is None:
+        return TokenUser(name="admin", is_admin=True, user_id=None)
+    user = session.exec(select(User).where(User.token_hash == hash_token(token))).first()
+    if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
-    return TokenUser(name=name, is_admin=False)
+    return TokenUser(name=user.name, is_admin=user.is_admin, user_id=user.id)
 
 
-def verify_token(
-    credentials: HTTPAuthorizationCredentials = Depends(_bearer),
-) -> str:
-    return get_current_user(credentials).name
+def verify_token(user: TokenUser = Depends(get_current_user)) -> str:
+    return user.name
 
 
-def require_admin(
-    credentials: HTTPAuthorizationCredentials = Depends(_bearer),
-) -> None:
-    try:
-        user = get_current_user(credentials)
-    except HTTPException:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required"
-        ) from None
+def require_admin(user: TokenUser = Depends(get_current_user)) -> None:
     if not user.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
