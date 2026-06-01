@@ -19,11 +19,8 @@ body {
 }
 
 .logo {
-  font-family: var(--serif);
   font-size: clamp(4rem, 12vw, 6rem);
-  font-weight: 300;
   line-height: 0.88;
-  letter-spacing: -0.025em;
   color: var(--text);
 }
 .tagline {
@@ -238,21 +235,6 @@ input[type="file"] { display: none; }
   letter-spacing: 0.03em;
   margin-bottom: 1rem;
 }
-.dz-reset-btn {
-  background: transparent;
-  border: 1px solid var(--accent);
-  border-radius: var(--r);
-  font-family: var(--mono);
-  font-size: 0.75rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--accent);
-  cursor: pointer;
-  padding: 0.45rem 1rem;
-  transition: opacity 0.2s;
-}
-.dz-reset-btn:hover { opacity: 0.7; }
-
 /* error panel */
 .dz-error-msg {
   font-size: 0.82rem;

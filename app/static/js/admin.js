@@ -214,11 +214,11 @@ function renderTable(pages) {
     tdAct.className = 'page-actions';
 
     const detailsBtn = document.createElement('button');
-    detailsBtn.className = 'details-btn';
+    detailsBtn.className = 'btn';
     detailsBtn.textContent = 'Details';
 
     const delBtn = document.createElement('button');
-    delBtn.className = 'del-btn';
+    delBtn.className = 'btn btn--danger';
     delBtn.textContent = 'Delete';
 
     tdAct.appendChild(detailsBtn);
@@ -319,13 +319,13 @@ function renderUsers(users) {
     tdAct.className = 'user-actions';
 
     const regenBtn = document.createElement('button');
-    regenBtn.className = 'user-regen-btn';
+    regenBtn.className = 'btn';
     regenBtn.textContent = 'Regenerate';
     regenBtn.addEventListener('click', () => regenerateUser(u));
     tdAct.appendChild(regenBtn);
 
     const delBtn = document.createElement('button');
-    delBtn.className = 'del-btn';
+    delBtn.className = 'btn btn--danger';
     delBtn.textContent = 'Delete';
     if (u.name === currentUserName) {
       delBtn.disabled = true;

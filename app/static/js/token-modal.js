@@ -69,8 +69,8 @@ function showTokenModal(token, opts) {
   codeEl.className = 'token-modal-token';
   codeEl.textContent = token;
 
-  const copyBtn = mkBtn('Copy', 'token-modal-copy');
-  const closeBtn = mkBtn('Done', 'token-modal-close');
+  const copyBtn = mkBtn('Copy', 'btn btn--accent');
+  const closeBtn = mkBtn('Done', 'btn');
 
   const { close } = buildModal({ title, bodyNodes: [sub, codeEl], actions: [copyBtn, closeBtn] });
   copyBtn.addEventListener('click', () => copyToken(codeEl, copyBtn, token));
@@ -91,8 +91,8 @@ function showConfirmModal(opts) {
     msg.className = 'token-modal-sub';
     msg.textContent = message;
 
-    const cancelBtn = mkBtn(cancelLabel, 'token-modal-close');
-    const confirmBtn = mkBtn(confirmLabel, danger ? 'token-modal-danger' : 'token-modal-copy');
+    const cancelBtn = mkBtn(cancelLabel, 'btn');
+    const confirmBtn = mkBtn(confirmLabel, danger ? 'btn btn--danger' : 'btn btn--accent');
 
     let done = false;
     const finish = value => {
@@ -119,7 +119,7 @@ function showNoticeModal(opts) {
   const msg = document.createElement('p');
   msg.className = 'token-modal-sub';
   msg.textContent = message;
-  const okBtn = mkBtn('OK', 'token-modal-close');
+  const okBtn = mkBtn('OK', 'btn');
   const { close } = buildModal({ title, bodyNodes: [msg], actions: [okBtn] });
   okBtn.addEventListener('click', close);
 }
