@@ -1,11 +1,11 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI, Request
 from fastapi.exception_handlers import http_exception_handler as default_http_exception_handler
 from fastapi.exceptions import HTTPException
 from fastapi.staticfiles import StaticFiles
-from pathlib import Path
 from sqlmodel import Session
 
 from app.cleanup import delete_expired_pages
