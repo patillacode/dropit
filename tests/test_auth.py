@@ -1,75 +1,63 @@
 import pytest
 from fastapi import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
+from sqlmodel import Session, SQLModel, create_engine
+from sqlmodel.pool import StaticPool
 
-from app.auth import get_current_user, require_admin, verify_token
-from app.settings import Settings, get_settings
+from app.auth import TokenUser, get_current_user, hash_token, require_admin, verify_token
+from app.models import User
+from app.settings import Settings
+
+
+@pytest.fixture
+def session():
+    engine = create_engine(
+        "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
+    )
+    SQLModel.metadata.create_all(engine)
+    with Session(engine) as s:
+        s.add(User(name="alice", token_hash=hash_token("tok_test123"), is_admin=False))
+        s.commit()
+        yield s
 
 
 def make_creds(token: str) -> HTTPAuthorizationCredentials:
     return HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
 
 
-def make_settings(**kwargs):
-    return Settings(
-        upload_tokens="alice:tok_test123", base_url="http://localhost", data_dir="/tmp", **kwargs
-    )
+def settings_with(admin_token: str | None = None) -> Settings:
+    return Settings(base_url="http://localhost", data_dir="/tmp", admin_token=admin_token)
 
 
-def test_valid_token_returns_name(monkeypatch):
-    settings = make_settings()
-    monkeypatch.setattr("app.auth.get_settings", lambda: settings)
-    get_settings.cache_clear()
-    assert verify_token(make_creds("tok_test123")) == "alice"
+def test_valid_token_returns_user(session, monkeypatch):
+    monkeypatch.setattr("app.auth.get_settings", lambda: settings_with())
+    user = get_current_user(make_creds("tok_test123"), session)
+    assert user.name == "alice"
+    assert user.is_admin is False
+    assert user.user_id is not None
+    assert verify_token(user) == "alice"
 
 
-def test_invalid_token_raises_401(monkeypatch):
-    settings = make_settings()
-    monkeypatch.setattr("app.auth.get_settings", lambda: settings)
-    get_settings.cache_clear()
+def test_invalid_token_raises_401(session, monkeypatch):
+    monkeypatch.setattr("app.auth.get_settings", lambda: settings_with())
     with pytest.raises(HTTPException) as exc:
-        verify_token(make_creds("wrong_token"))
+        get_current_user(make_creds("wrong_token"), session)
     assert exc.value.status_code == 401
 
 
-def test_admin_token_is_recognized(monkeypatch):
-    settings = make_settings(admin_token="secret_admin")
-    monkeypatch.setattr("app.auth.get_settings", lambda: settings)
-    get_settings.cache_clear()
-    user = get_current_user(make_creds("secret_admin"))
+def test_admin_token_is_recognized(session, monkeypatch):
+    monkeypatch.setattr("app.auth.get_settings", lambda: settings_with(admin_token="secret_admin"))
+    user = get_current_user(make_creds("secret_admin"), session)
     assert user.is_admin is True
     assert user.name == "admin"
+    assert user.user_id is None
 
 
-def test_regular_token_is_not_admin(monkeypatch):
-    settings = make_settings(admin_token="secret_admin")
-    monkeypatch.setattr("app.auth.get_settings", lambda: settings)
-    get_settings.cache_clear()
-    user = get_current_user(make_creds("tok_test123"))
-    assert user.is_admin is False
-    assert user.name == "alice"
+def test_require_admin_passes_for_admin():
+    require_admin(TokenUser(name="admin", is_admin=True))  # must not raise
 
 
-def test_require_admin_passes_for_admin_token(monkeypatch):
-    settings = make_settings(admin_token="secret_admin")
-    monkeypatch.setattr("app.auth.get_settings", lambda: settings)
-    get_settings.cache_clear()
-    require_admin(make_creds("secret_admin"))  # must not raise
-
-
-def test_require_admin_raises_403_for_unknown_token(monkeypatch):
-    settings = make_settings(admin_token="secret_admin")
-    monkeypatch.setattr("app.auth.get_settings", lambda: settings)
-    get_settings.cache_clear()
+def test_require_admin_raises_403_for_non_admin():
     with pytest.raises(HTTPException) as exc:
-        require_admin(make_creds("totally_unknown"))
-    assert exc.value.status_code == 403
-
-
-def test_require_admin_raises_403_for_non_admin_token(monkeypatch):
-    settings = make_settings(admin_token="secret_admin")
-    monkeypatch.setattr("app.auth.get_settings", lambda: settings)
-    get_settings.cache_clear()
-    with pytest.raises(HTTPException) as exc:
-        require_admin(make_creds("tok_test123"))
+        require_admin(TokenUser(name="alice", is_admin=False, user_id=1))
     assert exc.value.status_code == 403

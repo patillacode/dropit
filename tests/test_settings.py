@@ -1,16 +1,6 @@
 import pytest
 
-from app.settings import Settings, parse_tokens, parse_ttl_duration
-
-
-def test_parse_tokens_named():
-    result = parse_tokens("alice:tok_abc,bob:tok_xyz")
-    assert result == {"tok_abc": "alice", "tok_xyz": "bob"}
-
-
-def test_parse_tokens_unnamed():
-    result = parse_tokens("tok_abc,tok_xyz")
-    assert result == {"tok_abc": "tok_abc", "tok_xyz": "tok_xyz"}
+from app.settings import Settings, parse_ttl_duration
 
 
 def test_parse_ttl_duration_hours():
@@ -34,7 +24,6 @@ def test_parse_ttl_duration_invalid():
 
 
 def test_settings_defaults(monkeypatch):
-    monkeypatch.setenv("UPLOAD_TOKENS", "alice:tok_abc")
     monkeypatch.setenv("BASE_URL", "http://localhost:8000")
     s = Settings()
     assert s.default_ttl == "24h"
