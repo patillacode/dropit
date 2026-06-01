@@ -213,7 +213,8 @@ input[type="password"]:focus { border-color: var(--accent); box-shadow: 0 0 0 1p
 }
 
 .token-modal-copy,
-.token-modal-close {
+.token-modal-close,
+.token-modal-danger {
   background: none;
   border: 1px solid var(--border);
   color: var(--text);
