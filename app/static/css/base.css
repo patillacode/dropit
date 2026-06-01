@@ -131,19 +131,21 @@ input[type="password"]:focus { border-color: var(--accent); box-shadow: 0 0 0 1p
 }
 
 .token-change-btn {
-  margin-left: auto;
   background: none;
-  border: none;
+  border: 1px solid var(--border);
   color: var(--muted);
   font-family: var(--mono);
-  font-size: 0.68rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   cursor: pointer;
-  letter-spacing: 0.05em;
-  padding: 0;
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  padding: 0.3rem 0.6rem;
+  border-radius: var(--r);
+  transition: border-color 0.2s, color 0.2s;
 }
-.token-change-btn:hover { color: var(--text); }
+.token-change-btn:hover { color: var(--text); border-color: var(--muted); }
+/* push the button group to the right, keeping a gap between buttons */
+.token-indicator .token-change-btn:first-of-type { margin-left: auto; }
 
 .token-hint {
   margin-top: 0.3rem;
