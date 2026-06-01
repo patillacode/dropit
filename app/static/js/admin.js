@@ -19,6 +19,7 @@ const emptyEl        = document.getElementById('emptyEl');
 const statTotal      = document.getElementById('statTotal');
 const statPermanent  = document.getElementById('statPermanent');
 const statSize       = document.getElementById('statSize');
+const statUsers      = document.getElementById('statUsers');
 const cleanupCardEl  = document.getElementById('cleanupCard');
 const triggerBtn     = document.getElementById('triggerBtn');
 const histToggleBtn  = document.getElementById('historyToggleBtn');
@@ -300,6 +301,7 @@ async function loadUsers() {
 }
 
 function renderUsers(users) {
+  statUsers.textContent = users.length;
   while (usersBodyEl.firstChild) usersBodyEl.removeChild(usersBodyEl.firstChild);
   users.forEach(u => {
     const tr = document.createElement('tr');

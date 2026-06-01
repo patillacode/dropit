@@ -58,8 +58,11 @@ input[type="password"] { width: 100%; max-width: 360px; }
 /* Overview — stat cards */
 .stat-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 1rem;
+}
+@media (min-width: 700px) {
+  .stat-grid { grid-template-columns: repeat(4, 1fr); }
 }
 .stat {
   border: 1px solid var(--border);
@@ -75,7 +78,7 @@ input[type="password"] { width: 100%; max-width: 360px; }
   line-height: 1;
   color: var(--text);
 }
-.stat:first-child .stat-num { color: var(--accent); }
+.stat-num { color: var(--accent); }
 .stat-lbl {
   display: block;
   margin-top: 0.45rem;
