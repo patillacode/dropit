@@ -13,27 +13,42 @@ Self-hosted HTML file sharing. Upload an HTML file, get a short-lived public URL
 ## Quick start
 
 ```bash
-cp .env.example .env        # edit UPLOAD_TOKENS and BASE_URL
+cp .env.example .env        # set ADMIN_TOKEN and BASE_URL
 just install                # create venv and install deps
 just dev                    # run on http://localhost:8000
 ```
 
-Open `http://localhost:8000` — enter your API token, drop an HTML file, copy the link.
+Then open `http://localhost:8000/admin`, sign in with your `ADMIN_TOKEN`, and create your first
+user — you'll be shown their token once. Hand that token to the user (or use it yourself) on
+`http://localhost:8000` to drop an HTML file and copy the link.
+
+## Users & tokens
+
+Users live in the database; a **token is the login** (no passwords). User management happens in
+the admin panel:
+
+- **Admins create users** — a 32-char token is generated and shown **once** on creation. It's
+  stored hashed, so it can never be displayed again, only regenerated.
+- **Admins can regenerate or delete any user.** Deleting a user keeps their already-uploaded pages.
+- **Any user can regenerate their own token** from the main page ("regenerate" next to their name).
+
+Regenerating a token immediately invalidates the old one **everywhere** (other browsers, devices,
+and the CLI), so the new token must be re-pasted wherever it was used.
+
+`ADMIN_TOKEN` is a permanent **break-glass admin login** used to bootstrap the first user and to
+recover access. It is set via the environment (not managed in the DB) and cannot be regenerated
+from the UI. Generate one with `just admin-token`. It also unlocks the `forever` TTL and bypasses
+the per-user TTL limit.
+
+> **Upgrading from a pre-database version?** This is a breaking change — `UPLOAD_TOKENS` is gone.
+> Existing tokens are not migrated; recreate users from the admin panel after upgrading.
 
 ## Admin panel
 
-Visit `http://localhost:8000/admin` with your admin token to list and delete all uploaded pages.
-
-Set `ADMIN_TOKEN` in your `.env` to enable it:
-```bash
-# Generate a secure token
-just admin-token
-
-# Add to .env
-ADMIN_TOKEN=<generated-value>
-```
-
-The admin token also unlocks the `forever` TTL and bypasses the per-user TTL limit.
+Visit `http://localhost:8000/admin` and sign in with any admin token (the break-glass
+`ADMIN_TOKEN` or a token belonging to a user marked as admin). From there you can manage users
+(create, regenerate, delete), list and delete all uploaded pages, and run/inspect the cleanup
+scheduler.
 
 ## Upload via API
 
@@ -78,9 +93,8 @@ services:
     volumes:
       - ./data:/data
     environment:
-      # At least one upload token — share it with whoever should be able to upload
-      UPLOAD_TOKENS: alice:your-token-here
-      # Admin token — generate with: openssl rand -hex 32
+      # Break-glass admin token — generate with: openssl rand -hex 32
+      # Sign in at /admin with this to create your users (no UPLOAD_TOKENS needed)
       ADMIN_TOKEN: your-admin-token-here
       # Your public URL
       BASE_URL: https://dropit.example.com
@@ -114,7 +128,6 @@ docker build -t dropit .
 
 # Run
 docker run -p 8000:8000 \
-  -e UPLOAD_TOKENS=alice:tok_abc123 \
   -e BASE_URL=http://localhost:8000 \
   -e ADMIN_TOKEN=your-admin-token \
   -v $(pwd)/data:/data \
@@ -140,8 +153,7 @@ All settings via environment variables (see `.env.example`):
 
 | Variable | Default | Description |
 |---|---|---|
-| `UPLOAD_TOKENS` | required | `name:token` pairs, comma-separated |
-| `ADMIN_TOKEN` | — | Token for `/admin` panel; also allows `forever` TTL and bypasses `MAX_USER_TTL` |
+| `ADMIN_TOKEN` | — | Break-glass admin login used to bootstrap users via `/admin`; also allows `forever` TTL and bypasses `MAX_USER_TTL`. All other users are created in the admin panel, not via env. |
 | `ALLOWED_TTLS` | `1h,6h,24h,48h,7d` | Accepted TTL values; add `forever` to enable permanent uploads |
 | `DEFAULT_TTL` | `24h` | TTL when not specified in upload request |
 | `MAX_USER_TTL` | `24h` | Maximum TTL for non-admin tokens |
