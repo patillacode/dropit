@@ -19,7 +19,6 @@
   letter-spacing: -0.025em;
   line-height: 1;
 }
-.logo-dot    { color: var(--accent); }
 .logo-suffix {
   font-size: 0.75rem;
   letter-spacing: 0.12em;
@@ -350,6 +349,44 @@ tbody tr:not(.page-detail):hover td         { background: rgba(255, 255, 255, 0.
   text-transform: none;
   color: var(--muted);
   cursor: pointer;
+  user-select: none;
+}
+
+.user-admin-check input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 0.95rem;
+  height: 0.95rem;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--r) / 2);
+  background: var(--bg);
+  cursor: pointer;
+  flex-shrink: 0;
+  position: relative;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.user-admin-check input[type="checkbox"]:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.user-admin-check input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  transform: translate(-50%, -50%) rotate(45deg);
+  width: 0.27rem;
+  height: 0.48rem;
+  border-right: 1.5px solid var(--bg);
+  border-bottom: 1.5px solid var(--bg);
+}
+
+.user-admin-check input[type="checkbox"]:focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+  outline: none;
 }
 
 .user-create-btn {

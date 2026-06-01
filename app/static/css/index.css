@@ -26,8 +26,6 @@ body {
   letter-spacing: -0.025em;
   color: var(--text);
 }
-.logo-dot { color: var(--accent); }
-
 .tagline {
   margin-top: 1.25rem;
   font-size: 0.75rem;
@@ -50,6 +48,8 @@ body {
   flex-direction: column;
   gap: 0.38rem;
 }
+
+.field select { flex: 1; }
 
 label { margin-bottom: 0; }
 
