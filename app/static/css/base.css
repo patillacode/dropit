@@ -156,3 +156,75 @@ input[type="password"]:focus { border-color: var(--accent); box-shadow: 0 0 0 1p
   from { opacity: 0; transform: translateY(18px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+
+.token-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(2px);
+}
+
+.token-modal {
+  width: 100%;
+  max-width: 30rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 1.4rem;
+  animation: rise 0.2s ease;
+}
+
+.token-modal-title {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 1.5rem;
+  margin-bottom: 0.4rem;
+}
+
+.token-modal-sub {
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-bottom: 0.9rem;
+  letter-spacing: 0.02em;
+}
+
+.token-modal-token {
+  display: block;
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  color: var(--accent);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 0.7rem 0.8rem;
+  word-break: break-all;
+  margin-bottom: 1rem;
+}
+
+.token-modal-actions {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: flex-end;
+}
+
+.token-modal-copy,
+.token-modal-close {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  padding: 0.45rem 0.9rem;
+  border-radius: var(--r);
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+.token-modal-copy { border-color: var(--accent); color: var(--accent); }
+.token-modal-copy:hover,
+.token-modal-close:hover { border-color: var(--accent); }

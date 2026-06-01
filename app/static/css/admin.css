@@ -261,3 +261,90 @@ tr:hover td      { background: rgba(255, 255, 255, 0.015); }
   letter-spacing: 0.06em;
 }
 .back-link:hover { color: var(--text); }
+
+/* Users */
+.users-card {
+  display: none;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 1rem 1.1rem;
+  margin-bottom: 1.5rem;
+}
+.users-card.visible { display: block; }
+
+.users-section-label {
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.75rem;
+}
+
+.user-create {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+.user-create input[type="text"] {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  padding: 0.5rem 0.7rem;
+  border-radius: var(--r);
+  outline: none;
+}
+.user-create input[type="text"]:focus { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+
+.user-admin-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.user-create-btn {
+  padding: 0.45rem 0.9rem;
+  background: transparent;
+  border: 1px solid var(--accent);
+  border-radius: var(--r);
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.user-create-btn:hover { background: var(--accent-d); }
+
+.user-actions { display: flex; gap: 0.5rem; }
+
+.user-regen-btn {
+  padding: 0.28rem 0.6rem;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.user-regen-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+.del-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.del-btn:disabled:hover { background: transparent; }
