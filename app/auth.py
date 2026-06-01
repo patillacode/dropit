@@ -48,6 +48,4 @@ def verify_token(user: TokenUser = Depends(get_current_user)) -> str:
 
 def require_admin(user: TokenUser = Depends(get_current_user)) -> None:
     if not user.is_admin:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required"
-        )
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
