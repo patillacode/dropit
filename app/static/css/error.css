@@ -23,11 +23,8 @@ body {
 }
 
 .logo {
-  font-family: var(--serif);
   font-size: clamp(4rem, 12vw, 6rem);
-  font-weight: 300;
   line-height: 0.88;
-  letter-spacing: -0.025em;
   color: var(--text);
   text-decoration: none;
   display: inline-block;

@@ -5,17 +5,16 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI, Request
 from fastapi.exception_handlers import http_exception_handler as default_http_exception_handler
 from fastapi.exceptions import HTTPException
-from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from sqlmodel import Session
 
 from app.cleanup import delete_expired_pages
 from app.database import get_engine, init_db
+from app.errors import error_response
 from app.routers import admin, config, health, landing, me, upload, users
 from app.routers.pages import serve_page_content
 from app.settings import get_settings
 
-_ERROR_HTML = (Path(__file__).parent / "static" / "error.html").read_text()
 _RESERVED_SUBDOMAINS = {
     "www",
 }
@@ -52,22 +51,12 @@ def create_app() -> FastAPI:
 
     @app.get("/{path:path}", include_in_schema=False)
     async def catch_all(path: str):
-        html = _ERROR_HTML.replace("__TITLE__", "This page doesn't exist").replace(
-            "__SUBTITLE__", "Nothing was ever uploaded here."
-        )
-        return HTMLResponse(content=html, status_code=404)
+        return error_response("not found")
 
     @app.exception_handler(HTTPException)
     async def custom_http_exception_handler(request: Request, exc: HTTPException):
         if exc.status_code == 404:
-            if exc.detail == "Page has expired":
-                title = "This page has expired"
-                subtitle = "The link is no longer valid."
-            else:
-                title = "This page doesn't exist"
-                subtitle = "Nothing was ever uploaded here."
-            html = _ERROR_HTML.replace("__TITLE__", title).replace("__SUBTITLE__", subtitle)
-            return HTMLResponse(content=html, status_code=404)
+            return error_response(exc.detail)
         return await default_http_exception_handler(request, exc)
 
     @app.middleware("http")
@@ -98,14 +87,7 @@ def create_app() -> FastAPI:
                 try:
                     response = serve_page_content(page_id, session)
                 except HTTPException as exc:
-                    if exc.detail == "Page has expired":
-                        title = "This page has expired"
-                        subtitle = "The link is no longer valid."
-                    else:
-                        title = "This page doesn't exist"
-                        subtitle = "Nothing was ever uploaded here."
-                    html = _ERROR_HTML.replace("__TITLE__", title).replace("__SUBTITLE__", subtitle)
-                    response = HTMLResponse(content=html, status_code=404)
+                    response = error_response(exc.detail)
             response.headers["X-Robots-Tag"] = "noindex, nofollow"
             response.headers["Cache-Control"] = "private, no-store"
             response.headers["X-Content-Type-Options"] = "nosniff"

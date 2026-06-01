@@ -141,6 +141,9 @@ input[type="password"]:focus {
 .token-indicator strong {
     color: var(--accent);
 }
+.token-indicator .btn:first-of-type {
+    margin-left: auto;
+}
 
 .token-badge {
     font-size: 0.69rem;
@@ -153,29 +156,6 @@ input[type="password"]:focus {
     flex-shrink: 0;
 }
 
-.token-change-btn {
-    background: none;
-    border: 1px solid var(--border);
-    color: var(--muted);
-    font-family: var(--mono);
-    font-size: 0.75rem;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    cursor: pointer;
-    padding: 0.3rem 0.6rem;
-    border-radius: var(--r);
-    transition:
-        border-color 0.2s,
-        color 0.2s;
-}
-.token-change-btn:hover {
-    color: var(--accent);
-    border-color: var(--accent);
-}
-/* push the button group to the right, keeping a gap between buttons */
-.token-indicator .token-change-btn:first-of-type {
-    margin-left: auto;
-}
 
 .token-hint {
     margin-top: 0.3rem;
@@ -238,6 +218,12 @@ input[type="password"]:focus {
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+.logo {
+  font-family: var(--serif);
+  font-weight: 300;
+  letter-spacing: -0.025em;
 }
 
 .logo-dot {
@@ -303,37 +289,6 @@ input[type="password"]:focus {
     justify-content: flex-end;
 }
 
-.token-modal-copy,
-.token-modal-close,
-.token-modal-danger {
-    background: none;
-    border: 1px solid var(--border);
-    color: var(--text);
-    font-family: var(--mono);
-    font-size: 0.78rem;
-    letter-spacing: 0.05em;
-    padding: 0.45rem 0.9rem;
-    border-radius: var(--r);
-    cursor: pointer;
-    transition:
-        border-color 0.2s,
-        color 0.2s;
-}
-.token-modal-copy {
-    border-color: var(--accent);
-    color: var(--accent);
-}
-.token-modal-danger {
-    border-color: var(--err);
-    color: var(--err);
-}
-.token-modal-copy:hover,
-.token-modal-close:hover {
-    border-color: var(--accent);
-}
-.token-modal-danger:hover {
-    background: var(--err-d);
-}
 
 .token-input-row {
     display: flex;
@@ -345,20 +300,28 @@ input[type="password"]:focus {
     min-width: 0;
 }
 
-.token-connect-btn {
-    flex-shrink: 0;
-    background: transparent;
-    border: 1px solid var(--accent);
-    color: var(--accent);
-    font-family: var(--mono);
-    font-size: 0.75rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    padding: 0 0.9rem;
-    border-radius: var(--r);
-    cursor: pointer;
-    transition: background 0.15s;
+/* ── Button design system ─────────────────────────────────────── */
+.btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0.4rem 0.85rem;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
-.token-connect-btn:hover {
-    background: var(--accent-d);
-}
+.btn:hover { color: var(--text); border-color: var(--muted); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn:disabled:hover { color: var(--muted); border-color: var(--border); background: transparent; }
+
+.btn--accent { border-color: var(--accent); color: var(--accent); }
+.btn--accent:hover { background: var(--accent-d); border-color: var(--accent); color: var(--accent); }
+.btn--accent:disabled:hover { background: transparent; }
+
+.btn--danger { border-color: rgba(255, 82, 82, 0.3); color: var(--err); }
+.btn--danger:hover { background: var(--err-d); border-color: rgba(255, 82, 82, 0.5); }
+.btn--danger:disabled:hover { background: transparent; border-color: rgba(255, 82, 82, 0.3); }
