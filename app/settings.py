@@ -3,18 +3,6 @@ from functools import lru_cache
 from pydantic_settings import BaseSettings
 
 
-def parse_tokens(raw: str) -> dict[str, str]:
-    result = {}
-    for entry in raw.split(","):
-        entry = entry.strip()
-        if ":" in entry:
-            name, token = entry.split(":", 1)
-            result[token.strip()] = name.strip()
-        else:
-            result[entry] = entry
-    return result
-
-
 def parse_ttl_duration(ttl: str) -> int | None:
     if ttl == "forever":
         return None
@@ -26,7 +14,6 @@ def parse_ttl_duration(ttl: str) -> int | None:
 
 
 class Settings(BaseSettings):
-    upload_tokens: str
     allowed_ttls: str = "1h,6h,24h,48h,7d"
     default_ttl: str = "24h"
     max_user_ttl: str = "24h"
@@ -43,10 +30,6 @@ class Settings(BaseSettings):
 
     def page_url(self, page_id: str) -> str:
         return f"{self.content_scheme}://{page_id}.{self.content_domain}"
-
-    @property
-    def token_map(self) -> dict[str, str]:
-        return parse_tokens(self.upload_tokens)
 
     @property
     def ttl_list(self) -> list[str]:
