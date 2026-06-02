@@ -5,11 +5,14 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI, Request
 from fastapi.exception_handlers import http_exception_handler as default_http_exception_handler
 from fastapi.exceptions import HTTPException
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from slowapi.errors import RateLimitExceeded
 from sqlmodel import Session
 
 from app.cleanup import delete_expired_pages
 from app.database import get_engine, init_db
+from app.limiter import limiter
 from app.errors import error_response
 from app.routers import admin, config, health, landing, me, upload, users
 from app.routers.pages import serve_page_content
@@ -40,6 +43,17 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     app = FastAPI(title="dropit", lifespan=lifespan)
+    app.state.limiter = limiter
+
+    async def _rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse:
+        response = JSONResponse(
+            {"detail": "Too many requests — please slow down and try again shortly"},
+            status_code=429,
+        )
+        response = app.state.limiter._inject_headers(response, request.state.view_rate_limit)
+        return response
+
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_handler)
     app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
     app.include_router(landing.router)
     app.include_router(config.router)
