@@ -12,8 +12,8 @@ from sqlmodel import Session
 
 from app.cleanup import delete_expired_pages
 from app.database import get_engine, init_db
-from app.limiter import limiter
 from app.errors import error_response
+from app.limiter import limiter
 from app.routers import admin, config, health, landing, me, upload, users
 from app.routers.pages import serve_page_content
 from app.settings import get_settings
