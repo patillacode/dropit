@@ -7,6 +7,7 @@ from sqlmodel.pool import StaticPool
 
 from app.auth import hash_token
 from app.database import get_session
+from app.limiter import limiter
 from app.main import create_app
 from app.models import User
 from app.settings import get_settings
@@ -66,7 +67,5 @@ def client(tmp_path, monkeypatch):
 
 @pytest.fixture(autouse=True)
 def reset_rate_limits():
-    from app.limiter import limiter
-
     limiter._storage.reset()
     yield

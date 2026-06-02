@@ -1,10 +1,13 @@
 from datetime import UTC, datetime
 
 import pytest
+from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
+import app.database as db_mod
 from app.models import Page
+from app.settings import get_settings
 
 
 def test_create_and_retrieve_page(db_session: Session):
@@ -33,14 +36,8 @@ def test_page_id_unique(db_session: Session):
 
 
 def test_get_engine_enables_wal(tmp_path, monkeypatch):
-    from sqlalchemy import text
-
     monkeypatch.setenv("DATA_DIR", str(tmp_path))
-    from app.settings import get_settings
-
     get_settings.cache_clear()
-
-    import app.database as db_mod
 
     original_engine = db_mod._engine
     db_mod._engine = None
