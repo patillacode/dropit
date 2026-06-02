@@ -30,3 +30,28 @@ def test_page_id_unique(db_session: Session):
     db_session.add(p2)
     with pytest.raises(IntegrityError):
         db_session.commit()
+
+
+def test_get_engine_enables_wal(tmp_path, monkeypatch):
+    from sqlalchemy import text
+
+    monkeypatch.setenv("DATA_DIR", str(tmp_path))
+    from app.settings import get_settings
+
+    get_settings.cache_clear()
+
+    import app.database as db_mod
+
+    original_engine = db_mod._engine
+    db_mod._engine = None
+
+    try:
+        engine = db_mod.get_engine()
+        with engine.connect() as conn:
+            mode = conn.execute(text("PRAGMA journal_mode")).scalar()
+            timeout = conn.execute(text("PRAGMA busy_timeout")).scalar()
+        assert mode == "wal"
+        assert timeout == 5000
+    finally:
+        db_mod._engine = original_engine
+        get_settings.cache_clear()

@@ -1,7 +1,7 @@
 from collections.abc import Generator
 from pathlib import Path
 
-from sqlalchemy import text
+from sqlalchemy import event, text
 from sqlmodel import Session, SQLModel, create_engine
 
 from app.settings import get_settings
@@ -20,6 +20,14 @@ def get_engine():
             f"sqlite:///{db_path.resolve()}",
             connect_args={"check_same_thread": False},
         )
+
+        @event.listens_for(_engine, "connect")
+        def _set_sqlite_pragmas(dbapi_conn, _connection_record):
+            cursor = dbapi_conn.cursor()
+            cursor.execute("PRAGMA journal_mode=WAL")
+            cursor.execute("PRAGMA busy_timeout=5000")
+            cursor.close()
+
     return _engine
 
 
