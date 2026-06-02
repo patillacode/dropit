@@ -67,5 +67,6 @@ def client(tmp_path, monkeypatch):
 @pytest.fixture(autouse=True)
 def reset_rate_limits():
     from app.limiter import limiter
+
     limiter._storage.reset()
     yield
