@@ -1,10 +1,13 @@
 from datetime import UTC, datetime
 
 import pytest
+from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
+import app.database as db_mod
 from app.models import Page
+from app.settings import get_settings
 
 
 def test_create_and_retrieve_page(db_session: Session):
@@ -30,3 +33,22 @@ def test_page_id_unique(db_session: Session):
     db_session.add(p2)
     with pytest.raises(IntegrityError):
         db_session.commit()
+
+
+def test_get_engine_enables_wal(tmp_path, monkeypatch):
+    monkeypatch.setenv("DATA_DIR", str(tmp_path))
+    get_settings.cache_clear()
+
+    original_engine = db_mod._engine
+    db_mod._engine = None
+
+    try:
+        engine = db_mod.get_engine()
+        with engine.connect() as conn:
+            mode = conn.execute(text("PRAGMA journal_mode")).scalar()
+            timeout = conn.execute(text("PRAGMA busy_timeout")).scalar()
+        assert mode == "wal"
+        assert timeout == 5000
+    finally:
+        db_mod._engine = original_engine
+        get_settings.cache_clear()

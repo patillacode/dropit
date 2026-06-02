@@ -1,20 +1,24 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlmodel import Session
 
 from app.auth import TokenUser, generate_token, get_current_user, hash_token
 from app.database import get_session
+from app.limiter import limiter
 from app.models import User
 
 router = APIRouter()
 
 
 @router.get("/me")
-def me(user: TokenUser = Depends(get_current_user)):
+@limiter.limit("5/minute")
+def me(request: Request, user: TokenUser = Depends(get_current_user)):
     return {"name": user.name, "is_admin": user.is_admin}
 
 
 @router.post("/me/regenerate")
+@limiter.limit("2/minute")
 def regenerate_own_token(
+    request: Request,
     user: TokenUser = Depends(get_current_user),
     session: Session = Depends(get_session),
 ):

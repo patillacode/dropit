@@ -1,3 +1,6 @@
+from tests.conftest import USER_TOKEN
+
+
 def test_me_valid_token(client):
     res = client.get("/me", headers={"Authorization": "Bearer tok_test123"})
     assert res.status_code == 200
@@ -35,3 +38,24 @@ def test_me_regenerate_swaps_token(client):
 def test_me_regenerate_breakglass_rejected(client):
     res = client.post("/me/regenerate", headers={"Authorization": "Bearer admin_tok_xyz"})
     assert res.status_code == 400
+
+
+def test_me_rate_limited(client):
+    headers = {"Authorization": f"Bearer {USER_TOKEN}"}
+    for _ in range(5):
+        r = client.get("/me", headers=headers)
+        assert r.status_code == 200
+    r = client.get("/me", headers=headers)
+    assert r.status_code == 429
+    assert r.json()["detail"] == "Too many requests — please slow down and try again shortly"
+
+
+def test_regenerate_rate_limited(client):
+    token = USER_TOKEN
+    for _ in range(2):
+        r = client.post("/me/regenerate", headers={"Authorization": f"Bearer {token}"})
+        assert r.status_code == 200
+        token = r.json()["token"]
+    r = client.post("/me/regenerate", headers={"Authorization": f"Bearer {token}"})
+    assert r.status_code == 429
+    assert r.json()["detail"] == "Too many requests — please slow down and try again shortly"

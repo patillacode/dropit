@@ -1,4 +1,5 @@
 from app.settings import get_settings
+from tests.conftest import USER_TOKEN
 
 
 def test_upload_returns_url(client, tmp_path):
@@ -122,3 +123,22 @@ def test_upload_rejects_oversized_via_body_read(client, monkeypatch):
         files={"file": ("test.html", oversized, "text/html")},
     )
     assert response.status_code == 413
+
+
+def test_upload_rate_limited(client):
+    content = b"<!doctype html><html><body>hi</body></html>"
+    headers = {"Authorization": f"Bearer {USER_TOKEN}"}
+    for _ in range(5):
+        r = client.post(
+            "/upload",
+            headers=headers,
+            files={"file": ("test.html", content, "text/html")},
+        )
+        assert r.status_code == 200
+    r = client.post(
+        "/upload",
+        headers=headers,
+        files={"file": ("test.html", content, "text/html")},
+    )
+    assert r.status_code == 429
+    assert r.json()["detail"] == "Too many requests — please slow down and try again shortly"

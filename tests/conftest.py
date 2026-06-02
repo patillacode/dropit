@@ -7,6 +7,7 @@ from sqlmodel.pool import StaticPool
 
 from app.auth import hash_token
 from app.database import get_session
+from app.limiter import limiter
 from app.main import create_app
 from app.models import User
 from app.settings import get_settings
@@ -34,6 +35,7 @@ def set_env(monkeypatch):
     monkeypatch.setenv("CONTENT_DOMAIN", "testcontent.test")
     monkeypatch.setenv("DATA_DIR", "/tmp/dropit-test")
     os.makedirs("/tmp/dropit-test/pages", exist_ok=True)
+    get_settings.cache_clear()
 
 
 @pytest.fixture
@@ -62,3 +64,9 @@ def client(tmp_path, monkeypatch):
     with TestClient(app) as c:
         c.app.state.engine = engine
         yield c
+
+
+@pytest.fixture(autouse=True)
+def reset_rate_limits():
+    limiter._storage.reset()
+    yield
