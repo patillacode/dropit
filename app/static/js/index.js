@@ -57,6 +57,8 @@ async function checkToken(token) {
         adminSepEl.style.display  = '';
         adminLinkEl.style.display = '';
       }
+    } else if (res.status === 429) {
+      showTokenField(_tokenEls, 'Too many requests — wait a minute before trying again');
     } else {
       localStorage.removeItem('dropit_token');
       currentUser = null;
@@ -119,7 +121,11 @@ tokenRegenBtn.addEventListener('click', async () => {
       headers: { Authorization: `Bearer ${token}` },
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || `Error ${res.status}`);
+    if (!res.ok) throw new Error(
+      res.status === 429
+        ? 'Rate limit reached — wait a minute before regenerating your token'
+        : (data.detail || `Error ${res.status}`)
+    );
     localStorage.setItem('dropit_token', data.token);
     showTokenModal(data.token, {
       title: 'Your new token',
@@ -174,7 +180,11 @@ async function doUpload() {
     });
 
     const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || `Error ${res.status}`);
+    if (!res.ok) throw new Error(
+      res.status === 429
+        ? 'Too many uploads — wait a minute before trying again'
+        : (data.detail || `Error ${res.status}`)
+    );
 
     dzUrl.textContent     = data.url;
     dzUrl.href            = data.url;
