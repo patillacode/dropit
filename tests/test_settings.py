@@ -25,7 +25,9 @@ def test_parse_ttl_duration_invalid():
 
 def test_settings_defaults(monkeypatch):
     monkeypatch.setenv("BASE_URL", "http://localhost:8000")
-    s = Settings()
+    monkeypatch.delenv("DEFAULT_TTL", raising=False)
+    monkeypatch.delenv("ALLOWED_TTLS", raising=False)
+    s = Settings(_env_file=None)
     assert s.default_ttl == "24h"
     assert s.cleanup_interval_hours == 1
     assert s.max_upload_size == 5_242_880

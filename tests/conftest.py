@@ -35,6 +35,7 @@ def set_env(monkeypatch):
     monkeypatch.setenv("CONTENT_DOMAIN", "testcontent.test")
     monkeypatch.setenv("DATA_DIR", "/tmp/dropit-test")
     os.makedirs("/tmp/dropit-test/pages", exist_ok=True)
+    get_settings.cache_clear()
 
 
 @pytest.fixture
