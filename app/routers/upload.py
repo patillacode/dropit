@@ -7,6 +7,7 @@ from sqlmodel import Session, select
 
 from app.auth import TokenUser, get_current_user
 from app.database import get_session
+from app.limiter import limiter
 from app.models import Page
 from app.settings import get_settings, parse_ttl_duration
 
@@ -23,6 +24,7 @@ def _generate_id(session: Session) -> str:
 
 
 @router.post("/upload")
+@limiter.limit("5/minute")
 async def upload(
     request: Request,
     file: UploadFile,
