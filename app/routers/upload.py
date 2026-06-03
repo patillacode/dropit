@@ -89,14 +89,21 @@ async def upload(
             )
     content = bytes(buf)
 
-    if not is_html_ext:
-        stripped = content.strip().lower()
-        html_starts = (b"<!doctype", b"<html", b"<head", b"<body", b"<!--")
-        if not any(stripped.startswith(s) for s in html_starts):
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                detail="Only HTML files are accepted",
-            )
+    try:
+        content.decode("utf-8")
+    except UnicodeDecodeError:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Only UTF-8 encoded HTML files are accepted",
+        ) from None
+
+    stripped = content.strip().lower()
+    html_starts = (b"<!doctype", b"<html", b"<head", b"<body", b"<!--")
+    if not any(stripped.startswith(s) for s in html_starts):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Only HTML files are accepted",
+        )
 
     page_id = _generate_id(session)
     expires_at = (

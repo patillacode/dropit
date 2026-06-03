@@ -51,6 +51,7 @@ async function checkToken(token) {
     const res = await fetch('/me', { headers: { Authorization: `Bearer ${token}` } });
     if (res.ok) {
       currentUser = await res.json();
+      localStorage.setItem(STORAGE_KEY, token);
       showTokenIndicator(_indicatorEls,currentUser.name);
       populateTTL(currentUser.is_admin);
       if (currentUser.is_admin) {
@@ -91,7 +92,6 @@ tokenInputEl.addEventListener('blur', () => { if (tokenInputEl.value.trim()) sav
 async function saveToken() {
   const token = tokenInputEl.value.trim();
   if (!token) return;
-  localStorage.setItem('dropit_token', token);
   await checkToken(token);
 }
 
@@ -166,8 +166,6 @@ async function doUpload() {
   }
 
   setState('uploading');
-
-  if (!currentUser) localStorage.setItem('dropit_token', token);
 
   const body = new FormData();
   body.append('file', selectedFile);
