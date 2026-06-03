@@ -17,7 +17,6 @@ CONTENT_DOMAIN = "testcontent.test"
 def client_with_db(tmp_path, monkeypatch):
     monkeypatch.setenv("UPLOAD_TOKENS", "alice:tok_test123")
     monkeypatch.setenv("DATA_DIR", str(tmp_path))
-    monkeypatch.setenv("BASE_URL", "http://testserver")
     monkeypatch.setenv("CONTENT_DOMAIN", CONTENT_DOMAIN)
     get_settings.cache_clear()
     (tmp_path / "pages").mkdir()

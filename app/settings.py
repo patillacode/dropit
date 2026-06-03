@@ -20,7 +20,6 @@ class Settings(BaseSettings):
     max_upload_size: int = 5_242_880
     cleanup_interval_hours: int = 1
     data_dir: str = "./data"
-    base_url: str = "http://localhost:8000"
     content_domain: str = "localhost:8000"
     admin_token: str | None = None
 

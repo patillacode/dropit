@@ -26,7 +26,7 @@ def make_creds(token: str) -> HTTPAuthorizationCredentials:
 
 
 def settings_with(admin_token: str | None = None) -> Settings:
-    return Settings(base_url="http://localhost", data_dir="/tmp", admin_token=admin_token)
+    return Settings(data_dir="/tmp", admin_token=admin_token)
 
 
 def test_valid_token_returns_user(session, monkeypatch):
