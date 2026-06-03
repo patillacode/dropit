@@ -1,8 +1,8 @@
 <h1><img src="app/static/images/dropit-logo.png" alt="dropit logo" height="60" style="vertical-align:middle;margin-right:12px"> drop•it</h1>
 
-Self-hosted HTML file sharing. Upload an HTML file, get a short-lived public URL.
+Drop an HTML file. Get a link.
 
-> **See it in action:** [this README is hosted on dropit](https://c81920cc.dropit.patilla.es/)
+> **Live demo:** [the dropit feature page, served by dropit itself](https://c81920cc.dropit.patilla.es/)
 
 <p align="center">
   <img src="app/static/images/screenshot-index.png" alt="Landing page" width="48%">
@@ -13,14 +13,14 @@ Self-hosted HTML file sharing. Upload an HTML file, get a short-lived public URL
 ## Quick start
 
 ```bash
-cp .env.example .env        # set ADMIN_TOKEN and BASE_URL
+cp .env.example .env        # set ADMIN_TOKEN
 just install                # create venv and install deps
 just dev                    # run on http://localhost:8000
 ```
 
-Then open `http://localhost:8000/admin`, sign in with your `ADMIN_TOKEN`, and create your first
-user — you'll be shown their token once. Hand that token to the user (or use it yourself) on
-`http://localhost:8000` to drop an HTML file and copy the link.
+1. Open `http://localhost:8000/admin` and sign in with your `ADMIN_TOKEN`
+2. Create a user — their token is shown once, copy it
+3. Go to `http://localhost:8000`, paste the token, drop an HTML file, copy the link
 
 ## Users & tokens
 
@@ -40,15 +40,13 @@ recover access. It is set via the environment (not managed in the DB) and cannot
 from the UI. Generate one with `just admin-token`. It also unlocks the `forever` TTL and bypasses
 the per-user TTL limit.
 
-> **Upgrading from a pre-database version?** This is a breaking change — `UPLOAD_TOKENS` is gone.
-> Existing tokens are not migrated; recreate users from the admin panel after upgrading.
-
 ## Admin panel
 
 Visit `http://localhost:8000/admin` and sign in with any admin token (the break-glass
-`ADMIN_TOKEN` or a token belonging to a user marked as admin). From there you can manage users
-(create, regenerate, delete), list and delete all uploaded pages, and run/inspect the cleanup
-scheduler.
+`ADMIN_TOKEN` or a token belonging to a user marked as admin). The overview card shows a live
+count of users, pages, permanent uploads, and total storage. From there you can manage users
+(create, regenerate, delete), list and delete all uploaded pages (with uploader and file details),
+and run/inspect the cleanup scheduler.
 
 ## Upload via API
 
@@ -96,10 +94,8 @@ services:
       - ./data:/data
     environment:
       # Break-glass admin token — generate with: openssl rand -hex 32
-      # Sign in at /admin with this to create your users (no UPLOAD_TOKENS needed)
+      # Sign in at /admin with this to create your users
       ADMIN_TOKEN: your-admin-token-here
-      # Your public URL
-      BASE_URL: https://dropit.example.com
       # Domain used for per-page share links (each page gets its own subdomain)
       # Requires a wildcard DNS record and SSL cert for *.dropit.example.com
       CONTENT_DOMAIN: dropit.example.com
@@ -114,7 +110,7 @@ docker compose up -d
 
 Open `http://your-server-ip:8000`.
 
-**Behind a reverse proxy** (nginx, Caddy, Traefik): remove the `ports` mapping, set `BASE_URL` to your public domain (e.g. `https://dropit.example.com`), set `CONTENT_DOMAIN` to the same domain (e.g. `dropit.example.com`), and proxy **both** `dropit.example.com` and `*.dropit.example.com` to the container on port 8000. You will need a wildcard SSL cert for `*.dropit.example.com` (Let's Encrypt DNS-01 challenge).
+**Behind a reverse proxy** (nginx, Caddy, Traefik): remove the `ports` mapping, set `CONTENT_DOMAIN` to your public domain (e.g. `dropit.example.com`), and proxy **both** `dropit.example.com` and `*.dropit.example.com` to the container on port 8000. You will need a wildcard SSL cert for `*.dropit.example.com` (Let's Encrypt DNS-01 challenge).
 
 **To update:**
 
@@ -130,7 +126,6 @@ docker build -t dropit .
 
 # Run
 docker run -p 8000:8000 \
-  -e BASE_URL=http://localhost:8000 \
   -e ADMIN_TOKEN=your-admin-token \
   -v $(pwd)/data:/data \
   dropit
@@ -162,7 +157,6 @@ All settings via environment variables (see `.env.example`):
 | `MAX_UPLOAD_SIZE` | `5242880` | Max upload size in bytes (5 MB) |
 | `CLEANUP_INTERVAL_HOURS` | `1` | How often expired pages are purged |
 | `DATA_DIR` | `./data` | Directory for SQLite DB and uploaded files |
-| `BASE_URL` | `http://localhost:8000` | Base URL for the app (used in OpenAPI docs, health checks) |
 | `CONTENT_DOMAIN` | `localhost:8000` | Domain for per-page share links — each page is served at `{id}.{CONTENT_DOMAIN}`; requires wildcard DNS + SSL in production |
 
 ## Cleanup
@@ -182,4 +176,4 @@ git tag v0.1.0
 git push --tags
 ```
 
-Requires `REGISTRY_TOKEN` secret set in Forgejo.
+Requires two secrets set in Forgejo: `REGISTRY_TOKEN` (Forgejo registry) and `GHCR_TOKEN` (GitHub Container Registry).

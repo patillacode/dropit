@@ -31,7 +31,6 @@ def db_session_fixture():
 
 @pytest.fixture(autouse=True)
 def set_env(monkeypatch):
-    monkeypatch.setenv("BASE_URL", "http://localhost:8000")
     monkeypatch.setenv("CONTENT_DOMAIN", "testcontent.test")
     monkeypatch.setenv("DATA_DIR", "/tmp/dropit-test")
     os.makedirs("/tmp/dropit-test/pages", exist_ok=True)
@@ -41,7 +40,6 @@ def set_env(monkeypatch):
 @pytest.fixture
 def client(tmp_path, monkeypatch):
     monkeypatch.setenv("DATA_DIR", str(tmp_path))
-    monkeypatch.setenv("BASE_URL", "http://testserver")
     monkeypatch.setenv("ADMIN_TOKEN", ADMIN_TOKEN)
     get_settings.cache_clear()
     (tmp_path / "pages").mkdir()
