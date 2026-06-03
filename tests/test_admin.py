@@ -32,7 +32,7 @@ def test_admin_list_shows_pages(client, tmp_path):
     res_upload = client.post(
         "/upload",
         headers={"Authorization": "Bearer tok_test123"},
-        files={"file": ("page.html", b"<h1>Hi</h1>", "text/html")},
+        files={"file": ("page.html", b"<!doctype html><html><body>hi</body></html>", "text/html")},
     )
     assert res_upload.status_code == 200
 
@@ -49,7 +49,7 @@ def test_admin_delete_page(client, tmp_path):
     res_upload = client.post(
         "/upload",
         headers={"Authorization": "Bearer tok_test123"},
-        files={"file": ("page.html", b"<h1>Hi</h1>", "text/html")},
+        files={"file": ("page.html", b"<!doctype html><html><body>hi</body></html>", "text/html")},
     )
     assert res_upload.status_code == 200
     page_id = res_upload.json()["url"].split("//")[1].split(".")[0]
@@ -138,7 +138,7 @@ def test_admin_permanent_page_shows_null_expires(client, monkeypatch):
     res = client.post(
         "/upload?ttl=forever",
         headers={"Authorization": "Bearer admin_tok_xyz"},
-        files={"file": ("page.html", b"<h1>Hi</h1>", "text/html")},
+        files={"file": ("page.html", b"<!doctype html><html><body>hi</body></html>", "text/html")},
     )
     assert res.status_code == 200
 
