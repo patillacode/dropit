@@ -262,6 +262,13 @@ function detailItem(key, value) {
 }
 
 async function deletePage(id, tr, detailTr) {
+  const ok = await showConfirmModal({
+    title: 'Delete this page?',
+    message: 'The file and its link will be permanently removed. This cannot be undone.',
+    confirmLabel: 'Delete',
+    danger: true,
+  });
+  if (!ok) return;
   const token = _getToken(STORAGE_KEY);
   try {
     const res = await fetch(`/admin/pages/${encodeURIComponent(id)}`, {
