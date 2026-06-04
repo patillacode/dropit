@@ -8,6 +8,7 @@
     --accent-d: rgba(200, 255, 0, 0.1);
     --ok: #00d68f;
     --ok-d: rgba(0, 214, 143, 0.08);
+    --warn: #f5a623;
     --err: #ff5252;
     --err-d: rgba(255, 82, 82, 0.07);
     --mono: "DM Mono", monospace;
@@ -16,9 +17,11 @@
     --glow-color: rgba(200, 255, 0, 0.04);
 }
 
-.accent {
-    color: var(--accent);
-}
+.accent { color: var(--accent); }
+
+.exp-permanent { color: var(--ok); }
+.exp-timed     { color: var(--warn); }
+.exp-expired   { color: var(--err); }
 
 *,
 *::before,

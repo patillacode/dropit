@@ -1,0 +1,13 @@
+export function fmtExpiry(isoStr) {
+  if (!isoStr) return { text: 'permanent', cls: 'exp-permanent' };
+  const diff = new Date(isoStr) - Date.now();
+  if (diff <= 0) return { text: 'Expired', cls: 'exp-expired' };
+  const mins = Math.floor(diff / 60000);
+  const hrs  = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+  const text = days >= 1 ? `${days} day${days !== 1 ? 's' : ''}`
+             : hrs  >= 1 ? `${hrs} hour${hrs !== 1 ? 's' : ''}`
+             : mins >= 1 ? `${mins} minute${mins !== 1 ? 's' : ''}`
+             : '< 1 minute';
+  return { text, cls: 'exp-timed' };
+}

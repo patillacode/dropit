@@ -1,5 +1,6 @@
 import { showTokenField, showTokenIndicator } from '/static/js/token-shared.js';
 import { showTokenModal, showConfirmModal, showNoticeModal } from '/static/js/token-modal.js';
+import { fmtExpiry } from '/static/js/utils.js';
 
 const STORAGE_KEY = 'dropit_token';
 
@@ -270,8 +271,9 @@ function renderHistory() {
     urlCell.appendChild(link);
 
     const exp = document.createElement('td');
-    exp.className   = 'history-exp';
-    exp.textContent = item.expires_at ? asUtc(item.expires_at).toLocaleDateString() : 'permanent';
+    const { text: expText, cls: expCls } = fmtExpiry(item.expires_at);
+    exp.className   = `history-exp ${expCls}`;
+    exp.textContent = expText;
 
     row.appendChild(name);
     row.appendChild(urlCell);
