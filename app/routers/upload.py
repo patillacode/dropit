@@ -107,11 +107,7 @@ async def upload(
         )
 
     page_id = _generate_id(session)
-    expires_at = (
-        None
-        if ttl_seconds is None
-        else utcnow() + timedelta(seconds=ttl_seconds)
-    )
+    expires_at = None if ttl_seconds is None else utcnow() + timedelta(seconds=ttl_seconds)
 
     pages_dir = Path(settings.data_dir) / "pages"
     pages_dir.mkdir(parents=True, exist_ok=True)

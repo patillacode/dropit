@@ -98,13 +98,15 @@ def test_run_migrations_upgrades_old_install():
     )
     # Seed an old-style page table missing filename and created_at
     with engine.connect() as conn:
-        conn.execute(text(
-            "CREATE TABLE page ("
-            "id TEXT NOT NULL PRIMARY KEY, "
-            "expires_at DATETIME, "
-            "token_hint TEXT NOT NULL"
-            ")"
-        ))
+        conn.execute(
+            text(
+                "CREATE TABLE page ("
+                "id TEXT NOT NULL PRIMARY KEY, "
+                "expires_at DATETIME, "
+                "token_hint TEXT NOT NULL"
+                ")"
+            )
+        )
         conn.commit()
 
     db_mod._run_migrations(engine)
