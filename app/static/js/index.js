@@ -23,6 +23,7 @@ const historyEl      = document.getElementById('history');
 const historyList    = document.getElementById('historyList');
 const adminSepEl     = document.getElementById('adminSep');
 const adminLinkEl    = document.getElementById('adminLink');
+const srStatus       = document.getElementById('srStatus');
 
 const _tokenEls     = { fieldEl: tokenFieldEl, indicatorEl: tokenIndicator, hintEl: tokenHintEl };
 const _indicatorEls = { fieldEl: tokenFieldEl, indicatorEl: tokenIndicator, nameEl: tokenNameEl };
@@ -33,6 +34,13 @@ let appConfig    = null;
 
 function setState(state) {
   dropZone.dataset.state = state;
+  if (state === 'success') {
+    srStatus.textContent = 'Upload complete — your link is ready to share';
+  } else if (state === 'error') {
+    srStatus.textContent = dzErrorMsg.textContent;
+  } else {
+    srStatus.textContent = '';
+  }
 }
 
 async function init() {
