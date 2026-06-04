@@ -15,4 +15,5 @@ def get_config():
         "allowed_ttls": admin_ttls,
         "user_ttls": settings.user_ttl_list,
         "default_ttl": settings.default_ttl,
+        "max_upload_size": settings.max_upload_size,
     }
