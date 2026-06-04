@@ -181,6 +181,13 @@ async function doUpload() {
     return;
   }
 
+  if (appConfig && selectedFile.size > appConfig.max_upload_size) {
+    const mb = (appConfig.max_upload_size / 1_048_576).toFixed(0);
+    dzErrorMsg.textContent = `File too large — maximum is ${mb} MB`;
+    setState('error');
+    return;
+  }
+
   setState('uploading');
 
   const body = new FormData();
