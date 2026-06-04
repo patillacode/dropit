@@ -149,6 +149,13 @@ dropZone.addEventListener('click', () => {
   const state = dropZone.dataset.state;
   if (state === 'idle' || state === 'error') fileInput.click();
 });
+dropZone.addEventListener('keydown', e => {
+  if ((e.key === 'Enter' || e.key === ' ') &&
+      (dropZone.dataset.state === 'idle' || dropZone.dataset.state === 'error')) {
+    e.preventDefault();
+    fileInput.click();
+  }
+});
 dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
 dropZone.addEventListener('dragleave', e => {
   if (!dropZone.contains(e.relatedTarget)) dropZone.classList.remove('drag-over');
