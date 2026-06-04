@@ -31,7 +31,7 @@ def get_engine():
     return _engine
 
 
-def _migrate_schema(engine) -> None:
+def _migration_1(engine) -> None:
     with engine.connect() as conn:
         rows = conn.execute(text("PRAGMA table_info(page)")).fetchall()
     if not rows:
@@ -39,12 +39,17 @@ def _migrate_schema(engine) -> None:
     expires_row = next((r for r in rows if r[1] == "expires_at"), None)
     if not expires_row or expires_row[3] == 0:
         return
-    # Column is NOT NULL — recreate table with nullable expires_at
     with engine.connect() as conn:
         conn.execute(text("ALTER TABLE page RENAME TO _page_bak"))
-        conn.commit()
-    SQLModel.metadata.create_all(engine)
-    with engine.connect() as conn:
+        conn.execute(
+            text(
+                "CREATE TABLE page ("
+                "id TEXT NOT NULL PRIMARY KEY, "
+                "expires_at DATETIME, "
+                "token_hint TEXT NOT NULL"
+                ")"
+            )
+        )
         conn.execute(
             text(
                 "INSERT INTO page (id, expires_at, token_hint) "
@@ -55,13 +60,10 @@ def _migrate_schema(engine) -> None:
         conn.commit()
 
 
-def _add_columns(engine) -> None:
+def _migration_2(engine) -> None:
     with engine.connect() as conn:
         rows = conn.execute(text("PRAGMA table_info(page)")).fetchall()
-    if not rows:
-        return
-    existing = {r[1] for r in rows}
-    with engine.connect() as conn:
+        existing = {r[1] for r in rows}
         if "filename" not in existing:
             conn.execute(text("ALTER TABLE page ADD COLUMN filename TEXT"))
         if "created_at" not in existing:
@@ -69,11 +71,38 @@ def _add_columns(engine) -> None:
         conn.commit()
 
 
+_MIGRATIONS = [_migration_1, _migration_2]
+
+
+def _run_migrations(engine) -> None:
+    with engine.connect() as conn:
+        conn.execute(text("CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL)"))
+        conn.commit()
+
+        rows = conn.execute(text("SELECT version FROM schema_version")).fetchall()
+        if not rows:
+            page_cols = {r[1] for r in conn.execute(text("PRAGMA table_info(page)")).fetchall()}
+            if not page_cols or {"filename", "created_at"}.issubset(page_cols):
+                current = len(_MIGRATIONS)
+            else:
+                current = 0
+            conn.execute(text("INSERT INTO schema_version (version) VALUES (:v)"), {"v": current})
+            conn.commit()
+        else:
+            current = rows[0][0]
+
+    for idx, migrate in enumerate(_MIGRATIONS, start=1):
+        if idx > current:
+            migrate(engine)
+            with engine.connect() as conn:
+                conn.execute(text("UPDATE schema_version SET version = :v"), {"v": idx})
+                conn.commit()
+
+
 def init_db() -> None:
     engine = get_engine()
-    _migrate_schema(engine)
+    _run_migrations(engine)
     SQLModel.metadata.create_all(engine)
-    _add_columns(engine)
 
 
 def get_session() -> Generator[Session, None, None]:
