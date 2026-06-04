@@ -1,5 +1,6 @@
 import { getToken as _getToken, showTokenField, showTokenIndicator } from '/static/js/token-shared.js';
 import { showTokenModal, showConfirmModal } from '/static/js/token-modal.js';
+import { fmtExpiry } from '/static/js/utils.js';
 
 const tokenInputEl   = document.getElementById('tokenInput');
 const tokenFieldEl   = document.getElementById('tokenField');
@@ -193,8 +194,9 @@ function renderTable(pages) {
     tdUrl.appendChild(a);
 
     const tdExp = document.createElement('td');
-    tdExp.className = p.expires_at ? 'td-expires' : 'td-expires permanent';
-    tdExp.textContent = p.expires_at ? fmtDate(p.expires_at) : 'permanent';
+    const { text: expText, cls: expCls } = fmtExpiry(p.expires_at);
+    tdExp.className = `td-expires ${expCls}`;
+    tdExp.textContent = expText;
 
     const tdUp = document.createElement('td');
     tdUp.className = 'td-uploader';
@@ -227,6 +229,7 @@ function renderTable(pages) {
     grid.className = 'detail-grid';
     grid.appendChild(detailItem('File', p.filename || '—'));
     grid.appendChild(detailItem('Uploaded', p.created_at ? fmtDate(p.created_at) : '—'));
+    grid.appendChild(detailItem('Expires', p.expires_at ? fmtDate(p.expires_at) : 'never'));
     grid.appendChild(detailItem('Size', fmtSize(p.file_size || 0)));
     detailTd.appendChild(grid);
     detailTr.appendChild(detailTd);

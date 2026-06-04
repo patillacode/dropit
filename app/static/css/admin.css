@@ -123,6 +123,7 @@ input[type="password"] { width: 100%; max-width: 360px; }
   display: flex;
   gap: 0.6rem;
   align-items: center;
+  justify-content: flex-end;
 }
 
 
@@ -229,8 +230,7 @@ tbody tr:not(.page-detail):hover td         { background: rgba(255, 255, 255, 0.
 }
 .td-url a:hover        { text-decoration: underline; text-underline-offset: 2px; }
 .td-uploader           { color: var(--muted); font-size: 0.8rem; }
-.td-expires            { color: var(--muted); font-size: 0.8rem; white-space: nowrap; }
-.td-expires.permanent  { color: var(--ok); }
+.td-expires            { font-size: 0.8rem; white-space: nowrap; }
 
 
 .empty {
@@ -286,6 +286,7 @@ tbody tr:not(.page-detail):hover td         { background: rgba(255, 255, 255, 0.
   outline: none;
 }
 .user-create input[type="text"]:focus { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.user-create button[type="submit"] { margin-left: auto; }
 
 .user-admin-check {
   display: inline-flex;
