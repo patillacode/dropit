@@ -163,3 +163,16 @@ def test_upload_rejects_non_utf8_content(client):
         files={"file": ("page.html", bad_bytes, "text/html")},
     )
     assert response.status_code == 422
+
+
+def test_upload_expires_at_has_utc_suffix(client):
+    content = b"<!doctype html><html><body>hi</body></html>"
+    r = client.post(
+        "/upload",
+        headers={"Authorization": f"Bearer {USER_TOKEN}"},
+        files={"file": ("test.html", content, "text/html")},
+    )
+    assert r.status_code == 200
+    expires_at = r.json()["expires_at"]
+    assert expires_at is not None
+    assert expires_at.endswith("Z"), f"expected Z suffix, got: {expires_at!r}"

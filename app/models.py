@@ -1,6 +1,8 @@
-from datetime import UTC, datetime
+from datetime import datetime
 
 from sqlmodel import Field, SQLModel
+
+from app.utils import utcnow
 
 
 class User(SQLModel, table=True):
@@ -8,7 +10,7 @@ class User(SQLModel, table=True):
     name: str = Field(max_length=64, unique=True, index=True)
     token_hash: str = Field(max_length=64, unique=True, index=True)
     is_admin: bool = Field(default=False)
-    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC).replace(tzinfo=None))
+    created_at: datetime = Field(default_factory=utcnow)
 
 
 class Page(SQLModel, table=True):
@@ -21,6 +23,6 @@ class Page(SQLModel, table=True):
 
 class CleanupRun(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
-    ran_at: datetime = Field(default_factory=lambda: datetime.now(UTC).replace(tzinfo=None))
+    ran_at: datetime = Field(default_factory=utcnow)
     deleted_count: int
     triggered_by: str = Field(default="scheduler")

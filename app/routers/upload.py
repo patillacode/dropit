@@ -1,5 +1,5 @@
 import secrets
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, status
@@ -10,6 +10,7 @@ from app.database import get_session
 from app.limiter import limiter
 from app.models import Page
 from app.settings import get_settings, parse_ttl_duration
+from app.utils import format_dt, utcnow
 
 router = APIRouter()
 
@@ -106,11 +107,7 @@ async def upload(
         )
 
     page_id = _generate_id(session)
-    expires_at = (
-        None
-        if ttl_seconds is None
-        else (datetime.now(UTC) + timedelta(seconds=ttl_seconds)).replace(tzinfo=None)
-    )
+    expires_at = None if ttl_seconds is None else utcnow() + timedelta(seconds=ttl_seconds)
 
     pages_dir = Path(settings.data_dir) / "pages"
     pages_dir.mkdir(parents=True, exist_ok=True)
@@ -121,12 +118,12 @@ async def upload(
         expires_at=expires_at,
         token_hint=user.name,
         filename=filename or None,
-        created_at=datetime.now(UTC).replace(tzinfo=None),
+        created_at=utcnow(),
     )
     session.add(page)
     session.commit()
 
     return {
         "url": settings.page_url(page_id),
-        "expires_at": expires_at.isoformat() if expires_at else None,
+        "expires_at": format_dt(expires_at),
     }

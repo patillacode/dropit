@@ -5,6 +5,7 @@ from sqlmodel import Session, select
 from app.auth import TokenUser, generate_token, get_current_user, hash_token, require_admin
 from app.database import get_session
 from app.models import User
+from app.utils import format_dt
 
 router = APIRouter(prefix="/admin/users", dependencies=[Depends(require_admin)])
 
@@ -19,7 +20,7 @@ def _serialize(user: User) -> dict:
         "id": user.id,
         "name": user.name,
         "is_admin": user.is_admin,
-        "created_at": user.created_at.isoformat(),
+        "created_at": format_dt(user.created_at),
     }
 
 

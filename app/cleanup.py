@@ -1,15 +1,15 @@
-from datetime import UTC, datetime
 from pathlib import Path
 
 from sqlmodel import Session, col, select
 
 from app.models import CleanupRun, Page
+from app.utils import utcnow
 
 _MAX_HISTORY = 50
 
 
 def delete_expired_pages(engine, data_dir: str, triggered_by: str = "scheduler") -> int:
-    now = datetime.now(UTC).replace(tzinfo=None)
+    now = utcnow()
     deleted = 0
     with Session(engine) as session:
         expired = session.exec(

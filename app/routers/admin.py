@@ -8,6 +8,7 @@ from app.cleanup import delete_expired_pages
 from app.database import get_session
 from app.models import CleanupRun, Page
 from app.settings import get_settings
+from app.utils import format_dt
 
 router = APIRouter(prefix="/admin")
 
@@ -25,10 +26,10 @@ def list_pages(session: Session = Depends(get_session)):
                 "id": page.id,
                 "url": settings.page_url(page.id),
                 "token_hint": page.token_hint,
-                "expires_at": page.expires_at.isoformat() if page.expires_at else None,
+                "expires_at": format_dt(page.expires_at),
                 "file_size": size,
                 "filename": page.filename,
-                "created_at": page.created_at.isoformat() if page.created_at else None,
+                "created_at": format_dt(page.created_at),
             }
         )
     return result
@@ -38,10 +39,10 @@ def list_pages(session: Session = Depends(get_session)):
 def cleanup_status(request: Request, session: Session = Depends(get_session)):
     last_run = session.exec(select(CleanupRun).order_by(col(CleanupRun.ran_at).desc())).first()
     job = getattr(request.app.state, "cleanup_job", None)
-    next_run = job.next_run_time.isoformat() if job and job.next_run_time else None
+    next_run = format_dt(job.next_run_time) if job else None
     return {
         "last_run": {
-            "ran_at": last_run.ran_at.isoformat(),
+            "ran_at": format_dt(last_run.ran_at),
             "deleted_count": last_run.deleted_count,
             "triggered_by": last_run.triggered_by,
         }
@@ -57,7 +58,7 @@ def cleanup_history(session: Session = Depends(get_session)):
     return [
         {
             "id": run.id,
-            "ran_at": run.ran_at.isoformat(),
+            "ran_at": format_dt(run.ran_at),
             "deleted_count": run.deleted_count,
             "triggered_by": run.triggered_by,
         }
