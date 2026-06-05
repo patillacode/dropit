@@ -15,7 +15,7 @@ def get_config():
     user_default = (
         settings.default_ttl
         if settings.default_ttl in user_ttls
-        else (user_ttls[0] if user_ttls else settings.default_ttl)
+        else (user_ttls[0] if user_ttls else None)
     )
     return {
         "allowed_ttls": admin_ttls,
