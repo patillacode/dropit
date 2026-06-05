@@ -23,6 +23,7 @@ const historyEl      = document.getElementById('history');
 const historyList    = document.getElementById('historyList');
 const adminSepEl     = document.getElementById('adminSep');
 const adminLinkEl    = document.getElementById('adminLink');
+const srStatus       = document.getElementById('srStatus');
 
 const _tokenEls     = { fieldEl: tokenFieldEl, indicatorEl: tokenIndicator, hintEl: tokenHintEl };
 const _indicatorEls = { fieldEl: tokenFieldEl, indicatorEl: tokenIndicator, nameEl: tokenNameEl };
@@ -33,6 +34,13 @@ let appConfig    = null;
 
 function setState(state) {
   dropZone.dataset.state = state;
+  if (state === 'success') {
+    srStatus.textContent = 'Upload complete — your link is ready to share';
+  } else if (state === 'error') {
+    srStatus.textContent = dzErrorMsg.textContent;
+  } else {
+    srStatus.textContent = '';
+  }
 }
 
 async function init() {
@@ -141,6 +149,13 @@ dropZone.addEventListener('click', () => {
   const state = dropZone.dataset.state;
   if (state === 'idle' || state === 'error') fileInput.click();
 });
+dropZone.addEventListener('keydown', e => {
+  if ((e.key === 'Enter' || e.key === ' ') &&
+      (dropZone.dataset.state === 'idle' || dropZone.dataset.state === 'error')) {
+    e.preventDefault();
+    fileInput.click();
+  }
+});
 dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
 dropZone.addEventListener('dragleave', e => {
   if (!dropZone.contains(e.relatedTarget)) dropZone.classList.remove('drag-over');
@@ -162,6 +177,13 @@ async function doUpload() {
   const token = localStorage.getItem(STORAGE_KEY) || tokenInputEl.value.trim();
   if (!token) {
     dzErrorMsg.textContent = 'No token — enter your API token above';
+    setState('error');
+    return;
+  }
+
+  if (appConfig && selectedFile.size > appConfig.max_upload_size) {
+    const mb = (appConfig.max_upload_size / 1_048_576).toFixed(0);
+    dzErrorMsg.textContent = `File too large — maximum is ${mb} MB`;
     setState('error');
     return;
   }

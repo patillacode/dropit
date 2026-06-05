@@ -37,7 +37,7 @@
         </div>
     </div>
 
-    <div class="drop-zone" id="dropZone" data-state="idle">
+    <div class="drop-zone" id="dropZone" data-state="idle" tabindex="0" role="button" aria-label="Upload area — press Enter or Space to browse for a file">
 
         <div class="dz-panel dz-idle">
             <svg class="drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"
@@ -104,6 +104,7 @@
             id="adminSep" style="display:none"> &bull; </span><a href="/admin" id="adminLink"
             style="display:none;color:var(--muted);text-decoration:underline;text-underline-offset:3px">Admin</a>
     </footer>
+    <div id="srStatus" role="status" aria-live="polite" aria-atomic="true" class="sr-only"></div>
 </main>
 {% endblock %}
 {% block scripts %}
