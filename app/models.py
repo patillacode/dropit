@@ -19,6 +19,7 @@ class Page(SQLModel, table=True):
     token_hint: str = Field(max_length=64)
     filename: str | None = Field(default=None, nullable=True)
     created_at: datetime | None = Field(default=None, nullable=True)
+    file_size: int | None = Field(default=None, nullable=True)
 
 
 class CleanupRun(SQLModel, table=True):

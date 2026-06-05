@@ -71,7 +71,16 @@ def _migration_2(engine) -> None:
         conn.commit()
 
 
-_MIGRATIONS = [_migration_1, _migration_2]
+def _migration_3(engine) -> None:
+    with engine.connect() as conn:
+        rows = conn.execute(text("PRAGMA table_info(page)")).fetchall()
+        existing = {r[1] for r in rows}
+        if "file_size" not in existing:
+            conn.execute(text("ALTER TABLE page ADD COLUMN file_size INTEGER"))
+        conn.commit()
+
+
+_MIGRATIONS = [_migration_1, _migration_2, _migration_3]
 
 
 def _run_migrations(engine) -> None:

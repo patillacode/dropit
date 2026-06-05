@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings
 
 
@@ -22,6 +23,14 @@ class Settings(BaseSettings):
     data_dir: str = "./data"
     content_domain: str = "localhost:8000"
     admin_token: str | None = None
+
+    @model_validator(mode="after")
+    def _validate_ttls(self) -> "Settings":
+        for ttl in self.ttl_list:
+            parse_ttl_duration(ttl)
+        parse_ttl_duration(self.default_ttl)
+        parse_ttl_duration(self.max_user_ttl)
+        return self
 
     @property
     def content_scheme(self) -> str:

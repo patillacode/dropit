@@ -17,22 +17,18 @@ router = APIRouter(prefix="/admin")
 def list_pages(session: Session = Depends(get_session)):
     settings = get_settings()
     pages = session.exec(select(Page)).all()
-    result = []
-    for page in pages:
-        file_path = Path(settings.data_dir) / "pages" / page.id
-        size = file_path.stat().st_size if file_path.exists() else 0
-        result.append(
-            {
-                "id": page.id,
-                "url": settings.page_url(page.id),
-                "token_hint": page.token_hint,
-                "expires_at": format_dt(page.expires_at),
-                "file_size": size,
-                "filename": page.filename,
-                "created_at": format_dt(page.created_at),
-            }
-        )
-    return result
+    return [
+        {
+            "id": page.id,
+            "url": settings.page_url(page.id),
+            "token_hint": page.token_hint,
+            "expires_at": format_dt(page.expires_at),
+            "file_size": page.file_size if page.file_size is not None else 0,
+            "filename": page.filename,
+            "created_at": format_dt(page.created_at),
+        }
+        for page in pages
+    ]
 
 
 @router.get("/cleanup/status", dependencies=[Depends(require_admin)])

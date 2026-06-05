@@ -119,6 +119,7 @@ async def upload(
         token_hint=user.name,
         filename=filename or None,
         created_at=utcnow(),
+        file_size=len(content),
     )
     session.add(page)
     session.commit()

@@ -1,4 +1,5 @@
 import pytest
+from pydantic import ValidationError
 
 from app.settings import Settings, parse_ttl_duration
 
@@ -32,3 +33,29 @@ def test_settings_defaults(monkeypatch):
     assert s.cleanup_interval_hours == 1
     assert s.max_upload_size == 5_242_880
     assert s.ttl_list == ["1h", "6h", "24h", "48h", "7d"]
+
+
+def test_invalid_allowed_ttls_raises_at_startup(monkeypatch):
+    monkeypatch.setenv("ALLOWED_TTLS", "1h,bad_value")
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None)
+
+
+def test_invalid_default_ttl_raises_at_startup(monkeypatch):
+    monkeypatch.setenv("DEFAULT_TTL", "5m")
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None)
+
+
+def test_invalid_max_user_ttl_raises_at_startup(monkeypatch):
+    monkeypatch.setenv("MAX_USER_TTL", "bad")
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None)
+
+
+def test_valid_ttl_config_does_not_raise(monkeypatch):
+    monkeypatch.setenv("ALLOWED_TTLS", "1h,24h,7d,forever")
+    monkeypatch.setenv("DEFAULT_TTL", "24h")
+    monkeypatch.setenv("MAX_USER_TTL", "24h")
+    s = Settings(_env_file=None)
+    assert s.ttl_list == ["1h", "24h", "7d", "forever"]
