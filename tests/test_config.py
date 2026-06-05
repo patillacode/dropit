@@ -22,6 +22,7 @@ def test_config_user_default_ttl_equals_default_when_in_user_list(client):
 
 def test_config_user_default_ttl_clamped_when_default_outside_user_list(client, monkeypatch):
     from app.settings import get_settings
+
     monkeypatch.setenv("DEFAULT_TTL", "7d")
     monkeypatch.setenv("MAX_USER_TTL", "24h")
     monkeypatch.setenv("ALLOWED_TTLS", "1h,6h,24h,48h,7d")
