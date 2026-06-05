@@ -1,3 +1,4 @@
+from pathlib import Path
 from unittest.mock import MagicMock
 
 from sqlalchemy.exc import OperationalError
@@ -35,14 +36,15 @@ def test_health_degraded_on_db_error(client):
 def test_health_degraded_on_data_dir_error(client, tmp_path, monkeypatch):
     monkeypatch.setenv("DATA_DIR", str(tmp_path))
     get_settings.cache_clear()
-    pages_dir = tmp_path / "pages"
-    pages_dir.mkdir(exist_ok=True)
-    pages_dir.chmod(0o555)
+
+    def _raise(self, data):
+        raise PermissionError("Permission denied")
+
+    monkeypatch.setattr(Path, "write_bytes", _raise)
     try:
         res = client.get("/health")
         assert res.status_code == 503
         assert res.json()["status"] == "degraded"
         assert "error" in res.json()["data_dir"]
     finally:
-        pages_dir.chmod(0o755)
         get_settings.cache_clear()
