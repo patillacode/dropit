@@ -85,12 +85,13 @@ async function checkToken(token) {
 function populateTTL(isAdmin) {
   if (!appConfig) return;
   const ttls = isAdmin ? appConfig.allowed_ttls : appConfig.user_ttls;
+  const defaultTtl = isAdmin ? appConfig.default_ttl : appConfig.user_default_ttl;
   while (ttlSelect.firstChild) ttlSelect.removeChild(ttlSelect.firstChild);
   ttls.forEach(t => {
     const opt = document.createElement('option');
     opt.value    = t;
     opt.textContent = t;
-    opt.selected = t === appConfig.default_ttl;
+    opt.selected = t === defaultTtl;
     ttlSelect.appendChild(opt);
   });
 }
