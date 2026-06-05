@@ -64,7 +64,7 @@ def test_init_db_creates_schema_version(tmp_path, monkeypatch):
         engine = db_mod.get_engine()
         with engine.connect() as conn:
             version = conn.execute(text("SELECT version FROM schema_version")).scalar()
-        assert version == 2
+        assert version == 3
     finally:
         db_mod._engine = original
         get_settings.cache_clear()
@@ -81,7 +81,7 @@ def test_init_db_is_idempotent(tmp_path, monkeypatch):
         engine = db_mod.get_engine()
         with engine.connect() as conn:
             version = conn.execute(text("SELECT version FROM schema_version")).scalar()
-        assert version == 2
+        assert version == 3
     finally:
         db_mod._engine = original
         get_settings.cache_clear()
@@ -115,6 +115,7 @@ def test_run_migrations_upgrades_old_install():
         version = conn.execute(text("SELECT version FROM schema_version")).scalar()
         cols = {r[1] for r in conn.execute(text("PRAGMA table_info(page)")).fetchall()}
 
-    assert version == 2
+    assert version == 3
     assert "filename" in cols
     assert "created_at" in cols
+    assert "file_size" in cols

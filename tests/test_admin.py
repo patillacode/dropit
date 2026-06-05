@@ -129,6 +129,21 @@ def test_cleanup_requires_admin(client):
     assert res.status_code == 403
 
 
+def test_admin_list_file_size_matches_upload(client):
+    content = b"<!doctype html><html><body>size-test</body></html>"
+    res = client.post(
+        "/upload",
+        headers={"Authorization": "Bearer tok_test123"},
+        files={"file": ("page.html", content, "text/html")},
+    )
+    assert res.status_code == 200
+
+    res_list = client.get("/admin/pages", headers={"Authorization": "Bearer admin_tok_xyz"})
+    pages = res_list.json()
+    assert len(pages) == 1
+    assert pages[0]["file_size"] == len(content)
+
+
 def test_admin_permanent_page_shows_null_expires(client, monkeypatch):
     from app.settings import get_settings
 
