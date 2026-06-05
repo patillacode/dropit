@@ -45,3 +45,4 @@ def test_health_degraded_on_data_dir_error(client, tmp_path, monkeypatch):
         assert "error" in res.json()["data_dir"]
     finally:
         pages_dir.chmod(0o755)
+        get_settings.cache_clear()
