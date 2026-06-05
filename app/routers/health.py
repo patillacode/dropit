@@ -26,7 +26,7 @@ def health(session: Session = Depends(get_session)):
         probe = Path(settings.data_dir) / "pages" / ".health"
         probe.parent.mkdir(parents=True, exist_ok=True)
         probe.write_bytes(b"")
-        probe.unlink()
+        probe.unlink(missing_ok=True)
         checks["data_dir"] = "ok"
     except Exception as exc:
         checks["data_dir"] = f"error: {exc}"
