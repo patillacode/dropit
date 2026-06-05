@@ -32,5 +32,6 @@ def test_config_user_default_ttl_clamped_when_default_outside_user_list(client, 
         assert data["default_ttl"] == "7d"
         assert data["user_default_ttl"] in data["user_ttls"]
         assert data["user_default_ttl"] != "7d"
+        assert data["user_default_ttl"] == data["user_ttls"][0]
     finally:
         get_settings.cache_clear()
