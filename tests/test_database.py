@@ -119,3 +119,48 @@ def test_run_migrations_upgrades_old_install():
     assert "filename" in cols
     assert "created_at" in cols
     assert "file_size" in cols
+
+
+def test_migration_1_skips_when_no_table(tmp_path):
+    from sqlalchemy import create_engine as sa_engine
+
+    from app.database import _migration_1
+
+    engine = sa_engine(f"sqlite:///{tmp_path}/test.db")
+    _migration_1(engine)  # must not raise
+
+
+def test_migration_1_migrates_not_null_expires_at(tmp_path):
+    from sqlalchemy import create_engine as sa_engine, text
+
+    from app.database import _migration_1
+
+    engine = sa_engine(f"sqlite:///{tmp_path}/test.db")
+    with engine.connect() as conn:
+        conn.execute(text(
+            "CREATE TABLE page ("
+            "id TEXT NOT NULL PRIMARY KEY, "
+            "expires_at DATETIME NOT NULL, "
+            "token_hint TEXT NOT NULL"
+            ")"
+        ))
+        conn.commit()
+
+    _migration_1(engine)
+
+    with engine.connect() as conn:
+        rows = conn.execute(text("PRAGMA table_info(page)")).fetchall()
+    expires_row = next(r for r in rows if r[1] == "expires_at")
+    assert expires_row[3] == 0  # notnull == 0 means nullable after migration
+
+
+def test_get_session_yields_session():
+    from app.database import get_session
+
+    gen = get_session()
+    session = next(gen)
+    assert session is not None
+    try:
+        next(gen)
+    except StopIteration:
+        pass

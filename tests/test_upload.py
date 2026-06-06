@@ -176,3 +176,52 @@ def test_upload_expires_at_has_utc_suffix(client):
     expires_at = r.json()["expires_at"]
     assert expires_at is not None
     assert expires_at.endswith("Z"), f"expected Z suffix, got: {expires_at!r}"
+
+
+def test_upload_invalid_content_length_triggers_streaming_size_check(client, monkeypatch):
+    monkeypatch.setenv("MAX_UPLOAD_SIZE", "10")
+    get_settings.cache_clear()
+    try:
+        content = b"<html>" + b"x" * 20 + b"</html>"
+        res = client.post(
+            "/upload",
+            headers={
+                "Authorization": f"Bearer {USER_TOKEN}",
+                "Content-Length": "notanumber",
+            },
+            files={"file": ("test.html", content, "text/html")},
+        )
+        assert res.status_code == 413
+    finally:
+        get_settings.cache_clear()
+
+
+def test_upload_id_collision_exhausted(client, monkeypatch):
+    import secrets
+    from datetime import datetime, timezone
+
+    from fastapi.testclient import TestClient
+    from sqlmodel import Session
+
+    from app.models import Page
+
+    fixed_id = "aaaabbbb"
+    monkeypatch.setattr(secrets, "token_hex", lambda n: fixed_id)
+
+    with Session(client.app.state.engine) as session:
+        page = Page(
+            id=fixed_id,
+            token_hint="hint",
+            expires_at=datetime(2099, 1, 1, tzinfo=timezone.utc),
+        )
+        session.add(page)
+        session.commit()
+
+    content = b"<html><body>test</body></html>"
+    with TestClient(client.app, raise_server_exceptions=False) as no_raise_client:
+        res = no_raise_client.post(
+            "/upload",
+            headers={"Authorization": f"Bearer {USER_TOKEN}"},
+            files={"file": ("test.html", content, "text/html")},
+        )
+    assert res.status_code == 500
