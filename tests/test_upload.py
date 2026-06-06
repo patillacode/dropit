@@ -1,3 +1,5 @@
+from datetime import UTC
+
 from app.settings import get_settings
 from tests.conftest import USER_TOKEN
 
@@ -198,7 +200,7 @@ def test_upload_invalid_content_length_triggers_streaming_size_check(client, mon
 
 def test_upload_id_collision_exhausted(client, monkeypatch):
     import secrets
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     from fastapi.testclient import TestClient
     from sqlmodel import Session
@@ -212,7 +214,7 @@ def test_upload_id_collision_exhausted(client, monkeypatch):
         page = Page(
             id=fixed_id,
             token_hint="hint",
-            expires_at=datetime(2099, 1, 1, tzinfo=timezone.utc),
+            expires_at=datetime(2099, 1, 1, tzinfo=UTC),
         )
         session.add(page)
         session.commit()

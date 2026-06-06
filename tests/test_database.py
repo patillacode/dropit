@@ -131,19 +131,22 @@ def test_migration_1_skips_when_no_table(tmp_path):
 
 
 def test_migration_1_migrates_not_null_expires_at(tmp_path):
-    from sqlalchemy import create_engine as sa_engine, text
+    from sqlalchemy import create_engine as sa_engine
+    from sqlalchemy import text
 
     from app.database import _migration_1
 
     engine = sa_engine(f"sqlite:///{tmp_path}/test.db")
     with engine.connect() as conn:
-        conn.execute(text(
-            "CREATE TABLE page ("
-            "id TEXT NOT NULL PRIMARY KEY, "
-            "expires_at DATETIME NOT NULL, "
-            "token_hint TEXT NOT NULL"
-            ")"
-        ))
+        conn.execute(
+            text(
+                "CREATE TABLE page ("
+                "id TEXT NOT NULL PRIMARY KEY, "
+                "expires_at DATETIME NOT NULL, "
+                "token_hint TEXT NOT NULL"
+                ")"
+            )
+        )
         conn.commit()
 
     _migration_1(engine)
