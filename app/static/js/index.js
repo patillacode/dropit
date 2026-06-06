@@ -97,7 +97,6 @@ function populateTTL(isAdmin) {
 }
 
 tokenForm.addEventListener('submit', e => { e.preventDefault(); saveToken(); });
-tokenInputEl.addEventListener('blur', () => { if (tokenInputEl.value.trim()) saveToken(); });
 
 async function saveToken() {
   const token = tokenInputEl.value.trim();
