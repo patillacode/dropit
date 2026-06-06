@@ -65,7 +65,7 @@ def test_regenerate_token_user_not_in_db(client):
     from app.auth import TokenUser, get_current_user
 
     async def ghost_user():
-        return TokenUser(name="ghost", is_admin=False, user_id="nonexistent-id")
+        return TokenUser(name="ghost", is_admin=False, user_id=99999)
 
     client.app.dependency_overrides[get_current_user] = ghost_user
     try:

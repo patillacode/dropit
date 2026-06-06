@@ -206,7 +206,7 @@ def test_upload_id_collision_exhausted(client, monkeypatch):
     from app.models import Page
 
     fixed_id = "aaaabbbb"
-    monkeypatch.setattr(secrets, "token_hex", lambda n: fixed_id)
+    monkeypatch.setattr(secrets, "token_hex", lambda _: fixed_id)
 
     with Session(client.app.state.engine) as session:
         page = Page(
