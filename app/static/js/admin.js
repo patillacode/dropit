@@ -69,7 +69,6 @@ function showIndicator() {
 }
 
 tokenForm.addEventListener('submit', e => { e.preventDefault(); tryConnect(); });
-tokenInputEl.addEventListener('blur', () => { if (tokenInputEl.value.trim()) tryConnect(); });
 
 tokenChgBtn.addEventListener('click', () => {
   localStorage.removeItem(STORAGE_KEY);
@@ -82,12 +81,11 @@ tokenChgBtn.addEventListener('click', () => {
 async function tryConnect() {
   const token = tokenInputEl.value.trim();
   if (!token) return;
-  localStorage.setItem(STORAGE_KEY, token);
-  await connect();
+  await connect(token);
 }
 
-async function connect() {
-  const token = _getToken(STORAGE_KEY);
+async function connect(tokenArg) {
+  const token = tokenArg ?? _getToken(STORAGE_KEY);
   if (!token) { showTokenField(_tokenEls); return; }
   errorEl.classList.remove('visible');
   let me;
@@ -112,6 +110,7 @@ async function connect() {
     clearAll();
     return;
   }
+  localStorage.setItem(STORAGE_KEY, token);
   showIndicator();
   await loadPages();
   await loadCleanupStatus();
