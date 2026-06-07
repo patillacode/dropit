@@ -1,7 +1,10 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
+import uuid
 
 from apscheduler.schedulers.background import BackgroundScheduler
+import structlog
+
 from fastapi import FastAPI, Request
 from fastapi.exception_handlers import http_exception_handler as default_http_exception_handler
 from fastapi.exceptions import HTTPException
@@ -39,9 +42,11 @@ async def lifespan(app: FastAPI):
     app.state.cleanup_job = job
     app.state.engine = engine
     scheduler.start()
+    structlog.get_logger().info("app.startup", log_level=settings.log_level)
     yield
     scheduler.shutdown(wait=False)
     dispose_engine()
+    structlog.get_logger().info("app.shutdown")
 
 
 def create_app() -> FastAPI:
@@ -111,6 +116,12 @@ def create_app() -> FastAPI:
             response.headers["X-Content-Type-Options"] = "nosniff"
             return response
 
+        return await call_next(request)
+
+    @app.middleware("http")
+    async def request_id_middleware(request: Request, call_next):
+        structlog.contextvars.clear_contextvars()
+        structlog.contextvars.bind_contextvars(request_id=uuid.uuid4().hex[:8])
         return await call_next(request)
 
     return app

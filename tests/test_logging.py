@@ -32,3 +32,21 @@ def test_level_filter_drops_event_via_processor(capsys):
     out = capsys.readouterr()
     assert "should.be.dropped" not in out.out
     assert "should.be.dropped" not in out.err
+
+
+def test_request_id_bound_per_request(client):
+    from unittest.mock import patch, call
+    bound = {}
+
+    original_bind = structlog.contextvars.bind_contextvars
+
+    def capturing_bind(**kw):
+        bound.update(kw)
+        return original_bind(**kw)
+
+    with patch("structlog.contextvars.bind_contextvars", side_effect=capturing_bind):
+        client.get("/health")
+
+    assert "request_id" in bound
+    rid = bound["request_id"]
+    assert isinstance(rid, str) and len(rid) == 8
