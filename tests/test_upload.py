@@ -1,7 +1,9 @@
 from datetime import UTC
 
+from structlog.testing import capture_logs
+
 from app.settings import get_settings
-from tests.conftest import USER_TOKEN
+from tests.conftest import ADMIN_TOKEN, USER_TOKEN
 
 
 def test_upload_returns_url(client, tmp_path):
@@ -227,3 +229,48 @@ def test_upload_id_collision_exhausted(client, monkeypatch):
             files={"file": ("test.html", content, "text/html")},
         )
     assert res.status_code == 500
+
+
+def test_upload_success_is_logged(client):
+    content = b"<!doctype html><html><body>hello</body></html>"
+    with capture_logs() as cap:
+        res = client.post(
+            "/upload",
+            files={"file": ("test.html", content, "text/html")},
+            headers={"Authorization": f"Bearer {ADMIN_TOKEN}"},
+        )
+    assert res.status_code == 200
+    successes = [l for l in cap if l.get("event") == "upload.success"]
+    assert len(successes) == 1
+    log = successes[0]
+    assert log["size"] == len(content)
+    assert log["ttl"] == "24h"
+    assert "page_id" in log
+    assert log["user"] == "admin"
+
+
+def test_upload_too_large_is_logged(client):
+    big_content = b"<!doctype html>" + b"x" * 6_000_000
+    with capture_logs() as cap:
+        res = client.post(
+            "/upload",
+            files={"file": ("big.html", big_content, "text/html")},
+            headers={"Authorization": f"Bearer {ADMIN_TOKEN}"},
+        )
+    assert res.status_code == 413
+    failures = [l for l in cap if l.get("event") == "upload.failure"]
+    assert len(failures) == 1
+    assert failures[0]["reason"] == "too_large"
+
+
+def test_upload_invalid_content_is_logged(client):
+    with capture_logs() as cap:
+        res = client.post(
+            "/upload",
+            files={"file": ("test.html", b"not html at all", "text/html")},
+            headers={"Authorization": f"Bearer {ADMIN_TOKEN}"},
+        )
+    assert res.status_code == 422
+    failures = [l for l in cap if l.get("event") == "upload.failure"]
+    assert len(failures) == 1
+    assert failures[0]["reason"] == "invalid_content"
