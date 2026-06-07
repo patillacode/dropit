@@ -1,10 +1,16 @@
-from datetime import UTC
+import secrets
+from datetime import UTC, datetime
 
+from fastapi.testclient import TestClient
+from sqlmodel import Session
+from structlog.testing import capture_logs
+
+from app.models import Page
 from app.settings import get_settings
-from tests.conftest import USER_TOKEN
+from tests.conftest import ADMIN_TOKEN, USER_TOKEN
 
 
-def test_upload_returns_url(client, tmp_path):
+def test_upload_returns_url(client):
     response = client.post(
         "/upload",
         headers={"Authorization": "Bearer tok_test123"},
@@ -199,14 +205,6 @@ def test_upload_invalid_content_length_triggers_streaming_size_check(client, mon
 
 
 def test_upload_id_collision_exhausted(client, monkeypatch):
-    import secrets
-    from datetime import datetime
-
-    from fastapi.testclient import TestClient
-    from sqlmodel import Session
-
-    from app.models import Page
-
     fixed_id = "aaaabbbb"
     monkeypatch.setattr(secrets, "token_hex", lambda _: fixed_id)
 
@@ -227,3 +225,48 @@ def test_upload_id_collision_exhausted(client, monkeypatch):
             files={"file": ("test.html", content, "text/html")},
         )
     assert res.status_code == 500
+
+
+def test_upload_success_is_logged(client):
+    content = b"<!doctype html><html><body>hello</body></html>"
+    with capture_logs() as cap:
+        res = client.post(
+            "/upload",
+            files={"file": ("test.html", content, "text/html")},
+            headers={"Authorization": f"Bearer {ADMIN_TOKEN}"},
+        )
+    assert res.status_code == 200
+    successes = [entry for entry in cap if entry.get("event") == "upload.success"]
+    assert len(successes) == 1
+    log = successes[0]
+    assert log["size"] == len(content)
+    assert log["ttl"] == "24h"
+    assert "page_id" in log
+    assert log["user"] == "admin"
+
+
+def test_upload_too_large_is_logged(client):
+    big_content = b"<!doctype html>" + b"x" * 6_000_000
+    with capture_logs() as cap:
+        res = client.post(
+            "/upload",
+            files={"file": ("big.html", big_content, "text/html")},
+            headers={"Authorization": f"Bearer {ADMIN_TOKEN}"},
+        )
+    assert res.status_code == 413
+    failures = [entry for entry in cap if entry.get("event") == "upload.failure"]
+    assert len(failures) == 1
+    assert failures[0]["reason"] == "too_large"
+
+
+def test_upload_invalid_content_is_logged(client):
+    with capture_logs() as cap:
+        res = client.post(
+            "/upload",
+            files={"file": ("test.html", b"not html at all", "text/html")},
+            headers={"Authorization": f"Bearer {ADMIN_TOKEN}"},
+        )
+    assert res.status_code == 422
+    failures = [entry for entry in cap if entry.get("event") == "upload.failure"]
+    assert len(failures) == 1
+    assert failures[0]["reason"] == "invalid_content"

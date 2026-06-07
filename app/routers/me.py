@@ -1,3 +1,4 @@
+import structlog
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlmodel import Session
 
@@ -5,6 +6,8 @@ from app.auth import TokenUser, generate_token, get_current_user, hash_token
 from app.database import get_session
 from app.limiter import limiter
 from app.models import User
+
+logger = structlog.get_logger()
 
 router = APIRouter()
 
@@ -34,4 +37,5 @@ def regenerate_own_token(
     db_user.token_hash = hash_token(token)
     session.add(db_user)
     session.commit()
+    logger.info("token.regenerated", user_id=user.user_id, user=db_user.name)
     return {"token": token}

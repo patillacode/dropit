@@ -1,6 +1,8 @@
+import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+import structlog
 from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI, Request
 from fastapi.exception_handlers import http_exception_handler as default_http_exception_handler
@@ -14,6 +16,7 @@ from app.cleanup import delete_expired_pages
 from app.database import dispose_engine, get_engine, init_db
 from app.errors import error_response
 from app.limiter import limiter
+from app.logging import configure_logging
 from app.routers import admin, config, health, landing, me, upload, users
 from app.routers.pages import serve_page_content
 from app.settings import get_settings
@@ -38,12 +41,15 @@ async def lifespan(app: FastAPI):
     app.state.cleanup_job = job
     app.state.engine = engine
     scheduler.start()
+    structlog.get_logger().info("app.startup", log_level=settings.log_level)
     yield
     scheduler.shutdown(wait=False)
     dispose_engine()
+    structlog.get_logger().info("app.shutdown")
 
 
 def create_app() -> FastAPI:
+    configure_logging(get_settings().log_level)
     app = FastAPI(title="dropit", lifespan=lifespan)
     app.state.limiter = limiter
 
@@ -109,6 +115,12 @@ def create_app() -> FastAPI:
             response.headers["X-Content-Type-Options"] = "nosniff"
             return response
 
+        return await call_next(request)
+
+    @app.middleware("http")
+    async def request_id_middleware(request: Request, call_next):
+        structlog.contextvars.clear_contextvars()
+        structlog.contextvars.bind_contextvars(request_id=uuid.uuid4().hex[:8])
         return await call_next(request)
 
     return app

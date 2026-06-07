@@ -2,6 +2,7 @@ import secrets
 from datetime import timedelta
 from pathlib import Path
 
+import structlog
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, status
 from sqlmodel import Session, select
 
@@ -11,6 +12,8 @@ from app.limiter import limiter
 from app.models import Page
 from app.settings import get_settings, parse_ttl_duration
 from app.utils import format_dt, utcnow
+
+logger = structlog.get_logger()
 
 router = APIRouter()
 
@@ -39,6 +42,12 @@ async def upload(
     if content_length_header is not None:
         try:
             if int(content_length_header) > settings.max_upload_size:
+                logger.warning(
+                    "upload.failure",
+                    reason="too_large",
+                    user=user.name,
+                    size=int(content_length_header),
+                )
                 raise HTTPException(
                     status_code=status.HTTP_413_CONTENT_TOO_LARGE,
                     detail=f"File too large. Max size: {settings.max_upload_size} bytes",
@@ -84,6 +93,12 @@ async def upload(
             break
         buf += chunk
         if len(buf) > settings.max_upload_size:
+            logger.warning(
+                "upload.failure",
+                reason="too_large",
+                user=user.name,
+                size=len(buf),
+            )
             raise HTTPException(
                 status_code=status.HTTP_413_CONTENT_TOO_LARGE,
                 detail=f"File too large. Max size: {settings.max_upload_size} bytes",
@@ -93,6 +108,7 @@ async def upload(
     try:
         content.decode("utf-8")
     except UnicodeDecodeError:
+        logger.warning("upload.failure", reason="invalid_content", user=user.name)
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Only UTF-8 encoded HTML files are accepted",
@@ -101,12 +117,17 @@ async def upload(
     stripped = content.strip().lower()
     html_starts = (b"<!doctype", b"<html", b"<head", b"<body", b"<!--")
     if not any(stripped.startswith(s) for s in html_starts):
+        logger.warning("upload.failure", reason="invalid_content", user=user.name)
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Only HTML files are accepted",
         )
 
-    page_id = _generate_id(session)
+    try:
+        page_id = _generate_id(session)
+    except RuntimeError:
+        logger.error("upload.failure", reason="id_collision_exhausted", user=user.name)
+        raise
     expires_at = None if ttl_seconds is None else utcnow() + timedelta(seconds=ttl_seconds)
 
     pages_dir = Path(settings.data_dir) / "pages"
@@ -123,6 +144,14 @@ async def upload(
     )
     session.add(page)
     session.commit()
+
+    logger.info(
+        "upload.success",
+        page_id=page_id,
+        user=user.name,
+        size=len(content),
+        ttl=effective_ttl,
+    )
 
     return {
         "url": settings.page_url(page_id),

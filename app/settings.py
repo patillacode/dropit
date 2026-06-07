@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     data_dir: str = "./data"
     content_domain: str = "localhost:8000"
     admin_token: str | None = None
+    log_level: str = "INFO"
 
     @model_validator(mode="after")
     def _validate_ttls(self) -> "Settings":
