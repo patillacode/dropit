@@ -35,6 +35,7 @@ def db_session_fixture():
 def set_env(monkeypatch):
     monkeypatch.setenv("CONTENT_DOMAIN", "testcontent.test")
     monkeypatch.setenv("DATA_DIR", "/tmp/dropit-test")
+    monkeypatch.setenv("LOG_LEVEL", "CRITICAL")
     os.makedirs("/tmp/dropit-test/pages", exist_ok=True)
     get_settings.cache_clear()
 

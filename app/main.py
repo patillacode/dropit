@@ -11,6 +11,7 @@ from slowapi.errors import RateLimitExceeded
 from sqlmodel import Session
 
 from app.cleanup import delete_expired_pages
+from app.logging import configure_logging
 from app.database import dispose_engine, get_engine, init_db
 from app.errors import error_response
 from app.limiter import limiter
@@ -44,6 +45,7 @@ async def lifespan(app: FastAPI):
 
 
 def create_app() -> FastAPI:
+    configure_logging(get_settings().log_level)
     app = FastAPI(title="dropit", lifespan=lifespan)
     app.state.limiter = limiter
 
