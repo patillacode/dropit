@@ -1,12 +1,16 @@
-from datetime import UTC
+import secrets
+from datetime import UTC, datetime
 
+from fastapi.testclient import TestClient
+from sqlmodel import Session
 from structlog.testing import capture_logs
 
+from app.models import Page
 from app.settings import get_settings
 from tests.conftest import ADMIN_TOKEN, USER_TOKEN
 
 
-def test_upload_returns_url(client, tmp_path):
+def test_upload_returns_url(client):
     response = client.post(
         "/upload",
         headers={"Authorization": "Bearer tok_test123"},
@@ -201,14 +205,6 @@ def test_upload_invalid_content_length_triggers_streaming_size_check(client, mon
 
 
 def test_upload_id_collision_exhausted(client, monkeypatch):
-    import secrets
-    from datetime import datetime
-
-    from fastapi.testclient import TestClient
-    from sqlmodel import Session
-
-    from app.models import Page
-
     fixed_id = "aaaabbbb"
     monkeypatch.setattr(secrets, "token_hex", lambda _: fixed_id)
 
