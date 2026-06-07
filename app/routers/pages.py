@@ -109,4 +109,7 @@ def serve_page_content(page_id: str, session: Session) -> HTMLResponse:
     if not file_path.exists():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Page not found")
 
-    return HTMLResponse(content=file_path.read_bytes())
+    content = file_path.read_bytes()
+    if settings.banner_enabled:
+        content = inject_banner(content, base_url=f"{settings.content_scheme}://{settings.content_domain}")
+    return HTMLResponse(content=content)

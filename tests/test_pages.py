@@ -62,7 +62,7 @@ def test_serve_html(client_with_db):
     response = client.get("/", headers={"host": _content_host(page_id)})
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/html")
-    assert response.content == html
+    assert b"<h1>Hello world</h1>" in response.content
 
 
 def test_missing_id_returns_404_html(client_with_db):
@@ -136,7 +136,7 @@ def test_mixed_case_id_served_via_lowercase_subdomain(client_with_db):
         session.commit()
     response = client.get("/", headers={"host": _content_host(stored_id.lower())})
     assert response.status_code == 200
-    assert response.content == html
+    assert b"<h1>Mixed case</h1>" in response.content
 
 
 def test_serve_returns_raw_html_not_download(client_with_db):
@@ -212,3 +212,44 @@ def test_inject_banner_spacer_height_matches_banner():
     result = inject_banner(html, base_url="https://dropit.example.com").decode()
     assert 'id="dropit-banner"' in result
     assert 'id="dropit-spacer"' in result
+
+
+def test_serve_page_includes_banner_when_enabled(client_with_db, monkeypatch):
+    monkeypatch.setenv("BANNER_ENABLED", "true")
+    get_settings.cache_clear()
+    client, engine, tmp_path = client_with_db
+    page_id = "bnr001"
+    (tmp_path / "pages" / page_id).write_bytes(b"<body><h1>Hi</h1></body>")
+    with Session(engine) as session:
+        session.add(
+            Page(
+                id=page_id,
+                expires_at=datetime.now(UTC) + timedelta(hours=1),
+                token_hint="alice",
+            )
+        )
+        session.commit()
+    response = client.get("/", headers={"host": _content_host(page_id)})
+    assert response.status_code == 200
+    assert 'id="dropit-banner"' in response.text
+    assert 'id="dropit-spacer"' in response.text
+
+
+def test_serve_page_no_banner_when_disabled(client_with_db, monkeypatch):
+    monkeypatch.setenv("BANNER_ENABLED", "false")
+    get_settings.cache_clear()
+    client, engine, tmp_path = client_with_db
+    page_id = "bnr002"
+    (tmp_path / "pages" / page_id).write_bytes(b"<body><h1>Hi</h1></body>")
+    with Session(engine) as session:
+        session.add(
+            Page(
+                id=page_id,
+                expires_at=datetime.now(UTC) + timedelta(hours=1),
+                token_hint="alice",
+            )
+        )
+        session.commit()
+    response = client.get("/", headers={"host": _content_host(page_id)})
+    assert response.status_code == 200
+    assert 'id="dropit-banner"' not in response.text
