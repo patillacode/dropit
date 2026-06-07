@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import structlog
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlmodel import Session, col, select
 
@@ -9,6 +10,8 @@ from app.database import get_session
 from app.models import CleanupRun, Page
 from app.settings import get_settings
 from app.utils import format_dt
+
+logger = structlog.get_logger()
 
 router = APIRouter(prefix="/admin")
 
@@ -84,4 +87,5 @@ def delete_page(page_id: str, session: Session = Depends(get_session)):
     file_path.unlink(missing_ok=True)
     session.delete(page)
     session.commit()
+    logger.info("page.deleted", page_id=page_id, actor="admin")
     return {"deleted": page_id}

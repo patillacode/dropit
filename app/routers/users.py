@@ -1,3 +1,4 @@
+import structlog
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlmodel import Session, select
@@ -6,6 +7,8 @@ from app.auth import TokenUser, generate_token, get_current_user, hash_token, re
 from app.database import get_session
 from app.models import User
 from app.utils import format_dt
+
+logger = structlog.get_logger()
 
 router = APIRouter(prefix="/admin/users", dependencies=[Depends(require_admin)])
 
@@ -48,6 +51,7 @@ def create_user(payload: CreateUser, session: Session = Depends(get_session)):
     session.add(user)
     session.commit()
     session.refresh(user)
+    logger.info("user.created", user_id=user.id, name=user.name, is_admin=user.is_admin)
     return {**_serialize(user), "token": token}
 
 
@@ -64,6 +68,7 @@ def delete_user(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     session.delete(user)
     session.commit()
+    logger.info("user.deleted", user_id=user_id, actor=current_user.name)
     return {"deleted": user_id}
 
 
