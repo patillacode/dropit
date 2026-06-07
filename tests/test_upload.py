@@ -236,7 +236,7 @@ def test_upload_success_is_logged(client):
             headers={"Authorization": f"Bearer {ADMIN_TOKEN}"},
         )
     assert res.status_code == 200
-    successes = [l for l in cap if l.get("event") == "upload.success"]
+    successes = [entry for entry in cap if entry.get("event") == "upload.success"]
     assert len(successes) == 1
     log = successes[0]
     assert log["size"] == len(content)
@@ -254,7 +254,7 @@ def test_upload_too_large_is_logged(client):
             headers={"Authorization": f"Bearer {ADMIN_TOKEN}"},
         )
     assert res.status_code == 413
-    failures = [l for l in cap if l.get("event") == "upload.failure"]
+    failures = [entry for entry in cap if entry.get("event") == "upload.failure"]
     assert len(failures) == 1
     assert failures[0]["reason"] == "too_large"
 
@@ -267,6 +267,6 @@ def test_upload_invalid_content_is_logged(client):
             headers={"Authorization": f"Bearer {ADMIN_TOKEN}"},
         )
     assert res.status_code == 422
-    failures = [l for l in cap if l.get("event") == "upload.failure"]
+    failures = [entry for entry in cap if entry.get("event") == "upload.failure"]
     assert len(failures) == 1
     assert failures[0]["reason"] == "invalid_content"

@@ -69,16 +69,17 @@ def test_invalid_token_logs_auth_failure(client):
     with capture_logs() as cap:
         res = client.get("/me", headers={"Authorization": "Bearer bad-token"})
     assert res.status_code == 401
-    failures = [l for l in cap if l.get("event") == "auth.failure"]
+    failures = [entry for entry in cap if entry.get("event") == "auth.failure"]
     assert len(failures) == 1
     assert failures[0]["reason"] == "invalid_token"
 
 
 def test_non_admin_token_logs_auth_failure(client):
     from tests.conftest import USER_TOKEN
+
     with capture_logs() as cap:
         res = client.get("/admin/pages", headers={"Authorization": f"Bearer {USER_TOKEN}"})
     assert res.status_code == 403
-    failures = [l for l in cap if l.get("event") == "auth.failure"]
+    failures = [entry for entry in cap if entry.get("event") == "auth.failure"]
     assert len(failures) == 1
     assert failures[0]["reason"] == "not_admin"
