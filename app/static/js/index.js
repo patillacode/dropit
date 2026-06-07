@@ -51,8 +51,8 @@ async function init() {
   } else {
     showTokenField(_tokenEls,'Contact your admin to get a token');
     populateTTL(false);
+    renderHistory([]);
   }
-  renderHistory();
 }
 
 async function checkToken(token) {
@@ -67,6 +67,7 @@ async function checkToken(token) {
         adminSepEl.style.display  = '';
         adminLinkEl.style.display = '';
       }
+      await fetchAndRenderHistory();
     } else if (res.status === 429) {
       showTokenField(_tokenEls, 'Too many requests — wait a minute before trying again');
     } else {
@@ -215,10 +216,11 @@ async function doUpload() {
       : 'Never expires — permanent';
     setState('success');
 
-    addToHistory(data.url, selectedFile.name, data.expires_at);
-    renderHistory();
-
-    if (!currentUser) await checkToken(token);
+    if (!currentUser) {
+      await checkToken(token);
+    } else {
+      await fetchAndRenderHistory();
+    }
   } catch (err) {
     dzErrorMsg.textContent = err.message;
     setState('error');
@@ -233,8 +235,6 @@ dzResetBtn.addEventListener('click', e => {
   setState('idle');
 });
 
-const HISTORY_KEY = 'dropit_history';
-
 // Upload timestamps come back as naive UTC; treat them as UTC, not local.
 function asUtc(iso) {
   if (!iso) return null;
@@ -242,27 +242,22 @@ function asUtc(iso) {
   return new Date(normalized);
 }
 
-function addToHistory(url, filename, expires_at) {
-  let hist = [];
-  try { hist = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch { }
-  hist.unshift({ url, filename, expires_at, uploaded_at: new Date().toISOString() });
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(hist.slice(0, 5)));
+async function fetchAndRenderHistory() {
+  const token = localStorage.getItem(STORAGE_KEY);
+  if (!token) { renderHistory([]); return; }
+  try {
+    const res = await fetch('/me/pages', { headers: { Authorization: `Bearer ${token}` } });
+    renderHistory(res.ok ? await res.json() : []);
+  } catch {
+    renderHistory([]);
+  }
 }
 
-function renderHistory() {
-  const now  = Date.now();
-  let hist   = [];
-  try { hist = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch { }
-  const alive = hist.filter(item => {
-    if (!item.expires_at) return true;
-    const exp = asUtc(item.expires_at);
-    return exp && exp.getTime() > now;
-  });
-
+function renderHistory(pages) {
   while (historyList.firstChild) historyList.removeChild(historyList.firstChild);
   historyEl.classList.add('visible');
 
-  if (!alive.length) {
+  if (!pages.length) {
     const tr = document.createElement('tr');
     const td = document.createElement('td');
     td.className = 'history-empty';
@@ -273,7 +268,7 @@ function renderHistory() {
     return;
   }
 
-  alive.forEach(item => {
+  pages.forEach(item => {
     const row = document.createElement('tr');
     row.className = 'history-item';
 
@@ -285,11 +280,11 @@ function renderHistory() {
     const urlCell = document.createElement('td');
     urlCell.className = 'history-url-cell';
     const link = document.createElement('a');
-    link.className  = 'history-url';
-    link.href       = item.url;
+    link.className   = 'history-url';
+    link.href        = item.url;
     link.textContent = item.url;
-    link.target     = '_blank';
-    link.rel        = 'noopener noreferrer';
+    link.target      = '_blank';
+    link.rel         = 'noopener noreferrer';
     urlCell.appendChild(link);
 
     const exp = document.createElement('td');
