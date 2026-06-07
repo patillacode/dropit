@@ -2,8 +2,11 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from sqlmodel import Session
+from structlog.testing import capture_logs
 
-from app.models import Page
+from app.auth import hash_token
+from app.models import Page, User
+from tests.conftest import ADMIN_TOKEN, USER_TOKEN
 
 
 def _add_page(engine, tmp_path, page_id="abc123", expires_at=None):
@@ -170,3 +173,61 @@ def test_trigger_cleanup_engine_unavailable(client):
     )
     assert res.status_code == 503
     assert res.json()["detail"] == "Engine not available"
+
+
+def test_delete_page_logs_actor(client):
+    res = client.post(
+        "/upload",
+        headers={"Authorization": f"Bearer {USER_TOKEN}"},
+        files={"file": ("page.html", b"<!doctype html><html><body>hi</body></html>", "text/html")},
+    )
+    assert res.status_code == 200
+    page_id = res.json()["url"].split("//")[1].split(".")[0]
+
+    with capture_logs() as cap:
+        client.delete(
+            f"/admin/pages/{page_id}",
+            headers={"Authorization": f"Bearer {ADMIN_TOKEN}"},
+        )
+    deletions = [entry for entry in cap if entry.get("event") == "page.deleted"]
+    assert len(deletions) == 1
+    assert deletions[0]["actor"] == "admin"
+
+
+def test_delete_page_logs_db_actor(client):
+    with Session(client.app.state.engine) as session:
+        session.add(User(name="carol", token_hash=hash_token("tok_carol_admin"), is_admin=True))
+        session.commit()
+
+    res = client.post(
+        "/upload",
+        headers={"Authorization": f"Bearer {USER_TOKEN}"},
+        files={"file": ("page.html", b"<!doctype html><html><body>hi</body></html>", "text/html")},
+    )
+    assert res.status_code == 200
+    page_id = res.json()["url"].split("//")[1].split(".")[0]
+
+    with capture_logs() as cap:
+        client.delete(
+            f"/admin/pages/{page_id}",
+            headers={"Authorization": "Bearer tok_carol_admin"},
+        )
+    deletions = [entry for entry in cap if entry.get("event") == "page.deleted"]
+    assert len(deletions) == 1
+    assert deletions[0]["actor"] == "carol"
+
+
+def test_cleanup_trigger_attributes_db_admin(client):
+    with Session(client.app.state.engine) as session:
+        session.add(User(name="bob", token_hash=hash_token("tok_bob_admin"), is_admin=True))
+        session.commit()
+
+    with capture_logs() as cap:
+        res = client.post(
+            "/admin/cleanup/trigger",
+            headers={"Authorization": "Bearer tok_bob_admin"},
+        )
+    assert res.status_code == 200
+    runs = [entry for entry in cap if entry.get("event") == "cleanup.run"]
+    assert len(runs) == 1
+    assert runs[0]["triggered_by"] == "bob"

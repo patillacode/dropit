@@ -59,6 +59,12 @@ def test_require_admin_passes_for_admin():
     require_admin(TokenUser(name="admin", is_admin=True))  # must not raise
 
 
+def test_require_admin_returns_user():
+    user = TokenUser(name="admin", is_admin=True)
+    result = require_admin(user)
+    assert result is user
+
+
 def test_require_admin_raises_403_for_non_admin():
     with pytest.raises(HTTPException) as exc:
         require_admin(TokenUser(name="alice", is_admin=False, user_id=1))
