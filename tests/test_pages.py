@@ -9,7 +9,7 @@ import app.database as db_mod
 from app.database import get_session
 from app.main import create_app
 from app.models import Page
-from app.routers.pages import inject_banner
+from app.banner import inject_banner
 from app.settings import get_settings
 
 CONTENT_DOMAIN = "testcontent.test"
