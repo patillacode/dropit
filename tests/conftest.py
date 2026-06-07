@@ -36,6 +36,8 @@ def set_env(monkeypatch):
     monkeypatch.setenv("CONTENT_DOMAIN", "testcontent.test")
     monkeypatch.setenv("DATA_DIR", "/tmp/dropit-test")
     monkeypatch.setenv("LOG_LEVEL", "CRITICAL")
+    monkeypatch.setenv("DEFAULT_TTL", "24h")
+    monkeypatch.setenv("ALLOWED_TTLS", "1h,6h,24h,48h,7d")
     os.makedirs("/tmp/dropit-test/pages", exist_ok=True)
     get_settings.cache_clear()
 
