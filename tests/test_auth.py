@@ -66,7 +66,6 @@ def test_require_admin_raises_403_for_non_admin():
 
 
 def test_invalid_token_logs_auth_failure(client):
-    from tests.conftest import USER_TOKEN, ADMIN_TOKEN
     with capture_logs() as cap:
         res = client.get("/me", headers={"Authorization": "Bearer bad-token"})
     assert res.status_code == 401
@@ -76,7 +75,7 @@ def test_invalid_token_logs_auth_failure(client):
 
 
 def test_non_admin_token_logs_auth_failure(client):
-    from tests.conftest import USER_TOKEN, ADMIN_TOKEN
+    from tests.conftest import USER_TOKEN
     with capture_logs() as cap:
         res = client.get("/admin/pages", headers={"Authorization": f"Bearer {USER_TOKEN}"})
     assert res.status_code == 403
