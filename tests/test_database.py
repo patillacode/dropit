@@ -50,6 +50,7 @@ def test_get_engine_enables_wal(tmp_path, monkeypatch):
         assert mode == "wal"
         assert timeout == 5000
     finally:
+        engine.dispose()
         db_mod._engine = original_engine
         get_settings.cache_clear()
 
@@ -66,6 +67,8 @@ def test_init_db_creates_schema_version(tmp_path, monkeypatch):
             version = conn.execute(text("SELECT version FROM schema_version")).scalar()
         assert version == 3
     finally:
+        if db_mod._engine is not None:
+            db_mod._engine.dispose()
         db_mod._engine = original
         get_settings.cache_clear()
 
@@ -83,6 +86,8 @@ def test_init_db_is_idempotent(tmp_path, monkeypatch):
             version = conn.execute(text("SELECT version FROM schema_version")).scalar()
         assert version == 3
     finally:
+        if db_mod._engine is not None:
+            db_mod._engine.dispose()
         db_mod._engine = original
         get_settings.cache_clear()
 
@@ -119,6 +124,7 @@ def test_run_migrations_upgrades_old_install():
     assert "filename" in cols
     assert "created_at" in cols
     assert "file_size" in cols
+    engine.dispose()
 
 
 def test_migration_1_skips_when_no_table(tmp_path):
@@ -128,6 +134,7 @@ def test_migration_1_skips_when_no_table(tmp_path):
 
     engine = sa_engine(f"sqlite:///{tmp_path}/test.db")
     _migration_1(engine)  # must not raise
+    engine.dispose()
 
 
 def test_migration_1_migrates_not_null_expires_at(tmp_path):
@@ -155,6 +162,7 @@ def test_migration_1_migrates_not_null_expires_at(tmp_path):
         rows = conn.execute(text("PRAGMA table_info(page)")).fetchall()
     expires_row = next(r for r in rows if r[1] == "expires_at")
     assert expires_row[3] == 0  # notnull == 0 means nullable after migration
+    engine.dispose()
 
 
 def test_get_session_yields_session():

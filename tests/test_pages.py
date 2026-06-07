@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.pool import StaticPool
 
+import app.database as db_mod
 from app.database import get_session
 from app.main import create_app
 from app.models import Page
@@ -26,6 +27,7 @@ def client_with_db(tmp_path, monkeypatch):
         "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
     )
     SQLModel.metadata.create_all(engine)
+    db_mod._engine = engine  # lifespan reuses this; no file-backed engine created
 
     def override_session():
         with Session(engine) as session:
@@ -35,7 +37,6 @@ def client_with_db(tmp_path, monkeypatch):
     app.dependency_overrides[get_session] = override_session
 
     with TestClient(app) as c:
-        c.app.state.engine = engine
         yield c, engine, tmp_path
 
 

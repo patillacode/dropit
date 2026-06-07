@@ -19,6 +19,7 @@ def session():
         s.add(User(name="alice", token_hash=hash_token("tok_test123"), is_admin=False))
         s.commit()
         yield s
+    engine.dispose()
 
 
 def make_creds(token: str) -> HTTPAuthorizationCredentials:

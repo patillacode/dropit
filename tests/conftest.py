@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.pool import StaticPool
 
+import app.database as db_mod
 from app.auth import hash_token
 from app.database import get_session
 from app.limiter import limiter
@@ -27,6 +28,7 @@ def db_session_fixture():
     with Session(engine) as session:
         yield session
     SQLModel.metadata.drop_all(engine)
+    engine.dispose()
 
 
 @pytest.fixture(autouse=True)
@@ -48,6 +50,7 @@ def client(tmp_path, monkeypatch):
         "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
     )
     SQLModel.metadata.create_all(engine)
+    db_mod._engine = engine  # lifespan reuses this; no file-backed engine created
     with Session(engine) as session:
         session.add(User(name="alice", token_hash=hash_token(USER_TOKEN), is_admin=False))
         session.commit()
@@ -60,11 +63,17 @@ def client(tmp_path, monkeypatch):
     app.dependency_overrides[get_session] = override_session
 
     with TestClient(app) as c:
-        c.app.state.engine = engine
         yield c
+    # lifespan teardown calls dispose_engine() which disposes and nulls db_mod._engine
 
 
 @pytest.fixture(autouse=True)
 def reset_rate_limits():
     limiter._storage.reset()
     yield
+
+
+@pytest.fixture(autouse=True)
+def reset_db_engine():
+    yield
+    db_mod.dispose_engine()

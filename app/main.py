@@ -11,7 +11,7 @@ from slowapi.errors import RateLimitExceeded
 from sqlmodel import Session
 
 from app.cleanup import delete_expired_pages
-from app.database import get_engine, init_db
+from app.database import dispose_engine, get_engine, init_db
 from app.errors import error_response
 from app.limiter import limiter
 from app.routers import admin, config, health, landing, me, upload, users
@@ -27,18 +27,20 @@ _RESERVED_SUBDOMAINS = {
 async def lifespan(app: FastAPI):
     init_db()
     settings = get_settings()
+    engine = get_engine()
     scheduler = BackgroundScheduler()
     job = scheduler.add_job(
         delete_expired_pages,
         "interval",
         hours=settings.cleanup_interval_hours,
-        args=[get_engine(), settings.data_dir],
+        args=[engine, settings.data_dir],
     )
     app.state.cleanup_job = job
-    app.state.engine = get_engine()
+    app.state.engine = engine
     scheduler.start()
     yield
     scheduler.shutdown(wait=False)
+    dispose_engine()
 
 
 def create_app() -> FastAPI:
