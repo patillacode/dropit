@@ -1,5 +1,3 @@
-from structlog.testing import capture_logs
-
 from app.logging import configure_logging
 
 
@@ -12,16 +10,16 @@ def test_configure_logging_produces_no_error(monkeypatch, capsys):
     logger.info("test.event", key="value")
 
 
-def test_level_filter_drops_below_threshold():
+def test_level_filter_drops_below_threshold(capsys):
     configure_logging("WARNING")
-    with capture_logs() as cap:
-        import structlog
+    import structlog
 
-        logger = structlog.get_logger()
-        logger.info("should.be.dropped")
-        logger.warning("should.appear")
-    events = [l["event"] for l in cap]
-    assert "should.appear" in events
+    logger = structlog.get_logger()
+    logger.info("should.be.dropped")
+    logger.warning("should.appear")
+    out = capsys.readouterr().out
+    assert "should.be.dropped" not in out
+    assert "should.appear" in out
 
 
 def test_configure_logging_accepts_log_level():
