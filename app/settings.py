@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     content_domain: str = "localhost:8000"
     admin_token: str | None = None
     log_level: str = "INFO"
+    banner_enabled: bool = True
 
     @model_validator(mode="after")
     def _validate_ttls(self) -> "Settings":
