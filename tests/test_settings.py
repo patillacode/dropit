@@ -59,3 +59,15 @@ def test_valid_ttl_config_does_not_raise(monkeypatch):
     monkeypatch.setenv("MAX_USER_TTL", "24h")
     s = Settings(_env_file=None)
     assert s.ttl_list == ["1h", "24h", "7d", "forever"]
+
+
+def test_banner_enabled_default(monkeypatch):
+    monkeypatch.delenv("BANNER_ENABLED", raising=False)
+    s = Settings(_env_file=None)
+    assert s.banner_enabled is True
+
+
+def test_banner_enabled_can_be_disabled(monkeypatch):
+    monkeypatch.setenv("BANNER_ENABLED", "false")
+    s = Settings(_env_file=None)
+    assert s.banner_enabled is False
