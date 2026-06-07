@@ -9,6 +9,7 @@ import app.database as db_mod
 from app.database import get_session
 from app.main import create_app
 from app.models import Page
+from app.routers.pages import inject_banner
 from app.settings import get_settings
 
 CONTENT_DOMAIN = "testcontent.test"
@@ -180,3 +181,34 @@ def test_page_file_missing_from_disk(client, tmp_path):
 def test_reserved_subdomain_passes_through(client):
     res = client.get("/", headers={"Host": "www.testcontent.test"})
     assert res.status_code == 200
+
+
+def test_inject_banner_after_body_tag():
+    html = b"<html><body><h1>Hello</h1></body></html>"
+    result = inject_banner(html, base_url="https://dropit.example.com")
+    assert b'id="dropit-banner"' in result
+    assert b'id="dropit-spacer"' in result
+    banner_pos = result.index(b'id="dropit-banner"')
+    content_pos = result.index(b"<h1>Hello</h1>")
+    assert banner_pos < content_pos
+
+
+def test_inject_banner_no_body_tag():
+    html = b"<h1>Fragment</h1>"
+    result = inject_banner(html, base_url="https://dropit.example.com")
+    assert b'id="dropit-banner"' in result
+    assert b'id="dropit-spacer"' in result
+    assert b"<h1>Fragment</h1>" in result
+
+
+def test_inject_banner_contains_base_url():
+    html = b"<body><p>hi</p></body>"
+    result = inject_banner(html, base_url="https://dropit.patilla.es")
+    assert b"https://dropit.patilla.es" in result
+
+
+def test_inject_banner_spacer_height_matches_banner():
+    html = b"<body><p>hi</p></body>"
+    result = inject_banner(html, base_url="https://dropit.example.com").decode()
+    assert 'id="dropit-banner"' in result
+    assert 'id="dropit-spacer"' in result
