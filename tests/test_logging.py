@@ -35,7 +35,7 @@ def test_level_filter_drops_event_via_processor(capsys):
 
 
 def test_request_id_bound_per_request(client):
-    from unittest.mock import patch, call
+    from unittest.mock import patch
     bound = {}
 
     original_bind = structlog.contextvars.bind_contextvars
