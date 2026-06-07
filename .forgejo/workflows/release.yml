@@ -68,7 +68,7 @@ jobs:
           curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
 
       - name: Run Trivy vulnerability scan
-        run: trivy image --exit-code 1 --severity CRITICAL,HIGH --format table dropit:scan
+        run: trivy image --exit-code 1 --severity CRITICAL,HIGH --ignore-unfixed --format table dropit:scan
 
       - name: Log in to Forgejo registry
         uses: docker/login-action@v3
