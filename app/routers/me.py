@@ -1,11 +1,13 @@
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sqlmodel import Session
+from sqlmodel import Session, col, select
 
 from app.auth import TokenUser, generate_token, get_current_user, hash_token
 from app.database import get_session
 from app.limiter import limiter
-from app.models import User
+from app.models import Page, User
+from app.settings import get_settings
+from app.utils import format_dt
 
 logger = structlog.get_logger()
 
@@ -39,3 +41,25 @@ def regenerate_own_token(
     session.commit()
     logger.info("token.regenerated", user_id=user.user_id, user=db_user.name)
     return {"token": token}
+
+
+@router.get("/me/pages")
+@limiter.limit("10/minute")
+def my_pages(
+    request: Request,
+    user: TokenUser = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    settings = get_settings()
+    pages = session.exec(
+        select(Page).where(Page.token_hint == user.name).order_by(col(Page.created_at).desc())
+    ).all()
+    return [
+        {
+            "url": settings.page_url(page.id),
+            "filename": page.filename,
+            "expires_at": format_dt(page.expires_at),
+            "created_at": format_dt(page.created_at),
+        }
+        for page in pages
+    ]

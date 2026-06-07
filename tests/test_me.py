@@ -1,4 +1,4 @@
-from tests.conftest import USER_TOKEN
+from tests.conftest import ADMIN_TOKEN, USER_TOKEN
 
 
 def test_me_valid_token(client):
@@ -77,3 +77,75 @@ def test_regenerate_token_user_not_in_db(client):
         assert "Invalid token" in res.json()["detail"]
     finally:
         client.app.dependency_overrides.pop(get_current_user, None)
+
+
+def test_my_pages_empty(client):
+    res = client.get("/me/pages", headers={"Authorization": f"Bearer {USER_TOKEN}"})
+    assert res.status_code == 200
+    assert res.json() == []
+
+
+def test_my_pages_requires_auth(client):
+    res = client.get("/me/pages")
+    assert res.status_code == 401
+
+
+def test_my_pages_returns_own_uploads(client):
+    content = b"<!doctype html><html><body>hi</body></html>"
+    client.post(
+        "/upload",
+        headers={"Authorization": f"Bearer {USER_TOKEN}"},
+        files={"file": ("test.html", content, "text/html")},
+    )
+    res = client.get("/me/pages", headers={"Authorization": f"Bearer {USER_TOKEN}"})
+    assert res.status_code == 200
+    pages = res.json()
+    assert len(pages) == 1
+    assert pages[0]["filename"] == "test.html"
+    assert "url" in pages[0]
+    assert "expires_at" in pages[0]
+    assert "created_at" in pages[0]
+
+
+def test_my_pages_excludes_other_users(client):
+    content = b"<!doctype html><html><body>admin page</body></html>"
+    client.post(
+        "/upload",
+        headers={"Authorization": f"Bearer {ADMIN_TOKEN}"},
+        files={"file": ("admin.html", content, "text/html")},
+    )
+    res = client.get("/me/pages", headers={"Authorization": f"Bearer {USER_TOKEN}"})
+    assert res.status_code == 200
+    assert res.json() == []
+
+
+def test_my_pages_sorted_newest_first(client):
+    from datetime import UTC, datetime, timedelta
+
+    from sqlmodel import Session
+
+    from app.models import Page
+
+    older = (datetime.now(UTC) - timedelta(hours=1)).replace(tzinfo=None)
+    newer = datetime.now(UTC).replace(tzinfo=None)
+
+    with Session(client.app.state.engine) as session:
+        session.add(Page(id="old00001", token_hint="alice", filename="old.html", created_at=older))
+        session.add(Page(id="new00001", token_hint="alice", filename="new.html", created_at=newer))
+        session.commit()
+
+    res = client.get("/me/pages", headers={"Authorization": f"Bearer {USER_TOKEN}"})
+    pages = res.json()
+    assert len(pages) == 2
+    assert pages[0]["filename"] == "new.html"
+    assert pages[1]["filename"] == "old.html"
+
+
+def test_my_pages_rate_limited(client):
+    headers = {"Authorization": f"Bearer {USER_TOKEN}"}
+    for _ in range(10):
+        r = client.get("/me/pages", headers=headers)
+        assert r.status_code == 200
+    r = client.get("/me/pages", headers=headers)
+    assert r.status_code == 429
+    assert r.json()["detail"] == "Too many requests — please slow down and try again shortly"
