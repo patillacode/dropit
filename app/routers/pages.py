@@ -9,6 +9,7 @@ from app.models import Page
 from app.settings import get_settings
 from app.utils import utcnow
 
+
 def serve_page_content(page_id: str, session: Session) -> HTMLResponse:
     settings = get_settings()
 

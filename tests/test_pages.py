@@ -6,10 +6,10 @@ from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.pool import StaticPool
 
 import app.database as db_mod
+from app.banner import inject_banner
 from app.database import get_session
 from app.main import create_app
 from app.models import Page
-from app.banner import inject_banner
 from app.settings import get_settings
 
 CONTENT_DOMAIN = "testcontent.test"
