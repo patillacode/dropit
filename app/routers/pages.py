@@ -8,7 +8,6 @@ from app.models import Page
 from app.settings import get_settings
 from app.utils import utcnow
 
-
 _BANNER_HEIGHT = "48px"
 
 _BANNER_TEMPLATE = """\
@@ -76,8 +75,8 @@ _BANNER_TEMPLATE = """\
 }}
 </style>
 <div id="dropit-banner">
-  <span class="db-brand">dropit</span>
-  <span class="db-tagline">share HTML instantly</span>
+  <span class="db-brand">drop.it</span>
+  <span class="db-tagline">shared via drop.it</span>
   <a class="db-cta" href="{base_url}" target="_blank" rel="noopener">try it ↗</a>
 </div>
 <div id="dropit-spacer"></div>
@@ -111,5 +110,7 @@ def serve_page_content(page_id: str, session: Session) -> HTMLResponse:
 
     content = file_path.read_bytes()
     if settings.banner_enabled:
-        content = inject_banner(content, base_url=f"{settings.content_scheme}://{settings.content_domain}")
+        content = inject_banner(
+            content, base_url=f"{settings.content_scheme}://{settings.content_domain}"
+        )
     return HTMLResponse(content=content)
