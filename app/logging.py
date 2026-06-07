@@ -13,7 +13,7 @@ def _level_filter(min_level: int):
         "critical": logging.CRITICAL,
     }
 
-    def _processor(logger, method, event_dict):
+    def _processor(_logger, _method, event_dict):
         level_str = event_dict.get("level", "debug")
         if _name_to_level.get(level_str, 0) < min_level:
             raise structlog.DropEvent()
