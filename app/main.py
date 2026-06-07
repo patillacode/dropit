@@ -1,10 +1,9 @@
+import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
-import uuid
 
-from apscheduler.schedulers.background import BackgroundScheduler
 import structlog
-
+from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI, Request
 from fastapi.exception_handlers import http_exception_handler as default_http_exception_handler
 from fastapi.exceptions import HTTPException
@@ -14,10 +13,10 @@ from slowapi.errors import RateLimitExceeded
 from sqlmodel import Session
 
 from app.cleanup import delete_expired_pages
-from app.logging import configure_logging
 from app.database import dispose_engine, get_engine, init_db
 from app.errors import error_response
 from app.limiter import limiter
+from app.logging import configure_logging
 from app.routers import admin, config, health, landing, me, upload, users
 from app.routers.pages import serve_page_content
 from app.settings import get_settings

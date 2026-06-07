@@ -3,8 +3,8 @@ import structlog
 from app.logging import configure_logging
 
 
-def test_configure_logging_produces_no_error(monkeypatch):
-    monkeypatch.setattr("sys.stderr", open("/dev/null", "w"))
+def test_configure_logging_produces_no_error(monkeypatch, tmp_path):
+    monkeypatch.setattr("sys.stderr", (tmp_path / "stderr").open("w"))
     configure_logging("INFO")
     logger = structlog.get_logger()
     logger.info("test.event", key="value")
@@ -36,6 +36,7 @@ def test_level_filter_drops_event_via_processor(capsys):
 
 def test_request_id_bound_per_request(client):
     from unittest.mock import patch
+
     bound = {}
 
     original_bind = structlog.contextvars.bind_contextvars
