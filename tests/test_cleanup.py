@@ -49,6 +49,7 @@ def test_cleanup_removes_expired(tmp_path):
 
     assert not (pages_dir / expired_id).exists()
     assert (pages_dir / live_id).exists()
+    engine.dispose()
 
 
 def test_cleanup_tolerates_missing_file(tmp_path):
@@ -67,6 +68,7 @@ def test_cleanup_tolerates_missing_file(tmp_path):
     with Session(engine) as session:
         remaining = session.exec(select(Page)).all()
         assert len(remaining) == 0
+    engine.dispose()
 
 
 def test_cleanup_records_run(tmp_path):
@@ -84,6 +86,7 @@ def test_cleanup_records_run(tmp_path):
     assert count == 1
     assert row.deleted_count == 0
     assert row.triggered_by == "scheduler"
+    engine.dispose()
 
 
 def test_cleanup_records_triggered_by(tmp_path):
@@ -95,6 +98,7 @@ def test_cleanup_records_triggered_by(tmp_path):
     with engine.connect() as conn:
         row = conn.execute(text("SELECT triggered_by FROM cleanuprun LIMIT 1")).fetchone()
     assert row.triggered_by == "admin"
+    engine.dispose()
 
 
 def test_cleanup_prunes_history_to_50(tmp_path):
@@ -107,3 +111,4 @@ def test_cleanup_prunes_history_to_50(tmp_path):
     with engine.connect() as conn:
         count = conn.execute(text("SELECT COUNT(*) FROM cleanuprun")).scalar()
     assert count == 50
+    engine.dispose()

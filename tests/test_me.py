@@ -59,3 +59,21 @@ def test_regenerate_rate_limited(client):
     r = client.post("/me/regenerate", headers={"Authorization": f"Bearer {token}"})
     assert r.status_code == 429
     assert r.json()["detail"] == "Too many requests — please slow down and try again shortly"
+
+
+def test_regenerate_token_user_not_in_db(client):
+    from app.auth import TokenUser, get_current_user
+
+    async def ghost_user():
+        return TokenUser(name="ghost", is_admin=False, user_id=99999)
+
+    client.app.dependency_overrides[get_current_user] = ghost_user
+    try:
+        res = client.post(
+            "/me/regenerate",
+            headers={"Authorization": "Bearer anything"},
+        )
+        assert res.status_code == 401
+        assert "Invalid token" in res.json()["detail"]
+    finally:
+        client.app.dependency_overrides.pop(get_current_user, None)

@@ -114,6 +114,13 @@ def init_db() -> None:
     SQLModel.metadata.create_all(engine)
 
 
+def dispose_engine() -> None:
+    global _engine
+    if _engine is not None:
+        _engine.dispose()
+        _engine = None
+
+
 def get_session() -> Generator[Session, None, None]:
     with Session(get_engine()) as session:
         yield session

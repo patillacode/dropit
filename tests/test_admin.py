@@ -160,3 +160,13 @@ def test_admin_permanent_page_shows_null_expires(client, monkeypatch):
     res_list = client.get("/admin/pages", headers={"Authorization": "Bearer admin_tok_xyz"})
     pages = res_list.json()
     assert pages[0]["expires_at"] is None
+
+
+def test_trigger_cleanup_engine_unavailable(client):
+    del client.app.state.engine
+    res = client.post(
+        "/admin/cleanup/trigger",
+        headers={"Authorization": "Bearer admin_tok_xyz"},
+    )
+    assert res.status_code == 503
+    assert res.json()["detail"] == "Engine not available"

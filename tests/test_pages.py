@@ -5,12 +5,14 @@ from fastapi.testclient import TestClient
 from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.pool import StaticPool
 
+import app.database as db_mod
 from app.database import get_session
 from app.main import create_app
 from app.models import Page
 from app.settings import get_settings
 
 CONTENT_DOMAIN = "testcontent.test"
+USER_TOKEN = "tok_test123"
 
 
 @pytest.fixture
@@ -25,6 +27,7 @@ def client_with_db(tmp_path, monkeypatch):
         "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
     )
     SQLModel.metadata.create_all(engine)
+    db_mod._engine = engine  # lifespan reuses this; no file-backed engine created
 
     def override_session():
         with Session(engine) as session:
@@ -34,7 +37,6 @@ def client_with_db(tmp_path, monkeypatch):
     app.dependency_overrides[get_session] = override_session
 
     with TestClient(app) as c:
-        c.app.state.engine = engine
         yield c, engine, tmp_path
 
 
@@ -152,3 +154,29 @@ def test_serve_returns_raw_html_not_download(client_with_db):
     response = client.get("/", headers={"host": _content_host(page_id)})
     assert response.status_code == 200
     assert "content-disposition" not in response.headers
+
+
+def test_page_not_found_via_subdomain(client):
+    res = client.get("/", headers={"Host": "doesnotexist.testcontent.test"})
+    assert res.status_code == 404
+
+
+def test_page_file_missing_from_disk(client, tmp_path):
+    content = b"<html><body>hello</body></html>"
+    upload_res = client.post(
+        "/upload",
+        headers={"Authorization": f"Bearer {USER_TOKEN}"},
+        files={"file": ("test.html", content, "text/html")},
+    )
+    assert upload_res.status_code == 200
+    page_id = upload_res.json()["url"].split("//")[1].split(".")[0]
+
+    (tmp_path / "pages" / page_id).unlink()
+
+    res = client.get("/", headers={"Host": f"{page_id}.testcontent.test"})
+    assert res.status_code == 404
+
+
+def test_reserved_subdomain_passes_through(client):
+    res = client.get("/", headers={"Host": "www.testcontent.test"})
+    assert res.status_code == 200

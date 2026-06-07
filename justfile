@@ -16,6 +16,13 @@ dev:
 test:
     uv run pytest
 
+# Run tests with coverage (must reach 100%)
+test-cov:
+    uv run pytest --cov=app --cov-report=term-missing --cov-fail-under=100
+
+# Alias for test-cov
+cov: test-cov
+
 # Lint with ruff
 lint:
     uv run ruff check app/ tests/

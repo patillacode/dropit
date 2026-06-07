@@ -16,7 +16,7 @@ jobs:
         run: pip install uv --no-cache-dir
 
       - name: Install dependencies
-        run: uv sync --all-extras
+        run: uv sync --all-extras --frozen
 
       - name: Lint
         run: uv run ruff check app/ tests/
@@ -24,5 +24,51 @@ jobs:
       - name: Check formatting
         run: uv run ruff format --check app/ tests/
 
-      - name: Run tests
-        run: uv run pytest
+      - name: Run tests with coverage
+        run: uv run pytest --cov=app --cov-fail-under=100
+
+      - name: Vulnerability scan (pip-audit)
+        run: |
+          uv export --format requirements-txt --no-hashes --no-emit-project -o /tmp/reqs.txt
+          uvx pip-audit -r /tmp/reqs.txt
+
+  smoke:
+    needs: test
+    runs-on: docker
+    container:
+      image: catthehacker/ubuntu:act-22.04
+      options: --volume /var/run/docker.sock:/var/run/docker.sock
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t dropit:ci .
+
+      - name: Start container
+        run: |
+          docker run -d --name dropit-smoke \
+            -p 8000:8000 \
+            -e ADMIN_TOKEN=smoke-test-token \
+            -e DATA_DIR=/tmp/dropit-data \
+            -e CONTENT_DOMAIN=localhost:8000 \
+            dropit:ci
+
+      - name: Wait for app to be ready
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8000/health; then
+              echo ""
+              echo "App is ready"
+              exit 0
+            fi
+            echo "Waiting... ($i/30)"
+            sleep 1
+          done
+          echo "App did not start in time"
+          docker logs dropit-smoke
+          exit 1
+
+      - name: Cleanup
+        if: always()
+        run: docker rm -f dropit-smoke 2>/dev/null || true

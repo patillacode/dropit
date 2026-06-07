@@ -102,3 +102,13 @@ def test_self_delete_blocked(client):
     dave_id = created.json()["id"]
     res = client.delete(f"/admin/users/{dave_id}", headers={"Authorization": f"Bearer {token}"})
     assert res.status_code == 403
+
+
+def test_create_user_empty_name(client):
+    res = client.post(
+        "/admin/users",
+        json={"name": "   "},
+        headers=ADMIN,
+    )
+    assert res.status_code == 422
+    assert "Name required" in res.json()["detail"]
