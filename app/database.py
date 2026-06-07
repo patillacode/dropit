@@ -91,10 +91,9 @@ def _run_migrations(engine) -> None:
         rows = conn.execute(text("SELECT version FROM schema_version")).fetchall()
         if not rows:
             page_cols = {r[1] for r in conn.execute(text("PRAGMA table_info(page)")).fetchall()}
-            if not page_cols or {"filename", "created_at"}.issubset(page_cols):
-                current = len(_MIGRATIONS)
-            else:
-                current = 0
+            # Fresh DB: create_all will build the schema, skip migrations.
+            # Existing DB without version tracking: run all migrations (they're idempotent).
+            current = len(_MIGRATIONS) if not page_cols else 0
             conn.execute(text("INSERT INTO schema_version (version) VALUES (:v)"), {"v": current})
             conn.commit()
         else:
