@@ -44,3 +44,35 @@ def test_format_dt_with_microseconds():
     dt = datetime(2024, 6, 1, 12, 0, 0, 123456)
     result = format_dt(dt)
     assert result == "2024-06-01T12:00:00.123456Z"
+
+
+def test_delete_page_file_removes_file_and_db_row(tmp_path):
+    from sqlmodel import Session, create_engine
+
+    from app.models import Page
+    from app.utils import delete_page_file
+
+    engine = create_engine("sqlite:///:memory:", echo=False)
+    from sqlmodel import SQLModel
+
+    SQLModel.metadata.create_all(engine)
+
+    page_id = "test1234"
+    file_path = tmp_path / "pages" / page_id
+    file_path.parent.mkdir(parents=True)
+    file_path.write_bytes(b"<h1>Test</h1>")
+
+    with Session(engine) as session:
+        page = Page(id=page_id, token_hint="test")
+        session.add(page)
+        session.commit()
+
+        assert file_path.exists()
+        delete_page_file(page, session, tmp_path)
+        session.commit()
+
+    assert not file_path.exists()
+
+    with Session(engine) as session:
+        found = session.get(Page, page_id)
+        assert found is None

@@ -76,6 +76,31 @@ def test_admin_delete_nonexistent_returns_404(client):
     assert res.status_code == 404
 
 
+def test_admin_delete_page_removes_file(client, tmp_path):
+    from app.settings import get_settings
+
+    get_settings.cache_clear()
+
+    res_upload = client.post(
+        "/upload",
+        headers={"Authorization": "Bearer tok_test123"},
+        files={"file": ("page.html", b"<!doctype html><html><body>hi</body></html>", "text/html")},
+    )
+    assert res_upload.status_code == 200
+    page_id = res_upload.json()["url"].split("//")[1].split(".")[0]
+
+    settings = get_settings()
+    file_path = Path(settings.data_dir) / "pages" / page_id
+    assert file_path.exists()
+
+    res_del = client.delete(
+        f"/admin/pages/{page_id}",
+        headers={"Authorization": "Bearer admin_tok_xyz"},
+    )
+    assert res_del.status_code == 200
+    assert not file_path.exists()
+
+
 def test_cleanup_status_no_runs(client):
     res = client.get("/admin/cleanup/status", headers={"Authorization": "Bearer admin_tok_xyz"})
     assert res.status_code == 200

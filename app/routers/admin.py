@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlmodel import Session, col, select
@@ -9,7 +7,7 @@ from app.cleanup import delete_expired_pages
 from app.database import get_session
 from app.models import CleanupRun, Collection, Page, User
 from app.settings import get_settings
-from app.utils import format_dt
+from app.utils import delete_page_file, format_dt
 
 logger = structlog.get_logger()
 
@@ -94,9 +92,7 @@ def delete_page(
     page = session.exec(select(Page).where(Page.id == page_id)).first()
     if page is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Page not found")
-    file_path = Path(settings.data_dir) / "pages" / page_id
-    file_path.unlink(missing_ok=True)
-    session.delete(page)
+    delete_page_file(page, session, settings.data_dir)
     session.commit()
     logger.info("page.deleted", page_id=page_id, actor=user.name)
     return {"deleted": page_id}
