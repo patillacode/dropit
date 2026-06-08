@@ -21,6 +21,9 @@ class Page(SQLModel, table=True):
     created_at: datetime | None = Field(default=None, nullable=True)
     file_size: int | None = Field(default=None, nullable=True)
 
+    def is_expired(self) -> bool:
+        return self.expires_at is not None and self.expires_at < utcnow()
+
 
 class CleanupRun(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)

@@ -341,3 +341,10 @@ input[type="password"]:focus {
 .btn--danger { border-color: rgba(255, 82, 82, 0.3); color: var(--err); }
 .btn--danger:hover { background: var(--err-d); border-color: rgba(255, 82, 82, 0.5); }
 .btn--danger:disabled:hover { background: transparent; border-color: rgba(255, 82, 82, 0.3); }
+
+.main {
+    width: 100%;
+    max-width: 500px;
+    position: relative;
+    z-index: 1;
+}

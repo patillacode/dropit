@@ -7,7 +7,6 @@ from sqlmodel import Session, func, select
 from app.banner import inject_banner
 from app.models import Page
 from app.settings import get_settings
-from app.utils import utcnow
 
 
 def serve_page_content(page_id: str, session: Session) -> HTMLResponse:
@@ -17,7 +16,7 @@ def serve_page_content(page_id: str, session: Session) -> HTMLResponse:
     if page is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Page not found")
 
-    if page.expires_at is not None and page.expires_at < utcnow():
+    if page.is_expired():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Page has expired")
 
     file_path = Path(settings.data_dir) / "pages" / page.id

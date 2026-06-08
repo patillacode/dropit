@@ -1,6 +1,6 @@
 import { getToken as _getToken, showTokenField, showTokenIndicator } from '/static/js/token-shared.js';
 import { showTokenModal, showConfirmModal } from '/static/js/token-modal.js';
-import { fmtExpiry } from '/static/js/utils.js';
+import { asUtc, fmtExpiry } from '/static/js/utils.js';
 
 const tokenInputEl   = document.getElementById('tokenInput');
 const tokenFieldEl   = document.getElementById('tokenField');
@@ -45,12 +45,6 @@ function fmtDate(iso) {
   if (!iso) return null;
   const d = new Date(iso);
   return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
-
-function asUtc(iso) {
-  if (!iso) return null;
-  const normalized = iso.endsWith('Z') || iso.includes('+') ? iso : iso + 'Z';
-  return new Date(normalized);
 }
 
 function fmtUtc(iso) {
