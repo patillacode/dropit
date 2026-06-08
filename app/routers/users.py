@@ -5,8 +5,9 @@ from sqlmodel import Session, select
 
 from app.auth import TokenUser, generate_token, get_current_user, hash_token, require_admin
 from app.database import get_session
-from app.models import User
-from app.utils import format_dt
+from app.models import Collection, Page, User
+from app.settings import get_settings
+from app.utils import delete_page_file, format_dt
 
 logger = structlog.get_logger()
 
@@ -66,6 +67,17 @@ def delete_user(
     user = session.get(User, user_id)
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    settings = get_settings()
+
+    pages = session.exec(select(Page).where(Page.user_id == user_id)).all()
+    for page in pages:
+        delete_page_file(page, session, settings.data_dir)
+
+    collections = session.exec(select(Collection).where(Collection.user_id == user_id)).all()
+    for coll in collections:
+        session.delete(coll)
+
     session.delete(user)
     session.commit()
     logger.info("user.deleted", user_id=user_id, actor=current_user.name)

@@ -17,7 +17,7 @@ from app.database import dispose_engine, get_engine, init_db
 from app.errors import error_response
 from app.limiter import limiter
 from app.logging import configure_logging
-from app.routers import admin, config, health, landing, me, upload, users
+from app.routers import admin, collections, config, health, landing, me, upload, users
 from app.routers.pages import serve_page_content
 from app.settings import get_settings
 
@@ -68,6 +68,7 @@ def create_app(engine=None) -> FastAPI:
     app.include_router(health.router)
     app.include_router(me.router)
     app.include_router(upload.router)
+    app.include_router(collections.router)
     app.include_router(admin.router)
     app.include_router(users.router)
 
