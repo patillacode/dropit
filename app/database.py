@@ -81,7 +81,6 @@ def _migration_3(engine) -> None:
 
 
 def _migration_4(engine) -> None:
-    SQLModel.metadata.create_all(engine)
     with engine.connect() as conn:
         rows = conn.execute(text("PRAGMA table_info(page)")).fetchall()
         existing = {r[1] for r in rows}
