@@ -1,3 +1,9 @@
+export function asUtc(iso) {
+  if (!iso) return null;
+  const normalized = iso.endsWith('Z') || iso.includes('+') ? iso : iso + 'Z';
+  return new Date(normalized);
+}
+
 export function fmtExpiry(isoStr) {
   if (!isoStr) return { text: 'permanent', cls: 'exp-permanent' };
   const diff = new Date(isoStr) - Date.now();

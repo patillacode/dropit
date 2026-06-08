@@ -1,6 +1,6 @@
 import { showTokenField, showTokenIndicator } from '/static/js/token-shared.js';
 import { showTokenModal, showConfirmModal, showNoticeModal } from '/static/js/token-modal.js';
-import { fmtExpiry } from '/static/js/utils.js';
+import { asUtc, fmtExpiry } from '/static/js/utils.js';
 
 const STORAGE_KEY = 'dropit_token';
 
@@ -234,13 +234,6 @@ dzResetBtn.addEventListener('click', e => {
   fileInput.value = '';
   setState('idle');
 });
-
-// Upload timestamps come back as naive UTC; treat them as UTC, not local.
-function asUtc(iso) {
-  if (!iso) return null;
-  const normalized = iso.endsWith('Z') || iso.includes('+') ? iso : iso + 'Z';
-  return new Date(normalized);
-}
 
 async function fetchAndRenderHistory() {
   const token = localStorage.getItem(STORAGE_KEY);

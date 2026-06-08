@@ -9,13 +9,6 @@ body {
   justify-content: center;
 }
 
-.main {
-  width: 100%;
-  max-width: 500px;
-  position: relative;
-  z-index: 1;
-}
-
 .header {
   margin-bottom: 3rem;
   opacity: 0;
