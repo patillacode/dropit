@@ -1,5 +1,6 @@
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from sqlalchemy import func
 from sqlmodel import Session, col, select
 
 from app.auth import TokenUser, generate_token, get_current_user, hash_token
@@ -62,7 +63,7 @@ def my_pages(
         stmt = stmt.where(Page.collection_id == None)  # noqa: E711
     elif collection:
         coll_name = collection.lower().strip()
-        stmt = stmt.where(Collection.name == coll_name)
+        stmt = stmt.where(func.lower(Collection.name) == coll_name)
     stmt = stmt.order_by(col(Page.created_at).desc())
     rows = session.exec(stmt).all()
     return [
@@ -72,7 +73,7 @@ def my_pages(
             "expires_at": format_dt(page.expires_at),
             "created_at": format_dt(page.created_at),
             "collection_id": page.collection_id,
-            "collection_name": coll_name,
+            "collection_name": row_coll_name,
         }
-        for page, coll_name in rows
+        for page, row_coll_name in rows
     ]
