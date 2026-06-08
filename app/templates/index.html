@@ -35,6 +35,12 @@
             <label for="ttl">Expires in</label>
             <select id="ttl"></select>
         </div>
+        <div class="field" id="collectionField" style="display:none">
+            <label for="collection">Collection</label>
+            <select id="collection">
+                <option value="">No collection</option>
+            </select>
+        </div>
     </div>
 
     <div class="drop-zone" id="dropZone" data-state="idle" tabindex="0" role="button" aria-label="Upload area — press Enter or Space to browse for a file">
@@ -83,6 +89,19 @@
     </div>
     <input type="file" id="fileInput" accept=".html,.htm">
 
+    <div class="collections-bar" id="collectionsBar" style="display:none">
+        <div class="collections-filter" id="collectionsFilter">
+            <button class="coll-btn coll-btn--active" data-filter="all">All</button>
+            <button class="coll-btn" data-filter="uncollected">Uncategorized</button>
+        </div>
+        <button class="btn btn--sm" id="newCollectionBtn">+ New</button>
+        <div class="new-collection-row" id="newCollectionRow" style="display:none">
+            <input type="text" id="newCollectionInput" placeholder="collection name" maxlength="128">
+            <button class="btn btn--accent btn--sm" id="newCollectionSave">Add</button>
+            <button class="btn btn--sm" id="newCollectionCancel">✕</button>
+        </div>
+    </div>
+
     <div class="history" id="history">
         <div class="history-label">Your recent uploads</div>
         <table class="history-table">
@@ -91,6 +110,7 @@
                     <th>File</th>
                     <th>URL</th>
                     <th>Expires in</th>
+                    <th>Collection</th>
                 </tr>
             </thead>
             <tbody id="historyList"></tbody>

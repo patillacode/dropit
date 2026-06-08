@@ -31,6 +31,8 @@ const _indicatorEls = { fieldEl: tokenFieldEl, indicatorEl: tokenIndicator, name
 let selectedFile = null;
 let currentUser  = null;
 let appConfig    = null;
+let collections  = [];
+let activeFilter = 'all';
 
 function setState(state) {
   dropZone.dataset.state = state;
@@ -68,6 +70,8 @@ async function checkToken(token) {
         adminLinkEl.style.display = '';
       }
       await fetchAndRenderHistory();
+      await fetchAndRenderCollections();
+      document.getElementById('collectionField').style.display = '';
     } else if (res.status === 429) {
       showTokenField(_tokenEls, 'Too many requests — wait a minute before trying again');
     } else {
@@ -108,9 +112,13 @@ async function saveToken() {
 tokenChangeBtn.addEventListener('click', () => {
   localStorage.removeItem('dropit_token');
   currentUser = null;
+  collections = [];
+  activeFilter = 'all';
   tokenInputEl.value = '';
   adminSepEl.style.display  = 'none';
   adminLinkEl.style.display = 'none';
+  document.getElementById('collectionsBar').style.display = 'none';
+  document.getElementById('collectionField').style.display = 'none';
   showTokenField(_tokenEls);
   populateTTL(false);
 });
@@ -195,7 +203,9 @@ async function doUpload() {
   body.append('file', selectedFile);
 
   try {
-    const res = await fetch(`/upload?ttl=${encodeURIComponent(ttlSelect.value)}`, {
+    const collectionValue = document.getElementById('collection')?.value;
+    const collectionParam = collectionValue ? `&collection=${encodeURIComponent(collectionValue)}` : '';
+    const res = await fetch(`/upload?ttl=${encodeURIComponent(ttlSelect.value)}${collectionParam}`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
       body,
@@ -220,6 +230,7 @@ async function doUpload() {
       await checkToken(token);
     } else {
       await fetchAndRenderHistory();
+      await fetchAndRenderCollections();
     }
   } catch (err) {
     dzErrorMsg.textContent = err.message;
@@ -238,8 +249,11 @@ dzResetBtn.addEventListener('click', e => {
 async function fetchAndRenderHistory() {
   const token = localStorage.getItem(STORAGE_KEY);
   if (!token) { renderHistory([]); return; }
+  let url = '/me/pages';
+  if (activeFilter === 'uncollected') url += '?uncollected=true';
+  else if (activeFilter !== 'all') url += `?collection=${encodeURIComponent(activeFilter)}`;
   try {
-    const res = await fetch('/me/pages', { headers: { Authorization: `Bearer ${token}` } });
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
     renderHistory(res.ok ? await res.json() : []);
   } catch {
     renderHistory([]);
@@ -254,7 +268,7 @@ function renderHistory(pages) {
     const tr = document.createElement('tr');
     const td = document.createElement('td');
     td.className = 'history-empty';
-    td.colSpan = 3;
+    td.colSpan = 4;
     td.textContent = 'No uploads yet';
     tr.appendChild(td);
     historyList.appendChild(tr);
@@ -285,11 +299,118 @@ function renderHistory(pages) {
     exp.className   = `history-exp ${expCls}`;
     exp.textContent = expText;
 
+    const collCell = document.createElement('td');
+    if (item.collection_name) {
+      const badge = document.createElement('span');
+      badge.className = 'collection-badge';
+      badge.textContent = item.collection_name;
+      badge.style.cursor = 'pointer';
+      badge.addEventListener('click', () => {
+        activeFilter = item.collection_name;
+        document.querySelectorAll('.coll-btn').forEach(b => {
+          b.classList.toggle('coll-btn--active', b.dataset.filter === item.collection_name);
+        });
+        fetchAndRenderHistory();
+      });
+      collCell.appendChild(badge);
+    }
+
     row.appendChild(name);
     row.appendChild(urlCell);
     row.appendChild(exp);
+    row.appendChild(collCell);
     historyList.appendChild(row);
   });
 }
+
+async function fetchAndRenderCollections() {
+  const token = localStorage.getItem(STORAGE_KEY);
+  if (!token) return;
+  try {
+    const res = await fetch('/collections', { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) return;
+    collections = await res.json();
+    renderCollectionsSidebar();
+    populateCollectionSelect();
+  } catch { /* ignore */ }
+}
+
+function renderCollectionsSidebar() {
+  const bar = document.getElementById('collectionsBar');
+  bar.style.display = '';
+  const filter = document.getElementById('collectionsFilter');
+  while (filter.firstChild) filter.removeChild(filter.firstChild);
+
+  const allBtn = document.createElement('button');
+  allBtn.className = activeFilter === 'all' ? 'coll-btn coll-btn--active' : 'coll-btn';
+  allBtn.dataset.filter = 'all';
+  allBtn.textContent = 'All';
+  filter.appendChild(allBtn);
+
+  const uncollBtn = document.createElement('button');
+  uncollBtn.className = activeFilter === 'uncollected' ? 'coll-btn coll-btn--active' : 'coll-btn';
+  uncollBtn.dataset.filter = 'uncollected';
+  uncollBtn.textContent = 'Uncategorized';
+  filter.appendChild(uncollBtn);
+
+  collections.forEach(c => {
+    const btn = document.createElement('button');
+    btn.className = activeFilter === c.name ? 'coll-btn coll-btn--active' : 'coll-btn';
+    btn.dataset.filter = c.name;
+    btn.textContent = `${c.name} (${c.page_count})`;
+    filter.appendChild(btn);
+  });
+}
+
+function populateCollectionSelect() {
+  const sel = document.getElementById('collection');
+  while (sel.firstChild) sel.removeChild(sel.firstChild);
+  const none = document.createElement('option');
+  none.value = '';
+  none.textContent = 'No collection';
+  sel.appendChild(none);
+  collections.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.name;
+    opt.textContent = c.name;
+    sel.appendChild(opt);
+  });
+}
+
+document.getElementById('collectionsFilter').addEventListener('click', e => {
+  const btn = e.target.closest('.coll-btn');
+  if (!btn) return;
+  activeFilter = btn.dataset.filter;
+  document.querySelectorAll('.coll-btn').forEach(b => b.classList.remove('coll-btn--active'));
+  btn.classList.add('coll-btn--active');
+  fetchAndRenderHistory();
+});
+
+document.getElementById('newCollectionBtn').addEventListener('click', () => {
+  document.getElementById('newCollectionRow').style.display = '';
+  document.getElementById('newCollectionBtn').style.display = 'none';
+  document.getElementById('newCollectionInput').focus();
+});
+
+document.getElementById('newCollectionSave').addEventListener('click', async () => {
+  const name = document.getElementById('newCollectionInput').value.trim();
+  if (!name) return;
+  const token = localStorage.getItem(STORAGE_KEY);
+  await fetch('/collections', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  });
+  document.getElementById('newCollectionInput').value = '';
+  document.getElementById('newCollectionRow').style.display = 'none';
+  document.getElementById('newCollectionBtn').style.display = '';
+  await fetchAndRenderCollections();
+});
+
+document.getElementById('newCollectionCancel').addEventListener('click', () => {
+  document.getElementById('newCollectionInput').value = '';
+  document.getElementById('newCollectionRow').style.display = 'none';
+  document.getElementById('newCollectionBtn').style.display = '';
+});
 
 init();

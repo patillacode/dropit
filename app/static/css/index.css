@@ -407,6 +407,79 @@ input[type="file"] {
     padding: 0.3rem 0;
 }
 
+.collections-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.75rem;
+}
+
+.collections-filter {
+    display: flex;
+    gap: 0.375rem;
+    flex-wrap: wrap;
+    flex: 1;
+}
+
+.coll-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 0.2rem 0.75rem;
+    font-size: 0.8rem;
+    color: var(--muted);
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+}
+
+.coll-btn:hover {
+    border-color: var(--accent);
+    color: var(--text);
+}
+
+.coll-btn--active {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.new-collection-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.new-collection-row input {
+    padding: 0.3rem 0.6rem;
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 0.85rem;
+    width: 160px;
+}
+
+.collection-badge {
+    display: inline-block;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 0.1rem 0.5rem;
+    font-size: 0.75rem;
+    color: var(--muted);
+}
+
+.collection-badge:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.btn--sm {
+    padding: 0.25rem 0.6rem;
+    font-size: 0.8rem;
+}
+
 @keyframes pop {
     from {
         opacity: 0;
