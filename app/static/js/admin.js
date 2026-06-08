@@ -193,7 +193,11 @@ function renderTable(pages) {
 
     const tdUp = document.createElement('td');
     tdUp.className = 'td-uploader';
-    tdUp.textContent = p.token_hint;
+    tdUp.textContent = p.user_name || p.token_hint;
+
+    const tdColl = document.createElement('td');
+    tdColl.className = 'td-collection';
+    tdColl.textContent = p.collection_name || '—';
 
     const tdAct = document.createElement('td');
     tdAct.className = 'page-actions';
@@ -212,12 +216,13 @@ function renderTable(pages) {
     tr.appendChild(tdUrl);
     tr.appendChild(tdExp);
     tr.appendChild(tdUp);
+    tr.appendChild(tdColl);
     tr.appendChild(tdAct);
 
     const detailTr = document.createElement('tr');
     detailTr.className = 'page-detail';
     const detailTd = document.createElement('td');
-    detailTd.colSpan = 4;
+    detailTd.colSpan = 5;
     const grid = document.createElement('div');
     grid.className = 'detail-grid';
     grid.appendChild(detailItem('File', p.filename || '—'));
@@ -395,7 +400,7 @@ async function regenerateUser(u) {
 async function deleteUser(u, tr) {
   const ok = await showConfirmModal({
     title: `Delete user ${u.name}?`,
-    message: 'Their uploaded pages are kept. This cannot be undone.',
+    message: 'All their pages and collections will be permanently deleted. This cannot be undone.',
     confirmLabel: 'Delete',
     danger: true,
   });

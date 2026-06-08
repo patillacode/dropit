@@ -29,7 +29,7 @@ the admin panel:
 
 - **Admins create users** — a 32-char token is generated and shown **once** on creation. It's
   stored hashed, so it can never be displayed again, only regenerated.
-- **Admins can regenerate or delete any user.** Deleting a user keeps their already-uploaded pages.
+- **Admins can regenerate or delete any user.** Deleting a user permanently removes all their pages and collections.
 - **Any user can regenerate their own token** from the main page ("regenerate" next to their name).
 
 Regenerating a token immediately invalidates the old one **everywhere** (other browsers, devices,
@@ -48,13 +48,39 @@ count of users, pages, permanent uploads, and total storage. From there you can 
 (create, regenerate, delete), list and delete all uploaded pages (with uploader and file details),
 and run/inspect the cleanup scheduler.
 
+## Collections
+
+Pages can be grouped into **collections** — private labels visible only to the owner, never included in share URLs.
+
+```bash
+# Upload into a collection (auto-created on first use)
+curl -X POST "http://localhost:8000/upload?collection=work" \
+  -H "Authorization: Bearer tok_abc123" \
+  -F "file=@page.html"
+# {"url": "...", "collection": "work", ...}
+
+# List your collections (with page counts)
+curl http://localhost:8000/collections \
+  -H "Authorization: Bearer tok_abc123"
+
+# Filter your upload history by collection
+curl "http://localhost:8000/me/pages?collection=work" \
+  -H "Authorization: Bearer tok_abc123"
+
+# See only uncollected pages
+curl "http://localhost:8000/me/pages?uncollected=true" \
+  -H "Authorization: Bearer tok_abc123"
+```
+
+Collection names are normalized to lowercase. A collection is created automatically the first time you upload with a new name — no separate setup step required.
+
 ## Upload via API
 
 ```bash
 curl -X POST http://localhost:8000/upload \
   -H "Authorization: Bearer tok_abc123" \
   -F "file=@page.html"
-# {"url": "http://a3f8c1d2.localhost:8000", "expires_at": "..."}
+# {"url": "http://a3f8c1d2.localhost:8000", "expires_at": "...", "collection": null}
 
 # Custom TTL (1h, 6h, 24h, 48h, 7d — or "forever" with admin token)
 curl -X POST "http://localhost:8000/upload?ttl=6h" \
@@ -71,7 +97,7 @@ API endpoints are rate-limited per IP: `/upload` and `/me` at 5 requests/minute,
 
 ## Claude Code integration
 
-A [Claude Code skill](https://forgejo.patilla.es/patillacode/dotfiles/src/branch/main/dot_claude/skills/dropit/SKILL.md) is available for uploading HTML files directly from Claude Code sessions via `/dropit`. It handles file resolution, TTL selection, and upload in one step.
+A [Claude Code skill](https://forgejo.patilla.es/patillacode/dotfiles/src/branch/main/dot_claude/skills/dropit/SKILL.md) is available for uploading HTML files directly from Claude Code sessions via `/dropit`. It handles file resolution, TTL selection, collection assignment, and upload in one step.
 
 ## Self-hosting
 
