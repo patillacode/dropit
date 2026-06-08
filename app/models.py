@@ -30,7 +30,9 @@ class Page(SQLModel, table=True):
     created_at: datetime | None = Field(default=None, nullable=True)
     file_size: int | None = Field(default=None, nullable=True)
     user_id: int | None = Field(default=None, foreign_key="user.id", nullable=True, index=True)
-    collection_id: int | None = Field(default=None, foreign_key="collection.id", nullable=True, index=True)
+    collection_id: int | None = Field(
+        default=None, foreign_key="collection.id", nullable=True, index=True
+    )
 
     def is_expired(self) -> bool:
         return self.expires_at is not None and self.expires_at < utcnow()

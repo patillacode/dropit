@@ -355,7 +355,9 @@ def test_migration_4_preserves_existing_pages():
     _migration_4(engine)
 
     with engine.connect() as conn:
-        row = conn.execute(text("SELECT id, token_hint, filename, file_size FROM page WHERE id = 'abc123'")).first()
+        row = conn.execute(
+            text("SELECT id, token_hint, filename, file_size FROM page WHERE id = 'abc123'")
+        ).first()
 
     assert row is not None
     assert row[0] == "abc123"

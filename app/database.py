@@ -87,7 +87,9 @@ def _migration_4(engine) -> None:
         if "user_id" not in existing:
             conn.execute(text("ALTER TABLE page ADD COLUMN user_id INTEGER REFERENCES user(id)"))
         if "collection_id" not in existing:
-            conn.execute(text("ALTER TABLE page ADD COLUMN collection_id INTEGER REFERENCES collection(id)"))
+            conn.execute(
+                text("ALTER TABLE page ADD COLUMN collection_id INTEGER REFERENCES collection(id)")
+            )
         conn.commit()
 
 
