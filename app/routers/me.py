@@ -5,7 +5,7 @@ from sqlmodel import Session, col, select
 from app.auth import TokenUser, generate_token, get_current_user, hash_token
 from app.database import get_session
 from app.limiter import limiter
-from app.models import Page, User
+from app.models import Collection, Page, User
 from app.settings import get_settings
 from app.utils import format_dt
 
@@ -49,17 +49,30 @@ def my_pages(
     request: Request,
     user: TokenUser = Depends(get_current_user),
     session: Session = Depends(get_session),
+    collection: str | None = None,
+    uncollected: bool = False,
 ):
     settings = get_settings()
-    pages = session.exec(
-        select(Page).where(Page.token_hint == user.name).order_by(col(Page.created_at).desc())
-    ).all()
+    stmt = (
+        select(Page, Collection.name.label("collection_name"))
+        .outerjoin(Collection, Page.collection_id == Collection.id)
+        .where(Page.user_id == user.user_id)
+    )
+    if uncollected:
+        stmt = stmt.where(Page.collection_id == None)  # noqa: E711
+    elif collection:
+        coll_name = collection.lower().strip()
+        stmt = stmt.where(Collection.name == coll_name)
+    stmt = stmt.order_by(col(Page.created_at).desc())
+    rows = session.exec(stmt).all()
     return [
         {
             "url": settings.page_url(page.id),
             "filename": page.filename,
             "expires_at": format_dt(page.expires_at),
             "created_at": format_dt(page.created_at),
+            "collection_id": page.collection_id,
+            "collection_name": coll_name,
         }
-        for page in pages
+        for page, coll_name in rows
     ]

@@ -130,8 +130,24 @@ def test_my_pages_sorted_newest_first(client):
     newer = datetime.now(UTC).replace(tzinfo=None)
 
     with Session(client.app.state.engine) as session:
-        session.add(Page(id="old00001", token_hint="alice", filename="old.html", created_at=older))
-        session.add(Page(id="new00001", token_hint="alice", filename="new.html", created_at=newer))
+        session.add(
+            Page(
+                id="old00001",
+                token_hint="alice",
+                filename="old.html",
+                created_at=older,
+                user_id=1,
+            )
+        )
+        session.add(
+            Page(
+                id="new00001",
+                token_hint="alice",
+                filename="new.html",
+                created_at=newer,
+                user_id=1,
+            )
+        )
         session.commit()
 
     res = client.get("/me/pages", headers={"Authorization": f"Bearer {USER_TOKEN}"})
@@ -149,3 +165,145 @@ def test_my_pages_rate_limited(client):
     r = client.get("/me/pages", headers=headers)
     assert r.status_code == 429
     assert r.json()["detail"] == "Too many requests — please slow down and try again shortly"
+
+
+def test_my_pages_includes_collection_fields(client):
+    content = b"<!doctype html><html><body>hi</body></html>"
+    client.post(
+        "/upload",
+        headers={"Authorization": f"Bearer {USER_TOKEN}"},
+        files={"file": ("test.html", content, "text/html")},
+        params={"collection": "work"},
+    )
+    res = client.get("/me/pages", headers={"Authorization": f"Bearer {USER_TOKEN}"})
+    assert res.status_code == 200
+    pages = res.json()
+    assert len(pages) == 1
+    page = pages[0]
+    assert "collection_id" in page
+    assert "collection_name" in page
+    assert page["collection_name"] == "work"
+    assert isinstance(page["collection_id"], int)
+
+
+def test_my_pages_filter_by_collection(client):
+    from sqlmodel import Session
+
+    from app.models import Collection, Page
+
+    with Session(client.app.state.engine) as session:
+        coll_work = Collection(name="work", user_id=1)
+        coll_personal = Collection(name="personal", user_id=1)
+        session.add(coll_work)
+        session.add(coll_personal)
+        session.flush()
+
+        session.add(
+            Page(
+                id="work0001",
+                token_hint="alice",
+                filename="work.html",
+                user_id=1,
+                collection_id=coll_work.id,
+            )
+        )
+        session.add(
+            Page(
+                id="pers0001",
+                token_hint="alice",
+                filename="personal.html",
+                user_id=1,
+                collection_id=coll_personal.id,
+            )
+        )
+        session.commit()
+
+    res = client.get(
+        "/me/pages?collection=work",
+        headers={"Authorization": f"Bearer {USER_TOKEN}"},
+    )
+    assert res.status_code == 200
+    pages = res.json()
+    assert len(pages) == 1
+    assert pages[0]["filename"] == "work.html"
+    assert pages[0]["collection_name"] == "work"
+
+
+def test_my_pages_filter_uncollected(client):
+    from sqlmodel import Session
+
+    from app.models import Collection, Page
+
+    with Session(client.app.state.engine) as session:
+        coll = Collection(name="work", user_id=1)
+        session.add(coll)
+        session.flush()
+
+        session.add(
+            Page(
+                id="unc00001",
+                token_hint="alice",
+                filename="uncollected.html",
+                user_id=1,
+                collection_id=None,
+            )
+        )
+        session.add(
+            Page(
+                id="col00001",
+                token_hint="alice",
+                filename="collected.html",
+                user_id=1,
+                collection_id=coll.id,
+            )
+        )
+        session.commit()
+
+    res = client.get(
+        "/me/pages?uncollected=true",
+        headers={"Authorization": f"Bearer {USER_TOKEN}"},
+    )
+    assert res.status_code == 200
+    pages = res.json()
+    assert len(pages) == 1
+    assert pages[0]["filename"] == "uncollected.html"
+    assert pages[0]["collection_id"] is None
+    assert pages[0]["collection_name"] is None
+
+
+def test_my_pages_no_filter_returns_all(client):
+    from sqlmodel import Session
+
+    from app.models import Collection, Page
+
+    with Session(client.app.state.engine) as session:
+        coll = Collection(name="work", user_id=1)
+        session.add(coll)
+        session.flush()
+
+        session.add(
+            Page(
+                id="all00001",
+                token_hint="alice",
+                filename="page1.html",
+                user_id=1,
+                collection_id=None,
+            )
+        )
+        session.add(
+            Page(
+                id="all00002",
+                token_hint="alice",
+                filename="page2.html",
+                user_id=1,
+                collection_id=coll.id,
+            )
+        )
+        session.commit()
+
+    res = client.get("/me/pages", headers={"Authorization": f"Bearer {USER_TOKEN}"})
+    assert res.status_code == 200
+    pages = res.json()
+    assert len(pages) == 2
+    coll_names = [p["collection_name"] for p in pages]
+    assert all(name is None or name == "work" for name in coll_names)
