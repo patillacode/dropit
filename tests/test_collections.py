@@ -1,49 +1,10 @@
-import pytest
-from fastapi.testclient import TestClient
-from sqlmodel import Session, SQLModel, create_engine
-from sqlmodel.pool import StaticPool
+from sqlmodel import Session
 
-from app.auth import hash_token
-from app.database import get_session
-from app.main import create_app
-from app.models import Page, User
-from app.routers import collections as collections_router
-from app.settings import get_settings
+from app.models import Page
 from tests.conftest import ADMIN_TOKEN, USER_TOKEN
 
 HEADERS = {"Authorization": f"Bearer {USER_TOKEN}"}
 ADMIN_HEADERS = {"Authorization": f"Bearer {ADMIN_TOKEN}"}
-
-
-@pytest.fixture(name="client")
-def client_fixture(tmp_path, monkeypatch):
-    monkeypatch.setenv("DATA_DIR", str(tmp_path))
-    monkeypatch.setenv("ADMIN_TOKEN", ADMIN_TOKEN)
-    get_settings.cache_clear()
-    (tmp_path / "pages").mkdir()
-
-    engine = create_engine(
-        "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
-    )
-    SQLModel.metadata.create_all(engine)
-    with Session(engine) as session:
-        session.add(User(name="alice", token_hash=hash_token(USER_TOKEN), is_admin=False))
-        session.commit()
-
-    def override_session():
-        with Session(engine) as session:
-            yield session
-
-    app = create_app(engine=engine)
-    # Insert collections routes before the catch_all so GET /collections resolves correctly
-    *before_catchall, catch_all_route = app.router.routes
-    app.router.routes = before_catchall
-    app.include_router(collections_router.router)
-    app.router.routes.append(catch_all_route)
-    app.dependency_overrides[get_session] = override_session
-
-    with TestClient(app) as c:
-        yield c
 
 
 def _create_bob(client):
