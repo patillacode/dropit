@@ -122,6 +122,12 @@ def test_rename_conflict_409(client):
     assert r.status_code == 409
 
 
+def test_rename_same_name(client):
+    coll_id = client.post("/collections", json={"name": "beta"}, headers=HEADERS).json()["id"]
+    r = client.patch(f"/collections/{coll_id}", json={"name": "beta"}, headers=HEADERS)
+    assert r.status_code == 200
+
+
 def test_rename_empty_name_422(client):
     coll_id = client.post("/collections", json={"name": "x"}, headers=HEADERS).json()["id"]
     r = client.patch(f"/collections/{coll_id}", json={"name": ""}, headers=HEADERS)

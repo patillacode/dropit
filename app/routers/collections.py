@@ -15,16 +15,16 @@ logger = structlog.get_logger()
 router = APIRouter(prefix="/collections")
 
 
-def _require_db_user(user: TokenUser) -> None:
+def get_db_user(user: TokenUser = Depends(get_current_user)) -> TokenUser:
     if user.user_id is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="DB user required")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="DB user required",
+        )
+    return user
 
 
-class CreateCollection(BaseModel):
-    name: str
-
-
-class RenameCollection(BaseModel):
+class CollectionBody(BaseModel):
     name: str
 
 
@@ -32,10 +32,9 @@ class RenameCollection(BaseModel):
 @limiter.limit("30/minute")
 def list_collections(
     request: Request,
-    user: TokenUser = Depends(get_current_user),
+    user: TokenUser = Depends(get_db_user),
     session: Session = Depends(get_session),
 ):
-    _require_db_user(user)
     stmt = (
         select(Collection, func.count(Page.id).label("page_count"))
         .outerjoin(Page, (Page.collection_id == Collection.id))
@@ -59,11 +58,10 @@ def list_collections(
 @limiter.limit("10/minute")
 def create_collection(
     request: Request,
-    payload: CreateCollection,
-    user: TokenUser = Depends(get_current_user),
+    payload: CollectionBody,
+    user: TokenUser = Depends(get_db_user),
     session: Session = Depends(get_session),
 ):
-    _require_db_user(user)
     name = payload.name.lower().strip()
     if not name:
         raise HTTPException(
@@ -88,11 +86,10 @@ def create_collection(
 def rename_collection(
     request: Request,
     coll_id: int,
-    payload: RenameCollection,
-    user: TokenUser = Depends(get_current_user),
+    payload: CollectionBody,
+    user: TokenUser = Depends(get_db_user),
     session: Session = Depends(get_session),
 ):
-    _require_db_user(user)
     coll = session.get(Collection, coll_id)
     if coll is None or coll.user_id != user.user_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Collection not found")
@@ -124,10 +121,9 @@ def rename_collection(
 def delete_collection(
     request: Request,
     coll_id: int,
-    user: TokenUser = Depends(get_current_user),
+    user: TokenUser = Depends(get_db_user),
     session: Session = Depends(get_session),
 ):
-    _require_db_user(user)
     coll = session.get(Collection, coll_id)
     if coll is None or coll.user_id != user.user_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Collection not found")
