@@ -9,7 +9,7 @@ from sqlmodel import Session, select
 from app.auth import TokenUser, get_current_user
 from app.database import get_session
 from app.limiter import limiter
-from app.models import Page
+from app.models import Collection, Page
 from app.settings import get_settings, parse_ttl_duration
 from app.utils import format_dt, utcnow
 
@@ -33,6 +33,7 @@ async def upload(
     request: Request,
     file: UploadFile,
     ttl: str | None = None,
+    collection: str | None = None,
     user: TokenUser = Depends(get_current_user),
     session: Session = Depends(get_session),
 ):
@@ -123,6 +124,32 @@ async def upload(
             detail="Only HTML files are accepted",
         )
 
+    collection_id = None
+    collection_name = None
+    if collection:
+        if user.user_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="Collections require a DB user token",
+            )
+        collection_name = collection.lower().strip()
+        if not collection_name:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="Collection name cannot be empty",
+            )
+        coll = session.exec(
+            select(Collection).where(
+                Collection.name == collection_name,
+                Collection.user_id == user.user_id,
+            )
+        ).first()
+        if coll is None:
+            coll = Collection(name=collection_name, user_id=user.user_id)
+            session.add(coll)
+            session.flush()
+        collection_id = coll.id
+
     try:
         page_id = _generate_id(session)
     except RuntimeError:
@@ -141,6 +168,8 @@ async def upload(
         filename=filename or None,
         created_at=utcnow(),
         file_size=len(content),
+        user_id=user.user_id,
+        collection_id=collection_id,
     )
     session.add(page)
     session.commit()
@@ -151,9 +180,11 @@ async def upload(
         user=user.name,
         size=len(content),
         ttl=effective_ttl,
+        collection=collection_name,
     )
 
     return {
         "url": settings.page_url(page_id),
         "expires_at": format_dt(expires_at),
+        "collection": collection_name,
     }
