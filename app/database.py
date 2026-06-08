@@ -107,8 +107,9 @@ def _run_migrations(engine) -> None:
                 conn.commit()
 
 
-def init_db() -> None:
-    engine = get_engine()
+def init_db(engine=None) -> None:
+    if engine is None:
+        engine = get_engine()
     _run_migrations(engine)
     SQLModel.metadata.create_all(engine)
 

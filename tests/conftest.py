@@ -53,7 +53,6 @@ def client(tmp_path, monkeypatch):
         "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
     )
     SQLModel.metadata.create_all(engine)
-    db_mod._engine = engine  # lifespan reuses this; no file-backed engine created
     with Session(engine) as session:
         session.add(User(name="alice", token_hash=hash_token(USER_TOKEN), is_admin=False))
         session.commit()
@@ -62,7 +61,7 @@ def client(tmp_path, monkeypatch):
         with Session(engine) as session:
             yield session
 
-    app = create_app()
+    app = create_app(engine=engine)
     app.dependency_overrides[get_session] = override_session
 
     with TestClient(app) as c:

@@ -26,30 +26,30 @@ _RESERVED_SUBDOMAINS = {
 }
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    init_db()
-    settings = get_settings()
-    engine = get_engine()
-    scheduler = BackgroundScheduler()
-    job = scheduler.add_job(
-        delete_expired_pages,
-        "interval",
-        hours=settings.cleanup_interval_hours,
-        args=[engine, settings.data_dir],
-    )
-    app.state.cleanup_job = job
-    app.state.engine = engine
-    scheduler.start()
-    structlog.get_logger().info("app.startup", log_level=settings.log_level)
-    yield
-    scheduler.shutdown(wait=False)
-    dispose_engine()
-    structlog.get_logger().info("app.shutdown")
-
-
-def create_app() -> FastAPI:
+def create_app(engine=None) -> FastAPI:
     configure_logging(get_settings().log_level)
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        _engine = engine if engine is not None else get_engine()
+        init_db(_engine)
+        settings = get_settings()
+        scheduler = BackgroundScheduler()
+        job = scheduler.add_job(
+            delete_expired_pages,
+            "interval",
+            hours=settings.cleanup_interval_hours,
+            args=[_engine, settings.data_dir],
+        )
+        app.state.cleanup_job = job
+        app.state.engine = _engine
+        scheduler.start()
+        structlog.get_logger().info("app.startup", log_level=settings.log_level)
+        yield
+        scheduler.shutdown(wait=False)
+        dispose_engine()
+        structlog.get_logger().info("app.shutdown")
+
     app = FastAPI(title="dropit", lifespan=lifespan)
     app.state.limiter = limiter
 
