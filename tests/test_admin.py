@@ -5,7 +5,7 @@ from sqlmodel import Session
 from structlog.testing import capture_logs
 
 from app.auth import hash_token
-from app.models import Page, User
+from app.models import Collection, Page, User
 from tests.conftest import ADMIN_TOKEN, USER_TOKEN
 
 
@@ -231,3 +231,67 @@ def test_cleanup_trigger_attributes_db_admin(client):
     runs = [entry for entry in cap if entry.get("event") == "cleanup.run"]
     assert len(runs) == 1
     assert runs[0]["triggered_by"] == "bob"
+
+
+def test_list_pages_includes_user_name_and_collection_name(client):
+    engine = client.app.state.engine
+    with Session(engine) as session:
+        user = User(name="testuser", token_hash=hash_token("tok_test_user"))
+        session.add(user)
+        session.flush()
+        collection = Collection(name="testcol", user_id=user.id)
+        session.add(collection)
+        session.flush()
+        page = Page(
+            id="page001",
+            token_hint="testuser",
+            filename="test.html",
+            user_id=user.id,
+            collection_id=collection.id,
+        )
+        session.add(page)
+        session.commit()
+
+    res = client.get("/admin/pages", headers={"Authorization": "Bearer admin_tok_xyz"})
+    assert res.status_code == 200
+    pages = res.json()
+    assert len(pages) == 1
+    assert pages[0]["user_name"] == "testuser"
+    assert pages[0]["collection_name"] == "testcol"
+
+
+def test_list_pages_null_for_unowned(client):
+    engine = client.app.state.engine
+    with Session(engine) as session:
+        page = Page(id="page002", token_hint="nouser", filename="orphan.html")
+        session.add(page)
+        session.commit()
+
+    res = client.get("/admin/pages", headers={"Authorization": "Bearer admin_tok_xyz"})
+    assert res.status_code == 200
+    pages = res.json()
+    assert len(pages) == 1
+    assert pages[0]["user_name"] is None
+
+
+def test_list_pages_null_for_uncollected(client):
+    engine = client.app.state.engine
+    with Session(engine) as session:
+        user = User(name="lonely", token_hash=hash_token("tok_lonely"))
+        session.add(user)
+        session.flush()
+        page = Page(
+            id="page003",
+            token_hint="lonely",
+            filename="lonely.html",
+            user_id=user.id,
+        )
+        session.add(page)
+        session.commit()
+
+    res = client.get("/admin/pages", headers={"Authorization": "Bearer admin_tok_xyz"})
+    assert res.status_code == 200
+    pages = res.json()
+    assert len(pages) == 1
+    assert pages[0]["collection_name"] is None
+    assert pages[0]["user_name"] == "lonely"
