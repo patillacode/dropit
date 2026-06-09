@@ -1,4 +1,4 @@
-{% macro token_section(show_regen=False, badge_text="Connected") %}
+{% macro token_section(badge_text="Connected") %}
 <label for="tokenInput">API token</label>
 <div id="tokenField">
     <form class="token-input-row" id="tokenForm">
@@ -10,16 +10,7 @@
 <div class="token-indicator" id="tokenIndicator" style="display:none">
     <span class="token-badge">{{ badge_text }}</span>
     <strong id="tokenName"></strong>
-    {% if show_regen %}<button class="btn" id="tokenRegenBtn">regenerate</button>{% endif %}
-    <button class="btn" id="tokenChangeBtn">{{ 'change' if show_regen else 'disconnect' }}</button>
-</div>
-{% endmacro %}
-
-{% macro token_indicator(badge_text="Connected") %}
-<label>API token</label>
-<div class="token-indicator" id="tokenIndicator" style="display:none">
-    <span class="token-badge">{{ badge_text }}</span>
-    <strong id="tokenName"></strong>
+    <button class="btn" id="tokenRegenBtn">regenerate</button>
     <button class="btn" id="tokenChangeBtn">disconnect</button>
 </div>
 {% endmacro %}

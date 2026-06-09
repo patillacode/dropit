@@ -10,6 +10,7 @@ const tokenInd       = document.getElementById('tokenIndicator');
 const tokenHintEl    = document.getElementById('tokenHint');
 const tokenNameEl    = document.getElementById('tokenName');
 const tokenChgBtn    = document.getElementById('tokenChangeBtn');
+const tokenRegenBtn  = document.getElementById('tokenRegenBtn');
 const tokenForm      = document.getElementById('tokenForm');
 const usersCardEl    = document.getElementById('usersCard');
 const usersBodyEl    = document.getElementById('usersBody');
@@ -58,6 +59,33 @@ tokenChgBtn.addEventListener('click', () => {
   currentUserName = null;
   showTokenField(_tokenEls);
   clearAll();
+});
+
+tokenRegenBtn.addEventListener('click', async () => {
+  const ok = await showConfirmModal({
+    title: 'Regenerate your token?',
+    message: 'Your current token stops working everywhere immediately.',
+    confirmLabel: 'Regenerate',
+    danger: true,
+  });
+  if (!ok) return;
+  const token = getToken();
+  try {
+    const res = await fetch('/me/regenerate', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || `Error ${res.status}`);
+    setToken(data.token);
+    showTokenModal(data.token, {
+      title: 'New token',
+      subtitle: "Copy it now — it won't be shown again. The old token no longer works.",
+    });
+  } catch (err) {
+    errorEl.textContent = err.message;
+    errorEl.classList.add('visible');
+  }
 });
 
 async function tryConnect() {

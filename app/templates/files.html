@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% from "macros.html" import token_indicator %}
+{% from "macros.html" import token_section %}
 {% block title %}dropit — files{% endblock %}
 {% block extra_css %}<link rel="stylesheet" href="/static/css/files.css">{% endblock %}
 {% block content %}
 <div class="auth-section files-auth">
-    {{ token_indicator() }}
+    {{ token_section() }}
 </div>
 <main class="main files-main">
   <aside class="files-sidebar">
