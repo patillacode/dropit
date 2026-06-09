@@ -9,10 +9,10 @@
 {% endblock %}
 {% block content %}
 <main class="main">
+    <div class="field token-field">
+        {{ token_section(show_regen=True) }}
+    </div>
     <div class="row">
-        <div class="field">
-            {{ token_section(show_regen=True) }}
-        </div>
         <div class="field">
             <label for="ttl">Expires in</label>
             <select id="ttl"></select>

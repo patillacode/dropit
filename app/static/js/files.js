@@ -108,6 +108,32 @@ function renderSidebar() {
   }
 }
 
+function fmtDate(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function fmtSize(bytes) {
+  if (!bytes) return '—';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function detailItem(key, value) {
+  const item = document.createElement('div');
+  item.className = 'detail-item';
+  const k = document.createElement('span');
+  k.className = 'detail-key';
+  k.textContent = key;
+  const v = document.createElement('span');
+  v.className = 'detail-val';
+  v.textContent = value;
+  item.append(k, v);
+  return item;
+}
+
 function renderFiles(pages) {
   tableBody.innerHTML = '';
   showError('');
@@ -122,7 +148,9 @@ function renderFiles(pages) {
   for (const p of pages) {
     const pageId = new URL(p.url).hostname.split('.')[0];
     const expiry = fmtExpiry(p.expires_at);
+
     const tr = document.createElement('tr');
+    tr.className = 'page-row';
 
     const tdFile = document.createElement('td');
     const a = document.createElement('a');
@@ -147,7 +175,12 @@ function renderFiles(pages) {
     tdExp.textContent = expiry.text;
 
     const tdAct = document.createElement('td');
-    tdAct.className = 'td-actions';
+    const actDiv = document.createElement('div');
+    actDiv.className = 'page-actions';
+
+    const detailsBtn = document.createElement('button');
+    detailsBtn.className = 'btn';
+    detailsBtn.textContent = 'Details';
 
     const copyBtn = document.createElement('button');
     copyBtn.className = 'btn';
@@ -160,18 +193,39 @@ function renderFiles(pages) {
       } catch { /* clipboard unavailable */ }
     });
 
-    const delBtn2 = document.createElement('button');
-    delBtn2.className = 'btn btn--danger';
-    delBtn2.textContent = 'Delete';
-    delBtn2.addEventListener('click', () => deleteFile(pageId, tr));
-    tdAct.append(copyBtn, delBtn2);
+    const delBtn = document.createElement('button');
+    delBtn.className = 'btn btn--danger';
+    delBtn.textContent = 'Delete';
 
+    actDiv.append(detailsBtn, copyBtn, delBtn);
+    tdAct.appendChild(actDiv);
     tr.append(tdFile, tdColl, tdExp, tdAct);
+
+    const detailTr = document.createElement('tr');
+    detailTr.className = 'page-detail';
+    const detailTd = document.createElement('td');
+    detailTd.colSpan = 4;
+    const grid = document.createElement('div');
+    grid.className = 'detail-grid';
+    grid.appendChild(detailItem('URL', p.url));
+    grid.appendChild(detailItem('Expires', p.expires_at ? fmtDate(p.expires_at) : 'never'));
+    if (p.collection_name) grid.appendChild(detailItem('Collection', p.collection_name));
+    if (p.file_size) grid.appendChild(detailItem('Size', fmtSize(p.file_size)));
+    detailTd.appendChild(grid);
+    detailTr.appendChild(detailTd);
+
+    detailsBtn.addEventListener('click', () => {
+      const open = detailTr.classList.toggle('open');
+      detailsBtn.textContent = open ? 'Hide' : 'Details';
+    });
+    delBtn.addEventListener('click', () => deleteFile(pageId, tr, detailTr));
+
     tableBody.appendChild(tr);
+    tableBody.appendChild(detailTr);
   }
 }
 
-async function deleteFile(pageId, tr) {
+async function deleteFile(pageId, tr, detailTr) {
   const ok = await showConfirmModal({
     title: 'Delete file?',
     message: 'This will permanently remove the file and its public URL.',
@@ -182,7 +236,8 @@ async function deleteFile(pageId, tr) {
   const res = await fetch(`/me/pages/${pageId}`, { method: 'DELETE', headers: authHeaders() });
   if (!res.ok) { showError('Failed to delete file'); return; }
   tr.remove();
-  if (!tableBody.children.length) {
+  detailTr.remove();
+  if (!tableBody.querySelector('.page-row')) {
     tableWrap.style.display = 'none';
     emptyEl.style.display = '';
   }
