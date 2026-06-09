@@ -39,6 +39,7 @@ def client_with_db(tmp_path, monkeypatch):
 
     with TestClient(app) as c:
         yield c, engine, tmp_path
+    engine.dispose()
 
 
 def _content_host(page_id: str) -> str:

@@ -76,3 +76,5 @@ def test_delete_page_file_removes_file_and_db_row(tmp_path):
     with Session(engine) as session:
         found = session.get(Page, page_id)
         assert found is None
+
+    engine.dispose()
