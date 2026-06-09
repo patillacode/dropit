@@ -345,8 +345,8 @@ def test_upload_collection_requires_db_user(client):
         headers={"Authorization": f"Bearer {ADMIN_TOKEN}"},
         files={"file": ("test.html", content, "text/html")},
     )
-    assert response.status_code == 422
-    assert "Collections require a DB user token" in response.json()["detail"]
+    assert response.status_code == 401
+    assert "DB user required" in response.json()["detail"]
 
 
 def test_upload_collection_empty_name_rejected(client):

@@ -1,4 +1,5 @@
-import { getToken as _getToken, showTokenField, showTokenIndicator } from '/static/js/token-shared.js';
+import { getToken, setToken, clearToken, initNav } from '/static/js/auth.js';
+import { showTokenField, showTokenIndicator } from '/static/js/token-shared.js';
 import { showTokenModal, showConfirmModal } from '/static/js/token-modal.js';
 import { asUtc, fmtExpiry } from '/static/js/utils.js';
 
@@ -30,7 +31,6 @@ const histToggleBtn  = document.getElementById('historyToggleBtn');
 const histWrap       = document.getElementById('cleanupHistoryWrap');
 const histBody       = document.getElementById('cleanupHistoryBody');
 
-const STORAGE_KEY = 'dropit_token';
 const _tokenEls = { fieldEl: tokenFieldEl, indicatorEl: tokenInd, hintEl: tokenHintEl };
 let historyVisible = false;
 let currentUserName = null;
@@ -65,7 +65,7 @@ function showIndicator() {
 tokenForm.addEventListener('submit', e => { e.preventDefault(); tryConnect(); });
 
 tokenChgBtn.addEventListener('click', () => {
-  localStorage.removeItem(STORAGE_KEY);
+  clearToken();
   tokenInputEl.value = '';
   currentUserName = null;
   showTokenField(_tokenEls);
@@ -79,14 +79,14 @@ async function tryConnect() {
 }
 
 async function connect(tokenArg) {
-  const token = tokenArg ?? _getToken(STORAGE_KEY);
+  const token = tokenArg ?? getToken();
   if (!token) { showTokenField(_tokenEls); return; }
   errorEl.classList.remove('visible');
   let me;
   try {
     const res = await fetch('/me', { headers: { Authorization: `Bearer ${token}` } });
     if (res.status === 401) {
-      localStorage.removeItem(STORAGE_KEY);
+      clearToken();
       showTokenField(_tokenEls, 'Invalid token');
       clearAll();
       return;
@@ -104,7 +104,23 @@ async function connect(tokenArg) {
     clearAll();
     return;
   }
-  localStorage.setItem(STORAGE_KEY, token);
+  setToken(token);
+  showIndicator();
+  await loadPages();
+  await loadCleanupStatus();
+  await loadUsers();
+}
+
+async function connectFromNav(user) {
+  const token = getToken();
+  if (!user.is_admin) {
+    clearToken();
+    showTokenField(_tokenEls, 'This token does not have admin access');
+    clearAll();
+    return;
+  }
+  tokenInputEl.value = token;
+  currentUserName = user.name;
   showIndicator();
   await loadPages();
   await loadCleanupStatus();
@@ -112,7 +128,7 @@ async function connect(tokenArg) {
 }
 
 async function loadPages() {
-  const token = _getToken(STORAGE_KEY);
+  const token = getToken();
   if (!token) return;
   errorEl.classList.remove('visible');
 
@@ -267,7 +283,7 @@ async function deletePage(id, tr, detailTr) {
     danger: true,
   });
   if (!ok) return;
-  const token = _getToken(STORAGE_KEY);
+  const token = getToken();
   try {
     const res = await fetch(`/admin/pages/${encodeURIComponent(id)}`, {
       method: 'DELETE',
@@ -287,7 +303,7 @@ async function deletePage(id, tr, detailTr) {
 }
 
 async function loadUsers() {
-  const token = _getToken(STORAGE_KEY);
+  const token = getToken();
   if (!token) return;
   try {
     const res = await fetch('/admin/users', { headers: { Authorization: `Bearer ${token}` } });
@@ -345,7 +361,7 @@ userCreateForm.addEventListener('submit', async e => {
   e.preventDefault();
   const name = newUserNameEl.value.trim();
   if (!name) return;
-  const token = _getToken(STORAGE_KEY);
+  const token = getToken();
   errorEl.classList.remove('visible');
   try {
     const res = await fetch('/admin/users', {
@@ -376,7 +392,7 @@ async function regenerateUser(u) {
     danger: true,
   });
   if (!ok) return;
-  const token = _getToken(STORAGE_KEY);
+  const token = getToken();
   errorEl.classList.remove('visible');
   try {
     const res = await fetch(`/admin/users/${u.id}/regenerate`, {
@@ -386,7 +402,7 @@ async function regenerateUser(u) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || `Error ${res.status}`);
     // if an admin regenerated their own token, keep this session alive
-    if (u.name === currentUserName) localStorage.setItem(STORAGE_KEY, data.token);
+    if (u.name === currentUserName) setToken(data.token);
     showTokenModal(data.token, {
       title: `New token for ${u.name}`,
       subtitle: "Copy it now — it won't be shown again. The old token no longer works.",
@@ -405,7 +421,7 @@ async function deleteUser(u, tr) {
     danger: true,
   });
   if (!ok) return;
-  const token = _getToken(STORAGE_KEY);
+  const token = getToken();
   errorEl.classList.remove('visible');
   try {
     const res = await fetch(`/admin/users/${u.id}`, {
@@ -433,7 +449,7 @@ function renderTriggeredBy(container, triggeredBy) {
 }
 
 async function loadCleanupStatus() {
-  const token = _getToken(STORAGE_KEY);
+  const token = getToken();
   if (!token) return;
   try {
     const res = await fetch('/admin/cleanup/status', {
@@ -453,7 +469,7 @@ async function loadCleanupStatus() {
 }
 
 async function loadCleanupHistory() {
-  const token = _getToken(STORAGE_KEY);
+  const token = getToken();
   if (!token) return;
   try {
     const res = await fetch('/admin/cleanup/history', {
@@ -487,7 +503,7 @@ async function loadCleanupHistory() {
 }
 
 triggerBtn.addEventListener('click', async () => {
-  const token = _getToken(STORAGE_KEY);
+  const token = getToken();
   triggerBtn.disabled = true;
   triggerBtn.textContent = 'Running…';
   errorEl.classList.remove('visible');
@@ -522,10 +538,8 @@ histToggleBtn.addEventListener('click', async () => {
 });
 
 // Boot
-const stored = localStorage.getItem(STORAGE_KEY);
-if (stored) {
-  tokenInputEl.value = stored;
-  connect();
-} else {
-  showTokenField(_tokenEls);
-}
+initNav({
+  onLogin: connectFromNav,
+  onLogout: () => { clearAll(); showTokenField(_tokenEls); },
+});
+if (!getToken()) showTokenField(_tokenEls);

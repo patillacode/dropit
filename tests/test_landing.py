@@ -8,6 +8,11 @@ def test_admin_page_renders(client):
     assert res.status_code == 200
 
 
+def test_files_page_renders(client):
+    res = client.get("/files")
+    assert res.status_code == 200
+
+
 def test_robots_txt(client):
     r = client.get("/robots.txt")
     assert r.status_code == 200

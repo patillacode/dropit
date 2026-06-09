@@ -8,11 +8,6 @@
 {% endblock %}
 {% block content %}
 <main class="main">
-    <header class="header">
-        <h1 class="logo">drop<span class="logo-dot">•</span>it</h1>
-        <p class="tagline">simple html file sharing</p>
-    </header>
-
     <div class="row">
         <div class="field">
             <label for="token">API token</label>
@@ -36,12 +31,12 @@
             <select id="ttl"></select>
         </div>
         <div class="field" id="collectionField" style="display:none">
-            <label for="collection">Collection</label>
-            <select id="collection">
-                <option value="">No collection</option>
-            </select>
+            <label for="collection">Collection (optional)</label>
+            <input type="text" id="collection" placeholder="collection name" maxlength="128" autocomplete="off"
+                spellcheck="false">
         </div>
     </div>
+    <p class="token-hint" id="breakGlassHint" style="display:none">Collections unavailable with break-glass token. Create a DB user to use collections.</p>
 
     <div class="drop-zone" id="dropZone" data-state="idle" tabindex="0" role="button" aria-label="Upload area — press Enter or Space to browse for a file">
 
@@ -70,9 +65,13 @@
             <p class="dz-success-label">Live &mdash; ready to share</p>
             <div class="dz-url-row">
                 <a class="dz-url" id="dzUrl" target="_blank" rel="noopener noreferrer"></a>
+                <button class="btn dz-copy-btn" id="dzCopyBtn">Copy</button>
             </div>
             <p class="dz-expires" id="dzExpires"></p>
-            <button class="btn btn--accent" id="dzResetBtn">Upload another</button>
+            <div class="dz-success-actions">
+                <button class="btn btn--accent" id="dzResetBtn">Upload another</button>
+                <a href="/files" class="dz-files-link">View your files &rarr;</a>
+            </div>
         </div>
 
         <div class="dz-panel dz-error">
@@ -89,40 +88,10 @@
     </div>
     <input type="file" id="fileInput" accept=".html,.htm">
 
-    <div class="collections-bar" id="collectionsBar" style="display:none">
-        <div class="collections-filter" id="collectionsFilter">
-            <button class="coll-btn coll-btn--active" data-filter="all">All</button>
-            <button class="coll-btn" data-filter="uncollected">Uncategorized</button>
-        </div>
-        <button class="btn btn--sm" id="newCollectionBtn">+ New</button>
-        <div class="new-collection-row" id="newCollectionRow" style="display:none">
-            <input type="text" id="newCollectionInput" placeholder="collection name" maxlength="128">
-            <button class="btn btn--accent btn--sm" id="newCollectionSave">Add</button>
-            <button class="btn btn--sm" id="newCollectionCancel">✕</button>
-        </div>
-    </div>
-
-    <div class="history" id="history">
-        <div class="history-label">Your recent uploads</div>
-        <table class="history-table">
-            <thead>
-                <tr>
-                    <th>File</th>
-                    <th>URL</th>
-                    <th>Expires in</th>
-                    <th>Collection</th>
-                </tr>
-            </thead>
-            <tbody id="historyList"></tbody>
-        </table>
-    </div>
-
-    <footer class="footer" id="footer">
+    <footer class="footer">
         Self-hosted &bull;
         <a href="https://github.com/patillacode/dropit" target="_blank" rel="noopener noreferrer"
-            style="color:var(--muted);text-decoration:underline;text-underline-offset:3px">Open source</a><span
-            id="adminSep" style="display:none"> &bull; </span><a href="/admin" id="adminLink"
-            style="display:none;color:var(--muted);text-decoration:underline;text-underline-offset:3px">Admin</a>
+            style="color:var(--muted);text-decoration:underline;text-underline-offset:3px">Open source</a>
     </footer>
     <div id="srStatus" role="status" aria-live="polite" aria-atomic="true" class="sr-only"></div>
 </main>

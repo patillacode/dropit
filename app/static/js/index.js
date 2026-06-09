@@ -1,8 +1,7 @@
 import { showTokenField, showTokenIndicator } from '/static/js/token-shared.js';
 import { showTokenModal, showConfirmModal, showNoticeModal } from '/static/js/token-modal.js';
-import { asUtc, fmtExpiry } from '/static/js/utils.js';
-
-const STORAGE_KEY = 'dropit_token';
+import { asUtc } from '/static/js/utils.js';
+import { getToken, setToken, clearToken, initNav } from '/static/js/auth.js';
 
 const tokenInputEl   = document.getElementById('token');
 const tokenFieldEl   = document.getElementById('tokenField');
@@ -18,12 +17,11 @@ const fileInput      = document.getElementById('fileInput');
 const dzUrl          = document.getElementById('dzUrl');
 const dzExpires      = document.getElementById('dzExpires');
 const dzResetBtn     = document.getElementById('dzResetBtn');
+const dzCopyBtn      = document.getElementById('dzCopyBtn');
 const dzErrorMsg     = document.getElementById('dzErrorMsg');
-const historyEl      = document.getElementById('history');
-const historyList    = document.getElementById('historyList');
-const adminSepEl     = document.getElementById('adminSep');
-const adminLinkEl    = document.getElementById('adminLink');
 const srStatus       = document.getElementById('srStatus');
+const collectionField  = document.getElementById('collectionField');
+const breakGlassHint   = document.getElementById('breakGlassHint');
 
 const _tokenEls     = { fieldEl: tokenFieldEl, indicatorEl: tokenIndicator, hintEl: tokenHintEl };
 const _indicatorEls = { fieldEl: tokenFieldEl, indicatorEl: tokenIndicator, nameEl: tokenNameEl };
@@ -31,8 +29,6 @@ const _indicatorEls = { fieldEl: tokenFieldEl, indicatorEl: tokenIndicator, name
 let selectedFile = null;
 let currentUser  = null;
 let appConfig    = null;
-let collections  = [];
-let activeFilter = 'all';
 
 function setState(state) {
   dropZone.dataset.state = state;
@@ -45,47 +41,60 @@ function setState(state) {
   }
 }
 
+async function onLogin(user) {
+  currentUser = user;
+  showTokenIndicator(_indicatorEls, user.name);
+  populateTTL(user.is_admin);
+  const token = getToken();
+  try {
+    const res = await fetch('/collections', { headers: { Authorization: `Bearer ${token}` } });
+    if (res.ok) {
+      collectionField.style.display = '';
+      breakGlassHint.style.display = 'none';
+    } else {
+      collectionField.style.display = 'none';
+      breakGlassHint.style.display = '';
+    }
+  } catch {
+    collectionField.style.display = 'none';
+  }
+}
+
+function onLogout() {
+  currentUser = null;
+  collectionField.style.display = 'none';
+  breakGlassHint.style.display = 'none';
+  showTokenField(_tokenEls);
+  populateTTL(false);
+}
+
 async function init() {
   appConfig = await fetch('/config').then(r => r.json());
-  const stored = localStorage.getItem('dropit_token');
-  if (stored) {
-    await checkToken(stored);
-  } else {
-    showTokenField(_tokenEls,'Contact your admin to get a token');
-    populateTTL(false);
-    renderHistory([]);
-  }
+  populateTTL(false);
+  if (!getToken()) showTokenField(_tokenEls, 'Contact your admin to get a token');
+  initNav({ onLogin, onLogout });
 }
 
 async function checkToken(token) {
   try {
     const res = await fetch('/me', { headers: { Authorization: `Bearer ${token}` } });
     if (res.ok) {
-      currentUser = await res.json();
-      localStorage.setItem(STORAGE_KEY, token);
-      showTokenIndicator(_indicatorEls,currentUser.name);
-      populateTTL(currentUser.is_admin);
-      if (currentUser.is_admin) {
-        adminSepEl.style.display  = '';
-        adminLinkEl.style.display = '';
-      }
-      await fetchAndRenderHistory();
-      await fetchAndRenderCollections();
-      document.getElementById('collectionField').style.display = '';
+      const user = await res.json();
+      setToken(token);
+      await onLogin(user);
     } else if (res.status === 429) {
       showTokenField(_tokenEls, 'Too many requests — wait a minute before trying again');
     } else {
-      localStorage.removeItem('dropit_token');
+      clearToken();
       currentUser = null;
-      showTokenField(_tokenEls,'Invalid token — ask your admin for a new one');
+      showTokenField(_tokenEls, 'Invalid token — ask your admin for a new one');
       populateTTL(false);
     }
   } catch {
-    showTokenField(_tokenEls,'Contact your admin to get a token');
+    showTokenField(_tokenEls, 'Contact your admin to get a token');
     populateTTL(false);
   }
 }
-
 
 function populateTTL(isAdmin) {
   if (!appConfig) return;
@@ -94,7 +103,7 @@ function populateTTL(isAdmin) {
   while (ttlSelect.firstChild) ttlSelect.removeChild(ttlSelect.firstChild);
   ttls.forEach(t => {
     const opt = document.createElement('option');
-    opt.value    = t;
+    opt.value = t;
     opt.textContent = t;
     opt.selected = t === defaultTtl;
     ttlSelect.appendChild(opt);
@@ -110,21 +119,17 @@ async function saveToken() {
 }
 
 tokenChangeBtn.addEventListener('click', () => {
-  localStorage.removeItem('dropit_token');
+  clearToken();
   currentUser = null;
-  collections = [];
-  activeFilter = 'all';
   tokenInputEl.value = '';
-  adminSepEl.style.display  = 'none';
-  adminLinkEl.style.display = 'none';
-  document.getElementById('collectionsBar').style.display = 'none';
-  document.getElementById('collectionField').style.display = 'none';
+  collectionField.style.display = 'none';
+  breakGlassHint.style.display = 'none';
   showTokenField(_tokenEls);
   populateTTL(false);
 });
 
 tokenRegenBtn.addEventListener('click', async () => {
-  const token = localStorage.getItem(STORAGE_KEY) || tokenInputEl.value.trim();
+  const token = getToken() || tokenInputEl.value.trim();
   if (!token) return;
   const ok = await showConfirmModal({
     title: 'Regenerate your token?',
@@ -144,13 +149,23 @@ tokenRegenBtn.addEventListener('click', async () => {
         ? 'Rate limit reached — wait a minute before regenerating your token'
         : (data.detail || `Error ${res.status}`)
     );
-    localStorage.setItem('dropit_token', data.token);
+    setToken(data.token);
     showTokenModal(data.token, {
       title: 'Your new token',
       subtitle: "Copy it now — it won't be shown again. Your old token no longer works.",
     });
   } catch (err) {
     showNoticeModal({ title: 'Could not regenerate', message: err.message });
+  }
+});
+
+dzCopyBtn.addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(dzUrl.href);
+    dzCopyBtn.textContent = 'Copied!';
+    setTimeout(() => { dzCopyBtn.textContent = 'Copy'; }, 1500);
+  } catch {
+    // clipboard API unavailable
   }
 });
 
@@ -183,7 +198,7 @@ function pick(f) {
 }
 
 async function doUpload() {
-  const token = localStorage.getItem(STORAGE_KEY) || tokenInputEl.value.trim();
+  const token = getToken() || tokenInputEl.value.trim();
   if (!token) {
     dzErrorMsg.textContent = 'No token — enter your API token above';
     setState('error');
@@ -203,7 +218,7 @@ async function doUpload() {
   body.append('file', selectedFile);
 
   try {
-    const collectionValue = document.getElementById('collection')?.value;
+    const collectionValue = document.getElementById('collection')?.value.trim();
     const collectionParam = collectionValue ? `&collection=${encodeURIComponent(collectionValue)}` : '';
     const res = await fetch(`/upload?ttl=${encodeURIComponent(ttlSelect.value)}${collectionParam}`, {
       method: 'POST',
@@ -218,199 +233,26 @@ async function doUpload() {
         : (data.detail || `Error ${res.status}`)
     );
 
-    dzUrl.textContent     = data.url;
-    dzUrl.href            = data.url;
-    dzUrl.title           = data.url;
+    dzUrl.textContent = data.url;
+    dzUrl.href        = data.url;
+    dzUrl.title       = data.url;
     dzExpires.textContent = data.expires_at
       ? `Expires ${asUtc(data.expires_at).toLocaleString()}`
       : 'Never expires — permanent';
     setState('success');
 
-    if (!currentUser) {
-      await checkToken(token);
-    } else {
-      await fetchAndRenderHistory();
-      await fetchAndRenderCollections();
-    }
+    if (!currentUser) await checkToken(token);
   } catch (err) {
     dzErrorMsg.textContent = err.message;
     setState('error');
   }
 }
 
-
 dzResetBtn.addEventListener('click', e => {
   e.stopPropagation();
   selectedFile = null;
   fileInput.value = '';
   setState('idle');
-});
-
-async function fetchAndRenderHistory() {
-  const token = localStorage.getItem(STORAGE_KEY);
-  if (!token) { renderHistory([]); return; }
-  let url = '/me/pages';
-  if (activeFilter === 'uncollected') url += '?uncollected=true';
-  else if (activeFilter !== 'all') url += `?collection=${encodeURIComponent(activeFilter)}`;
-  try {
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-    renderHistory(res.ok ? await res.json() : []);
-  } catch {
-    renderHistory([]);
-  }
-}
-
-function renderHistory(pages) {
-  while (historyList.firstChild) historyList.removeChild(historyList.firstChild);
-  historyEl.classList.add('visible');
-
-  if (!pages.length) {
-    const tr = document.createElement('tr');
-    const td = document.createElement('td');
-    td.className = 'history-empty';
-    td.colSpan = 4;
-    td.textContent = 'No uploads yet';
-    tr.appendChild(td);
-    historyList.appendChild(tr);
-    return;
-  }
-
-  pages.forEach(item => {
-    const row = document.createElement('tr');
-    row.className = 'history-item';
-
-    const name = document.createElement('td');
-    name.className   = 'history-filename';
-    name.textContent = item.filename;
-    name.title       = item.filename;
-
-    const urlCell = document.createElement('td');
-    urlCell.className = 'history-url-cell';
-    const link = document.createElement('a');
-    link.className   = 'history-url';
-    link.href        = item.url;
-    link.textContent = item.url;
-    link.target      = '_blank';
-    link.rel         = 'noopener noreferrer';
-    urlCell.appendChild(link);
-
-    const exp = document.createElement('td');
-    const { text: expText, cls: expCls } = fmtExpiry(item.expires_at);
-    exp.className   = `history-exp ${expCls}`;
-    exp.textContent = expText;
-
-    const collCell = document.createElement('td');
-    if (item.collection_name) {
-      const badge = document.createElement('span');
-      badge.className = 'collection-badge';
-      badge.textContent = item.collection_name;
-      badge.style.cursor = 'pointer';
-      badge.addEventListener('click', () => {
-        activeFilter = item.collection_name;
-        document.querySelectorAll('.coll-btn').forEach(b => {
-          b.classList.toggle('coll-btn--active', b.dataset.filter === item.collection_name);
-        });
-        fetchAndRenderHistory();
-      });
-      collCell.appendChild(badge);
-    }
-
-    row.appendChild(name);
-    row.appendChild(urlCell);
-    row.appendChild(exp);
-    row.appendChild(collCell);
-    historyList.appendChild(row);
-  });
-}
-
-async function fetchAndRenderCollections() {
-  const token = localStorage.getItem(STORAGE_KEY);
-  if (!token) return;
-  try {
-    const res = await fetch('/collections', { headers: { Authorization: `Bearer ${token}` } });
-    if (!res.ok) return;
-    collections = await res.json();
-    renderCollectionsSidebar();
-    populateCollectionSelect();
-  } catch { /* ignore */ }
-}
-
-function renderCollectionsSidebar() {
-  const bar = document.getElementById('collectionsBar');
-  bar.style.display = '';
-  const filter = document.getElementById('collectionsFilter');
-  while (filter.firstChild) filter.removeChild(filter.firstChild);
-
-  const allBtn = document.createElement('button');
-  allBtn.className = activeFilter === 'all' ? 'coll-btn coll-btn--active' : 'coll-btn';
-  allBtn.dataset.filter = 'all';
-  allBtn.textContent = 'All';
-  filter.appendChild(allBtn);
-
-  const uncollBtn = document.createElement('button');
-  uncollBtn.className = activeFilter === 'uncollected' ? 'coll-btn coll-btn--active' : 'coll-btn';
-  uncollBtn.dataset.filter = 'uncollected';
-  uncollBtn.textContent = 'Uncategorized';
-  filter.appendChild(uncollBtn);
-
-  collections.forEach(c => {
-    const btn = document.createElement('button');
-    btn.className = activeFilter === c.name ? 'coll-btn coll-btn--active' : 'coll-btn';
-    btn.dataset.filter = c.name;
-    btn.textContent = `${c.name} (${c.page_count})`;
-    filter.appendChild(btn);
-  });
-}
-
-function populateCollectionSelect() {
-  const sel = document.getElementById('collection');
-  while (sel.firstChild) sel.removeChild(sel.firstChild);
-  const none = document.createElement('option');
-  none.value = '';
-  none.textContent = 'No collection';
-  sel.appendChild(none);
-  collections.forEach(c => {
-    const opt = document.createElement('option');
-    opt.value = c.name;
-    opt.textContent = c.name;
-    sel.appendChild(opt);
-  });
-}
-
-document.getElementById('collectionsFilter').addEventListener('click', e => {
-  const btn = e.target.closest('.coll-btn');
-  if (!btn) return;
-  activeFilter = btn.dataset.filter;
-  document.querySelectorAll('.coll-btn').forEach(b => b.classList.remove('coll-btn--active'));
-  btn.classList.add('coll-btn--active');
-  fetchAndRenderHistory();
-});
-
-document.getElementById('newCollectionBtn').addEventListener('click', () => {
-  document.getElementById('newCollectionRow').style.display = '';
-  document.getElementById('newCollectionBtn').style.display = 'none';
-  document.getElementById('newCollectionInput').focus();
-});
-
-document.getElementById('newCollectionSave').addEventListener('click', async () => {
-  const name = document.getElementById('newCollectionInput').value.trim();
-  if (!name) return;
-  const token = localStorage.getItem(STORAGE_KEY);
-  await fetch('/collections', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name }),
-  });
-  document.getElementById('newCollectionInput').value = '';
-  document.getElementById('newCollectionRow').style.display = 'none';
-  document.getElementById('newCollectionBtn').style.display = '';
-  await fetchAndRenderCollections();
-});
-
-document.getElementById('newCollectionCancel').addEventListener('click', () => {
-  document.getElementById('newCollectionInput').value = '';
-  document.getElementById('newCollectionRow').style.display = 'none';
-  document.getElementById('newCollectionBtn').style.display = '';
 });
 
 init();

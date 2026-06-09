@@ -3,12 +3,12 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import func
 from sqlmodel import Session, col, select
 
-from app.auth import TokenUser, generate_token, get_current_user, hash_token
+from app.auth import TokenUser, generate_token, get_current_user, get_db_user, hash_token
 from app.database import get_session
 from app.limiter import limiter
 from app.models import Collection, Page, User
 from app.settings import get_settings
-from app.utils import format_dt
+from app.utils import delete_page_file, format_dt
 
 logger = structlog.get_logger()
 
@@ -60,7 +60,7 @@ def my_pages(
         .where(Page.user_id == user.user_id)
     )
     if uncollected:
-        stmt = stmt.where(Page.collection_id == None)  # noqa: E711
+        stmt = stmt.where(col(Page.collection_id).is_(None))
     elif collection:
         coll_name = collection.lower().strip()
         stmt = stmt.where(func.lower(Collection.name) == coll_name)
@@ -77,3 +77,20 @@ def my_pages(
         }
         for page, row_coll_name in rows
     ]
+
+
+@router.delete("/me/pages/{page_id}")
+@limiter.limit("10/minute")
+def delete_my_page(
+    request: Request,
+    page_id: str,
+    user: TokenUser = Depends(get_db_user),
+    session: Session = Depends(get_session),
+):
+    page = session.get(Page, page_id)
+    if page is None or page.user_id != user.user_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Page not found")
+    settings = get_settings()
+    delete_page_file(page, session, settings.data_dir)
+    session.commit()
+    return {"deleted": page_id}

@@ -1,5 +1,7 @@
 from tests.conftest import ADMIN_TOKEN, USER_TOKEN
 
+BOB_TOKEN = "tok_bob456"
+
 
 def test_me_valid_token(client):
     res = client.get("/me", headers={"Authorization": "Bearer tok_test123"})
@@ -269,6 +271,45 @@ def test_my_pages_filter_uncollected(client):
     assert pages[0]["filename"] == "uncollected.html"
     assert pages[0]["collection_id"] is None
     assert pages[0]["collection_name"] is None
+
+
+def test_delete_my_page(client):
+    content = b"<!doctype html><html><body>hi</body></html>"
+    upload_res = client.post(
+        "/upload",
+        headers={"Authorization": f"Bearer {USER_TOKEN}"},
+        files={"file": ("del.html", content, "text/html")},
+    )
+    page_id = upload_res.json()["url"].split("//")[1].split(".")[0]
+    res = client.delete(f"/me/pages/{page_id}", headers={"Authorization": f"Bearer {USER_TOKEN}"})
+    assert res.status_code == 200
+    assert res.json() == {"deleted": page_id}
+
+
+def test_delete_my_page_not_found(client):
+    res = client.delete("/me/pages/notexist", headers={"Authorization": f"Bearer {USER_TOKEN}"})
+    assert res.status_code == 404
+
+
+def test_delete_my_page_other_user(client):
+    from sqlmodel import Session
+
+    from app.auth import hash_token
+    from app.models import User
+
+    with Session(client.app.state.engine) as session:
+        session.add(User(name="bob", token_hash=hash_token(BOB_TOKEN), is_admin=False))
+        session.commit()
+
+    content = b"<!doctype html><html><body>hi</body></html>"
+    upload_res = client.post(
+        "/upload",
+        headers={"Authorization": f"Bearer {USER_TOKEN}"},
+        files={"file": ("alice.html", content, "text/html")},
+    )
+    page_id = upload_res.json()["url"].split("//")[1].split(".")[0]
+    res = client.delete(f"/me/pages/{page_id}", headers={"Authorization": f"Bearer {BOB_TOKEN}"})
+    assert res.status_code == 404
 
 
 def test_my_pages_no_filter_returns_all(client):

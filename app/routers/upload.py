@@ -129,8 +129,8 @@ async def upload(
     if collection:
         if user.user_id is None:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                detail="Collections require a DB user token",
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="DB user required",
             )
         collection_name = collection.lower().strip()
         if not collection_name:

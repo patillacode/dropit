@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from sqlalchemy import func, update
 from sqlmodel import Session, select
 
-from app.auth import TokenUser, get_current_user
+from app.auth import TokenUser, get_db_user
 from app.database import get_session
 from app.limiter import limiter
 from app.models import Collection, Page
@@ -13,15 +13,6 @@ from app.utils import format_dt
 logger = structlog.get_logger()
 
 router = APIRouter(prefix="/collections")
-
-
-def get_db_user(user: TokenUser = Depends(get_current_user)) -> TokenUser:
-    if user.user_id is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="DB user required",
-        )
-    return user
 
 
 class CollectionBody(BaseModel):

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}dropit — files{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="/static/css/files.css">{% endblock %}
+{% block content %}
+<main class="main files-main">
+  <aside class="files-sidebar">
+    <div class="sidebar-head">Collections</div>
+    <div class="sidebar-filters" id="sidebarFilters">
+      <button class="sidebar-btn sidebar-btn--active" data-filter="all">All files</button>
+      <button class="sidebar-btn" data-filter="uncollected">Uncollected</button>
+    </div>
+    <div class="sidebar-colls" id="sidebarColls"></div>
+    <form class="sidebar-new" id="newCollForm">
+      <input type="text" id="newCollName" placeholder="New collection…" autocomplete="off" spellcheck="false">
+      <button type="submit" class="btn btn--accent">Add</button>
+    </form>
+  </aside>
+
+  <section class="files-panel">
+    <div class="panel-head">
+      <span class="panel-title" id="panelTitle">All files</span>
+    </div>
+    <div class="error" id="errorEl"></div>
+    <div class="table-wrap" id="tableWrap">
+      <table>
+        <thead><tr>
+          <th>File</th>
+          <th>Collection</th>
+          <th>Expires</th>
+          <th class="th-actions"></th>
+        </tr></thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+    <div class="empty" id="emptyEl" style="display:none">No files here.</div>
+  </section>
+</main>
+{% endblock %}
+{% block scripts %}
+<script src="/static/js/files.js" type="module"></script>
+{% endblock %}

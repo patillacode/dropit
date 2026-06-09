@@ -33,3 +33,8 @@ def landing(request: Request):
 @router.get("/admin")
 def admin_ui(request: Request):
     return _TEMPLATES.TemplateResponse(request, "admin.html")
+
+
+@router.get("/files")
+def files_ui(request: Request):
+    return _TEMPLATES.TemplateResponse(request, "files.html")
