@@ -16,7 +16,7 @@ router = APIRouter()
 
 
 @router.get("/me")
-@limiter.limit("5/minute")
+@limiter.limit("30/minute")
 def me(request: Request, user: TokenUser = Depends(get_current_user)):
     return {"name": user.name, "is_admin": user.is_admin}
 

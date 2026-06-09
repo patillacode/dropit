@@ -44,7 +44,7 @@ def test_me_regenerate_breakglass_rejected(client):
 
 def test_me_rate_limited(client):
     headers = {"Authorization": f"Bearer {USER_TOKEN}"}
-    for _ in range(5):
+    for _ in range(30):
         r = client.get("/me", headers=headers)
         assert r.status_code == 200
     r = client.get("/me", headers=headers)
