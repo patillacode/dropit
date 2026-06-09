@@ -1,0 +1,810 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>drop•it — HTML sharing, distilled</title>
+    <meta name="description" content="Self-hosted HTML file sharing. Drop a file, get a URL, it expires on its own.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #09090a;
+            --surface: #111114;
+            --border: #222226;
+            --text: #ece9e0;
+            --muted: #8b8b94;
+            --accent: #c8ff00;
+            --accent-d: rgba(200, 255, 0, 0.08);
+            --ok: #00d68f;
+            --mono: 'DM Mono', monospace;
+            --serif: 'Cormorant Garamond', Georgia, serif;
+            --r: 5px;
+        }
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: var(--mono);
+            font-size: 0.9375rem;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+            background-size: 48px 48px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='250' height='250'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='250' height='250' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+            opacity: 0.045;
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        /* ── Logo ──────────────────────────────────────── */
+        .logo {
+            font-family: var(--serif);
+            font-weight: 300;
+            font-size: clamp(4rem, 12vw, 6rem);
+            line-height: 0.88;
+            letter-spacing: -0.025em;
+            color: var(--text);
+        }
+
+        .logo-dot {
+            display: inline-block;
+            vertical-align: text-bottom;
+            color: var(--accent);
+            opacity: 0;
+            animation: dot-drop 1.1s cubic-bezier(0.755, 0.05, 0.855, 0.06) 1s both;
+        }
+
+        /* ── Buttons ──────────────────────────────────── */
+        .btn {
+            display: inline-block;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+            font-family: var(--mono);
+            font-size: 0.72rem;
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
+            color: var(--muted);
+            cursor: pointer;
+            padding: 0.38rem 0.82rem;
+            text-decoration: none;
+            transition: background 0.15s, border-color 0.15s, color 0.15s;
+            white-space: nowrap;
+        }
+
+        .btn:hover {
+            color: var(--text);
+            border-color: var(--muted);
+        }
+
+        .btn--accent {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .btn--accent:hover {
+            background: var(--accent-d);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .btn--lg {
+            font-size: 0.8rem;
+            padding: 0.65rem 1.5rem;
+            letter-spacing: 0.09em;
+        }
+
+        /* ── Hero ──────────────────────────────────────── */
+        .hero {
+            min-height: 100svh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 7rem 2rem 5rem;
+            position: relative;
+            z-index: 1;
+            overflow: hidden;
+        }
+
+        .hero-glow {
+            position: absolute;
+            top: -20%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 1000px;
+            height: 1000px;
+            background: radial-gradient(ellipse, rgba(200, 255, 0, 0.055) 0%, transparent 62%);
+            pointer-events: none;
+        }
+
+        .hero-logo {
+            margin-bottom: 2.5rem;
+            opacity: 0;
+            animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.1s forwards;
+        }
+
+        .hero-headline {
+            font-family: var(--serif);
+            font-weight: 300;
+            font-size: clamp(4rem, 11.5vw, 10rem);
+            line-height: 0.94;
+            letter-spacing: -0.04em;
+            color: var(--text);
+            margin-bottom: 2.25rem;
+            opacity: 0;
+            animation: rise 1s cubic-bezier(0.22, 1, 0.36, 1) 0.28s forwards;
+        }
+
+        .hero-headline em {
+            display: block;
+            font-style: italic;
+            font-weight: 300;
+        }
+
+        .hero-period {
+            color: var(--accent);
+        }
+
+        .hero-sub {
+            font-size: clamp(0.78rem, 1.8vw, 0.88rem);
+            color: var(--muted);
+            letter-spacing: 0.025em;
+            line-height: 1.8;
+            max-width: 400px;
+            margin-bottom: 3rem;
+            opacity: 0;
+            animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.48s forwards;
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            opacity: 0;
+            animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.64s forwards;
+        }
+
+        .scroll-hint {
+            position: absolute;
+            bottom: 2.25rem;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.45rem;
+            color: var(--muted);
+            opacity: 0;
+            animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) 1.5s forwards;
+        }
+
+        .scroll-hint-text {
+            font-size: 0.6rem;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+        }
+
+        .scroll-arrow {
+            width: 14px;
+            height: 14px;
+            animation: arrowBounce 2.2s ease-in-out infinite;
+        }
+
+        @keyframes arrowBounce {
+
+            0%,
+            100% {
+                transform: translateY(0);
+                opacity: 0.4;
+            }
+
+            50% {
+                transform: translateY(6px);
+                opacity: 1;
+            }
+        }
+
+        /* ── Sections ──────────────────────────────────── */
+        .section {
+            padding: 9rem 2.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .section-inner {
+            max-width: 980px;
+            margin: 0 auto;
+        }
+
+        .section-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.65em;
+            font-size: 0.67rem;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 5rem;
+        }
+
+        .section-label::before {
+            content: '';
+            display: inline-block;
+            width: 1.6rem;
+            height: 1px;
+            background: var(--accent);
+            flex-shrink: 0;
+        }
+
+        /* ── Steps ─────────────────────────────────────── */
+        .steps {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 3rem;
+        }
+
+        .step {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.85s cubic-bezier(0.22, 1, 0.36, 1), transform 0.85s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .step.visible {
+            opacity: 1;
+            transform: none;
+        }
+
+        .step:nth-child(2) {
+            transition-delay: 0.11s;
+        }
+
+        .step:nth-child(3) {
+            transition-delay: 0.22s;
+        }
+
+        .step-num {
+            display: block;
+            font-family: var(--serif);
+            font-weight: 300;
+            font-size: clamp(5rem, 9.5vw, 9rem);
+            line-height: 1;
+            letter-spacing: -0.05em;
+            color: transparent;
+            -webkit-text-stroke: 1px rgba(200, 255, 0, 0.2);
+            margin-bottom: 1.5rem;
+        }
+
+        .step-title {
+            font-family: var(--serif);
+            font-style: italic;
+            font-weight: 300;
+            font-size: 1.65rem;
+            letter-spacing: -0.015em;
+            color: var(--text);
+            padding-top: 1.1rem;
+            border-top: 1px solid var(--border);
+            margin-bottom: 0.8rem;
+        }
+
+        .step-desc {
+            font-size: 0.81rem;
+            color: var(--muted);
+            line-height: 1.8;
+            letter-spacing: 0.01em;
+        }
+
+        /* ── API section ───────────────────────────────── */
+        .api-layout {
+            display: grid;
+            grid-template-columns: 1fr 1.45fr;
+            gap: 4.5rem;
+            align-items: start;
+        }
+
+        .api-text {
+            opacity: 0;
+            transform: translateY(24px);
+            transition: opacity 0.85s cubic-bezier(0.22, 1, 0.36, 1), transform 0.85s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .api-text.visible {
+            opacity: 1;
+            transform: none;
+        }
+
+        .api-text h2 {
+            font-family: var(--serif);
+            font-weight: 300;
+            font-size: clamp(2.25rem, 5.5vw, 4rem);
+            line-height: 1.02;
+            letter-spacing: -0.03em;
+            margin-bottom: 1.1rem;
+        }
+
+        .api-text h2 em {
+            font-style: italic;
+        }
+
+        .api-text p {
+            font-size: 0.82rem;
+            color: var(--muted);
+            line-height: 1.75;
+            margin-bottom: 1.75rem;
+        }
+
+        .api-text code {
+            font-family: var(--mono);
+            color: var(--accent);
+            font-size: 0.84em;
+        }
+
+        .ttl-label {
+            font-size: 0.65rem;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 0.55rem;
+        }
+
+        .ttl-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.38rem;
+        }
+
+        .ttl-pill {
+            font-size: 0.68rem;
+            letter-spacing: 0.06em;
+            color: var(--muted);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            padding: 0.18rem 0.5rem;
+        }
+
+        /* ── Terminal ──────────────────────────────────── */
+        .terminal {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            opacity: 0;
+            transform: translateY(28px);
+            transition: opacity 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.1s, transform 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.1s;
+        }
+
+        .terminal.visible {
+            opacity: 1;
+            transform: none;
+        }
+
+        .terminal-bar {
+            padding: 0.65rem 1rem;
+            background: var(--bg);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 0.42rem;
+        }
+
+        .term-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .term-dot:nth-child(1) {
+            background: #ff5f56;
+        }
+
+        .term-dot:nth-child(2) {
+            background: #ffbd2e;
+        }
+
+        .term-dot:nth-child(3) {
+            background: #27c93f;
+        }
+
+        .terminal-label {
+            margin-left: auto;
+            margin-right: auto;
+            font-size: 0.63rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .terminal-body {
+            padding: 1.4rem 1.6rem;
+            font-family: var(--mono);
+            font-size: 0.8rem;
+            line-height: 1.95;
+            overflow-x: auto;
+        }
+
+        .t-prompt {
+            color: var(--accent);
+            user-select: none;
+        }
+
+        .t-cmd {
+            color: var(--text);
+            font-weight: 500;
+        }
+
+        .t-flag {
+            color: var(--muted);
+        }
+
+        .t-url {
+            color: var(--text);
+            opacity: 0.55;
+        }
+
+        .t-route {
+            color: var(--accent);
+        }
+
+        .t-str {
+            color: var(--ok);
+        }
+
+        .t-key {
+            color: var(--text);
+        }
+
+        .t-punct {
+            color: var(--muted);
+        }
+
+        .terminal-rule {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 0.75rem 0;
+        }
+
+        /* ── Footer ────────────────────────────────────── */
+        .footer {
+            position: relative;
+            z-index: 1;
+            border-top: 1px solid var(--border);
+            padding: 2.5rem 2.5rem 3.75rem;
+        }
+
+        .footer-inner {
+            max-width: 980px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .footer-logo {
+            font-family: var(--serif);
+            font-weight: 300;
+            font-size: 1.2rem;
+            letter-spacing: -0.025em;
+            color: var(--muted);
+        }
+
+        .footer-logo-dot {
+            color: var(--accent);
+        }
+
+        .footer-meta {
+            font-size: 0.68rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .footer-meta a {
+            color: inherit;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+            transition: color 0.15s;
+        }
+
+        .footer-meta a:hover {
+            color: var(--text);
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        /* ── Watermark ─────────────────────────────────── */
+        .watermark {
+            position: fixed;
+            bottom: -0.12em;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: var(--serif);
+            font-weight: 300;
+            font-size: clamp(9rem, 25vw, 20rem);
+            color: transparent;
+            -webkit-text-stroke: 1px rgba(255, 255, 255, 0.04);
+            pointer-events: none;
+            user-select: none;
+            white-space: nowrap;
+            letter-spacing: -0.03em;
+            z-index: 0;
+            line-height: 1;
+        }
+
+        /* ── Keyframes ─────────────────────────────────── */
+        @keyframes rise {
+            from {
+                opacity: 0;
+                transform: translateY(18px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes dot-drop {
+            0% {
+                opacity: 0;
+                transform: translateY(-62px);
+            }
+
+            6% {
+                opacity: 1;
+            }
+
+            30% {
+                transform: translateY(0);
+                animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+            }
+
+            44% {
+                transform: translateY(-28px);
+                animation-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+            }
+
+            57% {
+                transform: translateY(0);
+                animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+            }
+
+            67% {
+                transform: translateY(-13px);
+                animation-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+            }
+
+            76% {
+                transform: translateY(0);
+                animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+            }
+
+            83% {
+                transform: translateY(-5px);
+                animation-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+            }
+
+            89% {
+                transform: translateY(0);
+                animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+            }
+
+            94% {
+                transform: translateY(-2px);
+            }
+
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ── Responsive ────────────────────────────────── */
+        @media (max-width: 760px) {
+            .nav {
+                padding: 1rem 1.5rem;
+            }
+
+            .section {
+                padding: 6rem 1.5rem;
+            }
+
+            .steps {
+                grid-template-columns: 1fr;
+                gap: 3.5rem;
+            }
+
+            .api-layout {
+                grid-template-columns: 1fr;
+                gap: 2.5rem;
+            }
+
+            .footer-inner {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="watermark" aria-hidden="true">dropit</div>
+
+    <section class="hero">
+        <div class="hero-glow" aria-hidden="true"></div>
+
+        <div class="hero-logo">
+            <h1 class="logo">drop<span class="logo-dot">•</span>it</h1>
+        </div>
+
+        <h1 class="hero-headline">
+            html sharing<br>
+            <em>distilled<span class="hero-period">.</span></em>
+        </h1>
+
+        <p class="hero-sub">
+            Drop a file. Get a URL. Share it with anyone.<br>
+        </p>
+
+        <div class="hero-actions">
+            <a href="/upload" class="btn btn--accent btn--lg">Open</a>
+            <a href="https://github.com/patillacode/dropit" target="_blank" rel="noopener noreferrer"
+                class="btn btn--lg">GitHub</a>
+        </div>
+
+        <div class="scroll-hint" aria-hidden="true">
+            <span class="scroll-hint-text">Scroll</span>
+            <svg class="scroll-arrow" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M7 2v10M2 8l5 4 5-4" />
+            </svg>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="section-inner">
+            <p class="section-label">How it works</p>
+            <div class="steps">
+
+                <div class="step">
+                    <span class="step-num">01</span>
+                    <h3 class="step-title">Get a token</h3>
+                    <p class="step-desc">Request access from the admin panel, or generate one via the API. Your token
+                        authenticates every upload and keeps your instance private.</p>
+                </div>
+
+                <div class="step">
+                    <span class="step-num">02</span>
+                    <h3 class="step-title">Drop your file</h3>
+                    <p class="step-desc">Drag an HTML file into the drop zone, or POST it to the API. Choose how long
+                        you want it to stay live — from one hour to seven days.</p>
+                </div>
+
+                <div class="step">
+                    <span class="step-num">03</span>
+                    <h3 class="step-title">Share the link</h3>
+                    <p class="step-desc">Your file is live instantly at a clean URL. When the TTL expires it disappears
+                        automatically — no manual cleanup, no orphaned files.</p>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <section class="section" style="padding-top: 0;">
+        <div class="section-inner">
+            <p class="section-label">The API</p>
+            <div class="api-layout">
+
+                <div class="api-text" id="apiText">
+                    <h2>One endpoint.<br><em>No SDK required.</em></h2>
+                    <p>A single <code>POST /upload</code> is all it takes. Bearer token in the header, file and TTL as
+                        form fields. The response hands you back a live URL.</p>
+                    <p class="ttl-label">Available TTLs</p>
+                    <div class="ttl-pills">
+                        <span class="ttl-pill">1h</span>
+                        <span class="ttl-pill">6h</span>
+                        <span class="ttl-pill">24h</span>
+                        <span class="ttl-pill">48h</span>
+                        <span class="ttl-pill">7d</span>
+                    </div>
+                </div>
+
+                <div class="terminal" id="terminal">
+                    <div class="terminal-bar">
+                        <div class="term-dot"></div>
+                        <div class="term-dot"></div>
+                        <div class="term-dot"></div>
+                        <span class="terminal-label">bash</span>
+                    </div>
+                    <div class="terminal-body">
+                        <span class="t-prompt">$ </span><span class="t-cmd">curl</span> <span class="t-flag">-X
+                            POST</span> <span class="t-url">https://your.instance/</span><span
+                            class="t-route">upload</span> \<br>
+                        <span class="t-flag">&nbsp;&nbsp;&nbsp;&nbsp;-H</span> <span class="t-str">"Authorization:
+                            Bearer YOUR_TOKEN"</span> \<br>
+                        <span class="t-flag">&nbsp;&nbsp;&nbsp;&nbsp;-F</span> <span
+                            class="t-str">"file=@page.html"</span> \<br>
+                        <span class="t-flag">&nbsp;&nbsp;&nbsp;&nbsp;-F</span> <span class="t-str">"ttl=24h"</span>
+                        <hr class="terminal-rule">
+                        <span class="t-punct">{</span><br>
+                        <span>&nbsp;&nbsp;</span><span class="t-key">"url"</span><span class="t-punct">: </span><span
+                            class="t-str">"https://your.instance/f/abc123"</span><span class="t-punct">,</span><br>
+                        <span>&nbsp;&nbsp;</span><span class="t-key">"expires_at"</span><span class="t-punct">:
+                        </span><span class="t-str">"2025-06-04T12:00:00Z"</span><br>
+                        <span class="t-punct">}</span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="footer-inner">
+            <span class="footer-logo">drop<span class="footer-logo-dot">•</span>it</span>
+            <span class="footer-meta">
+                Self-hosted &bull;
+                <a href="https://github.com/patillacode/dropit" target="_blank" rel="noopener noreferrer">Open
+                    source</a>
+            </span>
+            <div class="footer-links">
+                <a href="https://github.com/patillacode/dropit" target="_blank" rel="noopener noreferrer"
+                    class="btn">GitHub</a>
+                <a href="/upload" class="btn btn--accent">Open app</a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        const io = new IntersectionObserver((entries) => {
+            entries.forEach(e => {if (e.isIntersecting) e.target.classList.add('visible');});
+        }, {threshold: 0.12});
+
+        document.querySelectorAll('.step, .terminal, .api-text').forEach(el => io.observe(el));
+    </script>
+</body>
+
+</html>

@@ -28,7 +28,7 @@ export function initNav({ onLogin, onLogout } = {}) {
   const path = window.location.pathname;
   document.querySelectorAll('.nav-link').forEach(link => {
     const href = link.getAttribute('href');
-    const active = href === '/' ? path === '/' : path === href || path.startsWith(href + '/');
+    const active = path === href || path.startsWith(href + '/');
     link.classList.toggle('nav-link--active', active);
   });
 

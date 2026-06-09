@@ -1,26 +1,50 @@
-import { getToken, clearToken, initNav } from '/static/js/auth.js';
-import { showConfirmModal, showInputModal } from '/static/js/token-modal.js';
+import { getToken, setToken, clearToken, initNav } from '/static/js/auth.js';
+import { showConfirmModal, showInputModal, showTokenModal } from '/static/js/token-modal.js';
+import { showTokenIndicator } from '/static/js/token-shared.js';
 import { renderPagesTable } from '/static/js/pages-table.js';
 
-if (!getToken()) { window.location.href = '/'; }
+if (!getToken()) { window.location.href = '/upload'; }
 
 let collections = [];
 let activeFilter = 'all';
 
-const errorEl      = document.getElementById('errorEl');
-const tableWrap    = document.getElementById('tableWrap');
-const emptyEl      = document.getElementById('emptyEl');
-const panelTitle   = document.getElementById('panelTitle');
-const sidebarColls = document.getElementById('sidebarColls');
-const newCollForm  = document.getElementById('newCollForm');
-const newCollName  = document.getElementById('newCollName');
+const errorEl        = document.getElementById('errorEl');
+const tableWrap      = document.getElementById('tableWrap');
+const emptyEl        = document.getElementById('emptyEl');
+const panelTitle     = document.getElementById('panelTitle');
+const sidebarColls   = document.getElementById('sidebarColls');
+const newCollForm    = document.getElementById('newCollForm');
+const newCollName    = document.getElementById('newCollName');
+const tokenFieldEl   = document.getElementById('tokenField');
 const tokenIndicator = document.getElementById('tokenIndicator');
-const tokenName    = document.getElementById('tokenName');
+const tokenName      = document.getElementById('tokenName');
 const tokenChangeBtn = document.getElementById('tokenChangeBtn');
+const tokenRegenBtn  = document.getElementById('tokenRegenBtn');
 
 tokenChangeBtn.addEventListener('click', () => {
   clearToken();
-  window.location.href = '/';
+  window.location.href = '/upload';
+});
+
+tokenRegenBtn.addEventListener('click', async () => {
+  const ok = await showConfirmModal({
+    title: 'Regenerate your token?',
+    message: 'Your current token stops working everywhere immediately.',
+    confirmLabel: 'Regenerate',
+    danger: true,
+  });
+  if (!ok) return;
+  const res = await fetch('/me/regenerate', {
+    method: 'POST',
+    headers: authHeaders(),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) { showError(data.detail || 'Failed to regenerate token'); return; }
+  setToken(data.token);
+  showTokenModal(data.token, {
+    title: 'New token',
+    subtitle: "Copy it now — it won't be shown again. The old token no longer works.",
+  });
 });
 
 function authHeaders() {
@@ -186,10 +210,9 @@ document.querySelectorAll('.sidebar-filters .sidebar-btn').forEach(btn => {
 
 initNav({
   onLogin(user) {
-    tokenIndicator.style.display = '';
-    tokenName.textContent = user.name;
+    showTokenIndicator({ fieldEl: tokenFieldEl, indicatorEl: tokenIndicator, nameEl: tokenName }, user.name);
     loadCollections();
     loadFiles();
   },
-  onLogout() { window.location.href = '/'; },
+  onLogout() { window.location.href = '/upload'; },
 });
