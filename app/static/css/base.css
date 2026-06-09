@@ -477,7 +477,8 @@ input[type="text"]:focus {
 
 .main {
     width: 100%;
-    max-width: 500px;
+    max-width: 1000px;
+    margin: 0 auto;
     position: relative;
     z-index: 1;
 }
