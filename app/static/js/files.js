@@ -1,6 +1,6 @@
 import { getToken, clearToken, initNav } from '/static/js/auth.js';
 import { showConfirmModal, showInputModal } from '/static/js/token-modal.js';
-import { fmtExpiry } from '/static/js/utils.js';
+import { renderPagesTable } from '/static/js/pages-table.js';
 
 if (!getToken()) { window.location.href = '/'; }
 
@@ -8,7 +8,6 @@ let collections = [];
 let activeFilter = 'all';
 
 const errorEl      = document.getElementById('errorEl');
-const tableBody    = document.getElementById('tableBody');
 const tableWrap    = document.getElementById('tableWrap');
 const emptyEl      = document.getElementById('emptyEl');
 const panelTitle   = document.getElementById('panelTitle');
@@ -30,7 +29,7 @@ function authHeaders() {
 
 function showError(msg) {
   errorEl.textContent = msg;
-  errorEl.style.display = msg ? '' : 'none';
+  errorEl.classList.toggle('visible', !!msg);
 }
 
 async function loadCollections() {
@@ -67,7 +66,14 @@ async function loadFiles() {
   panelTitle.textContent = title;
   const res = await fetch(url, { headers: authHeaders() });
   if (!res.ok) { showError('Failed to load files'); return; }
-  renderFiles(await res.json());
+  showError('');
+  renderPagesTable(await res.json(), {
+    tableWrap,
+    emptyEl,
+    errorEl,
+    showUploader: false,
+    deletePage: deleteFileFetch,
+  });
 }
 
 function renderSidebar() {
@@ -108,139 +114,10 @@ function renderSidebar() {
   }
 }
 
-function fmtDate(iso) {
-  if (!iso) return '—';
-  const d = new Date(iso);
-  return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
-
-function fmtSize(bytes) {
-  if (!bytes) return '—';
-  if (bytes < 1024) return bytes + ' B';
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-}
-
-function detailItem(key, value) {
-  const item = document.createElement('div');
-  item.className = 'detail-item';
-  const k = document.createElement('span');
-  k.className = 'detail-key';
-  k.textContent = key;
-  const v = document.createElement('span');
-  v.className = 'detail-val';
-  v.textContent = value;
-  item.append(k, v);
-  return item;
-}
-
-function renderFiles(pages) {
-  tableBody.innerHTML = '';
-  showError('');
-  if (!pages.length) {
-    tableWrap.style.display = 'none';
-    emptyEl.style.display = '';
-    return;
-  }
-  tableWrap.style.display = '';
-  emptyEl.style.display = 'none';
-
-  for (const p of pages) {
-    const pageId = new URL(p.url).hostname.split('.')[0];
-    const expiry = fmtExpiry(p.expires_at);
-
-    const tr = document.createElement('tr');
-    tr.className = 'page-row';
-
-    const tdFile = document.createElement('td');
-    const a = document.createElement('a');
-    a.href = p.url;
-    a.target = '_blank';
-    a.rel = 'noopener';
-    a.textContent = p.filename || pageId;
-    tdFile.appendChild(a);
-
-    const tdColl = document.createElement('td');
-    if (p.collection_name) {
-      const badge = document.createElement('span');
-      badge.className = 'coll-badge';
-      badge.textContent = p.collection_name;
-      tdColl.appendChild(badge);
-    } else {
-      tdColl.textContent = '—';
-    }
-
-    const tdExp = document.createElement('td');
-    tdExp.className = expiry.cls;
-    tdExp.textContent = expiry.text;
-
-    const tdAct = document.createElement('td');
-    const actDiv = document.createElement('div');
-    actDiv.className = 'page-actions';
-
-    const detailsBtn = document.createElement('button');
-    detailsBtn.className = 'btn';
-    detailsBtn.textContent = 'Details';
-
-    const copyBtn = document.createElement('button');
-    copyBtn.className = 'btn';
-    copyBtn.textContent = 'Copy URL';
-    copyBtn.addEventListener('click', async () => {
-      try {
-        await navigator.clipboard.writeText(p.url);
-        copyBtn.textContent = 'Copied!';
-        setTimeout(() => { copyBtn.textContent = 'Copy URL'; }, 1500);
-      } catch { /* clipboard unavailable */ }
-    });
-
-    const delBtn = document.createElement('button');
-    delBtn.className = 'btn btn--danger';
-    delBtn.textContent = 'Delete';
-
-    actDiv.append(detailsBtn, copyBtn, delBtn);
-    tdAct.appendChild(actDiv);
-    tr.append(tdFile, tdColl, tdExp, tdAct);
-
-    const detailTr = document.createElement('tr');
-    detailTr.className = 'page-detail';
-    const detailTd = document.createElement('td');
-    detailTd.colSpan = 4;
-    const grid = document.createElement('div');
-    grid.className = 'detail-grid';
-    grid.appendChild(detailItem('URL', p.url));
-    grid.appendChild(detailItem('Expires', p.expires_at ? fmtDate(p.expires_at) : 'never'));
-    if (p.collection_name) grid.appendChild(detailItem('Collection', p.collection_name));
-    if (p.file_size) grid.appendChild(detailItem('Size', fmtSize(p.file_size)));
-    detailTd.appendChild(grid);
-    detailTr.appendChild(detailTd);
-
-    detailsBtn.addEventListener('click', () => {
-      const open = detailTr.classList.toggle('open');
-      detailsBtn.textContent = open ? 'Hide' : 'Details';
-    });
-    delBtn.addEventListener('click', () => deleteFile(pageId, tr, detailTr));
-
-    tableBody.appendChild(tr);
-    tableBody.appendChild(detailTr);
-  }
-}
-
-async function deleteFile(pageId, tr, detailTr) {
-  const ok = await showConfirmModal({
-    title: 'Delete file?',
-    message: 'This will permanently remove the file and its public URL.',
-    confirmLabel: 'Delete',
-    danger: true,
-  });
-  if (!ok) return;
+async function deleteFileFetch(p) {
+  const pageId = new URL(p.url).hostname.split('.')[0];
   const res = await fetch(`/me/pages/${pageId}`, { method: 'DELETE', headers: authHeaders() });
-  if (!res.ok) { showError('Failed to delete file'); return; }
-  tr.remove();
-  detailTr.remove();
-  if (!tableBody.querySelector('.page-row')) {
-    tableWrap.style.display = 'none';
-    emptyEl.style.display = '';
-  }
+  if (!res.ok) throw new Error('Failed to delete file');
   if (typeof activeFilter === 'number') {
     const coll = collections.find(c => c.id === activeFilter);
     if (coll) { coll.page_count = Math.max(0, coll.page_count - 1); renderSidebar(); }

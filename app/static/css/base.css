@@ -19,6 +19,16 @@
 
 .accent { color: var(--accent); }
 
+.coll-badge {
+    display: inline-block;
+    font-size: 0.72rem;
+    padding: 0.1rem 0.45rem;
+    border-radius: 10px;
+    background: rgba(200, 255, 0, 0.08);
+    color: var(--accent);
+    border: 1px solid rgba(200, 255, 0, 0.15);
+}
+
 .exp-permanent { color: var(--ok); }
 .exp-timed     { color: var(--warn); }
 .exp-expired   { color: var(--err); }

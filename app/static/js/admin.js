@@ -1,7 +1,8 @@
 import { getToken, setToken, clearToken, initNav } from '/static/js/auth.js';
 import { showTokenField, showTokenIndicator } from '/static/js/token-shared.js';
 import { showTokenModal, showConfirmModal } from '/static/js/token-modal.js';
-import { asUtc, fmtExpiry } from '/static/js/utils.js';
+import { asUtc, fmtDate, fmtSize } from '/static/js/utils.js';
+import { renderPagesTable } from '/static/js/pages-table.js';
 
 const tokenInputEl   = document.getElementById('tokenInput');
 const tokenFieldEl   = document.getElementById('tokenField');
@@ -18,7 +19,6 @@ const newUserAdminEl = document.getElementById('newUserAdmin');
 const errorEl        = document.getElementById('errorEl');
 const statsEl        = document.getElementById('stats');
 const tableWrap      = document.getElementById('tableWrap');
-const tableBody      = document.getElementById('tableBody');
 const pagesSection   = document.getElementById('pagesSection');
 const emptyEl        = document.getElementById('emptyEl');
 const statTotal      = document.getElementById('statTotal');
@@ -34,18 +34,6 @@ const histBody       = document.getElementById('cleanupHistoryBody');
 const _tokenEls = { fieldEl: tokenFieldEl, indicatorEl: tokenInd, hintEl: tokenHintEl };
 let historyVisible = false;
 let currentUserName = null;
-
-function fmtSize(bytes) {
-  if (bytes < 1024) return bytes + ' B';
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-}
-
-function fmtDate(iso) {
-  if (!iso) return null;
-  const d = new Date(iso);
-  return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
 
 function fmtUtc(iso) {
   const d = asUtc(iso);
@@ -144,15 +132,38 @@ async function loadPages() {
     if (!res.ok) throw new Error(`Error ${res.status}`);
 
     const pages = await res.json();
-    renderTable(pages);
+    updateStats(pages);
+    renderPagesTable(pages, { tableWrap, emptyEl, errorEl, showUploader: true, deletePage: deletePageFetch });
+    pagesSection.classList.add('visible');
   } catch (err) {
     errorEl.textContent = err.message;
     errorEl.classList.add('visible');
   }
 }
 
+function updateStats(pages) {
+  let totalSize = 0;
+  let permanentCount = 0;
+  for (const p of pages) {
+    totalSize += p.file_size || 0;
+    if (!p.expires_at) permanentCount++;
+  }
+  statTotal.textContent = pages.length;
+  statPermanent.textContent = permanentCount;
+  statSize.textContent = fmtSize(totalSize);
+  statsEl.classList.add('visible');
+}
+
+async function deletePageFetch(p) {
+  const res = await fetch(`/admin/pages/${encodeURIComponent(p.id)}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${getToken()}` },
+  });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+}
+
 function clearAll() {
-  while (tableBody.firstChild) tableBody.removeChild(tableBody.firstChild);
+  while (tableWrap.firstChild) tableWrap.removeChild(tableWrap.firstChild);
   tableWrap.classList.remove('visible');
   pagesSection.classList.remove('visible');
   statsEl.classList.remove('visible');
@@ -164,143 +175,6 @@ function clearAll() {
   histToggleBtn.textContent = 'Show history';
 }
 
-function renderTable(pages) {
-  while (tableBody.firstChild) tableBody.removeChild(tableBody.firstChild);
-  tableWrap.classList.remove('visible');
-  statsEl.classList.remove('visible');
-  emptyEl.classList.remove('visible');
-
-  let totalSize = 0;
-  let permanentCount = 0;
-
-  pages.forEach(p => {
-    totalSize += p.file_size || 0;
-    if (!p.expires_at) permanentCount++;
-  });
-
-  statTotal.textContent = pages.length;
-  statPermanent.textContent = permanentCount;
-  statSize.textContent = fmtSize(totalSize);
-  statsEl.classList.add('visible');
-  pagesSection.classList.add('visible');
-
-  if (!pages.length) {
-    emptyEl.classList.add('visible');
-    return;
-  }
-
-  pages.forEach(p => {
-    const tr = document.createElement('tr');
-    tr.className = 'page-row';
-
-    const tdUrl = document.createElement('td');
-    tdUrl.className = 'td-url';
-    const a = document.createElement('a');
-    a.href = p.url;
-    a.textContent = p.url;
-    a.target = '_blank';
-    a.rel = 'noopener noreferrer';
-    tdUrl.appendChild(a);
-
-    const tdExp = document.createElement('td');
-    const { text: expText, cls: expCls } = fmtExpiry(p.expires_at);
-    tdExp.className = `td-expires ${expCls}`;
-    tdExp.textContent = expText;
-
-    const tdUp = document.createElement('td');
-    tdUp.className = 'td-uploader';
-    tdUp.textContent = p.user_name || p.token_hint;
-
-    const tdColl = document.createElement('td');
-    tdColl.className = 'td-collection';
-    tdColl.textContent = p.collection_name || '—';
-
-    const tdAct = document.createElement('td');
-    tdAct.className = 'page-actions';
-
-    const detailsBtn = document.createElement('button');
-    detailsBtn.className = 'btn';
-    detailsBtn.textContent = 'Details';
-
-    const delBtn = document.createElement('button');
-    delBtn.className = 'btn btn--danger';
-    delBtn.textContent = 'Delete';
-
-    tdAct.appendChild(detailsBtn);
-    tdAct.appendChild(delBtn);
-
-    tr.appendChild(tdUrl);
-    tr.appendChild(tdExp);
-    tr.appendChild(tdUp);
-    tr.appendChild(tdColl);
-    tr.appendChild(tdAct);
-
-    const detailTr = document.createElement('tr');
-    detailTr.className = 'page-detail';
-    const detailTd = document.createElement('td');
-    detailTd.colSpan = 5;
-    const grid = document.createElement('div');
-    grid.className = 'detail-grid';
-    grid.appendChild(detailItem('File', p.filename || '—'));
-    grid.appendChild(detailItem('Uploaded', p.created_at ? fmtDate(p.created_at) : '—'));
-    grid.appendChild(detailItem('Expires', p.expires_at ? fmtDate(p.expires_at) : 'never'));
-    grid.appendChild(detailItem('Size', fmtSize(p.file_size || 0)));
-    detailTd.appendChild(grid);
-    detailTr.appendChild(detailTd);
-
-    detailsBtn.addEventListener('click', () => {
-      const open = detailTr.classList.toggle('open');
-      detailsBtn.textContent = open ? 'Hide' : 'Details';
-    });
-    delBtn.addEventListener('click', () => deletePage(p.id, tr, detailTr));
-
-    tableBody.appendChild(tr);
-    tableBody.appendChild(detailTr);
-  });
-
-  tableWrap.classList.add('visible');
-}
-
-function detailItem(key, value) {
-  const item = document.createElement('div');
-  item.className = 'detail-item';
-  const k = document.createElement('span');
-  k.className = 'detail-key';
-  k.textContent = key;
-  const v = document.createElement('span');
-  v.className = 'detail-val';
-  v.textContent = value;
-  item.appendChild(k);
-  item.appendChild(v);
-  return item;
-}
-
-async function deletePage(id, tr, detailTr) {
-  const ok = await showConfirmModal({
-    title: 'Delete this page?',
-    message: 'The file and its link will be permanently removed. This cannot be undone.',
-    confirmLabel: 'Delete',
-    danger: true,
-  });
-  if (!ok) return;
-  const token = getToken();
-  try {
-    const res = await fetch(`/admin/pages/${encodeURIComponent(id)}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!res.ok) throw new Error(`Error ${res.status}`);
-    tr.remove();
-    detailTr.remove();
-    if (!tableBody.firstChild) {
-      tableWrap.classList.remove('visible');
-      emptyEl.classList.add('visible');
-    }
-  } catch (err) {
-    errorEl.textContent = err.message;
-    errorEl.classList.add('visible');
-  }
-}
 
 async function loadUsers() {
   const token = getToken();

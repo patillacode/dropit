@@ -147,10 +147,12 @@
 
 /* ── Table ───────────────────────────────────────────────────── */
 .table-wrap {
+  display: none;
   border: 1px solid var(--border);
   border-radius: var(--r);
   overflow: hidden;
 }
+.table-wrap.visible { display: block; }
 
 .table-wrap table {
   width: 100%;
@@ -213,24 +215,18 @@
 }
 .detail-val { font-size: 0.82rem; color: var(--text); word-break: break-all; }
 
-.coll-badge {
-  display: inline-block;
-  font-size: 0.72rem;
-  padding: 0.1rem 0.45rem;
-  border-radius: 10px;
-  background: rgba(200, 255, 0, 0.08);
-  color: var(--accent);
-  border: 1px solid rgba(200, 255, 0, 0.15);
-}
-
 .error {
+  display: none;
   color: var(--err);
   font-size: 0.82rem;
 }
+.error.visible { display: block; }
 
 .empty {
+  display: none;
   text-align: center;
   color: var(--muted);
   font-size: 0.85rem;
   padding: 2rem;
 }
+.empty.visible { display: block; }
