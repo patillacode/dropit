@@ -23,10 +23,7 @@ export async function fetchMe(token) {
 }
 
 export function initNav({ onLogin, onLogout } = {}) {
-  const navAdminEl    = document.querySelector('.nav-admin');
-  const navUserEl     = document.querySelector('.nav-user');
-  const navUserNameEl = document.querySelector('.nav-user-name');
-  const navDisconnect = document.querySelector('.nav-disconnect');
+  const navAdminEl = document.querySelector('.nav-admin');
 
   const path = window.location.pathname;
   document.querySelectorAll('.nav-link').forEach(link => {
@@ -35,38 +32,19 @@ export function initNav({ onLogin, onLogout } = {}) {
     link.classList.toggle('nav-link--active', active);
   });
 
-  function showUser(user) {
-    if (navAdminEl) navAdminEl.style.display = user.is_admin ? '' : 'none';
-    if (navUserEl) navUserEl.style.display = '';
-    if (navUserNameEl) navUserNameEl.textContent = user.name;
-  }
-
-  function hideUser() {
-    if (navAdminEl) navAdminEl.style.display = 'none';
-    if (navUserEl) navUserEl.style.display = 'none';
-  }
-
-  if (navDisconnect) {
-    navDisconnect.addEventListener('click', () => {
-      clearToken();
-      hideUser();
-      if (onLogout) onLogout();
-    });
-  }
-
   const token = getToken();
   if (token) {
     fetchMe(token).then(user => {
       if (user) {
-        showUser(user);
+        if (navAdminEl) navAdminEl.style.display = user.is_admin ? '' : 'none';
         if (onLogin) onLogin(user);
       } else {
         clearToken();
-        hideUser();
+        if (navAdminEl) navAdminEl.style.display = 'none';
         if (onLogout) onLogout();
       }
     });
   } else {
-    hideUser();
+    if (navAdminEl) navAdminEl.style.display = 'none';
   }
 }

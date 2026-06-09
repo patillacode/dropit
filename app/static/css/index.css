@@ -17,6 +17,11 @@ body {
     grid-column: 1 / -1;
 }
 
+#noCollsHint,
+#breakGlassHint {
+    margin-top: 0.1rem;
+}
+
 .field {
     display: flex;
     flex-direction: column;

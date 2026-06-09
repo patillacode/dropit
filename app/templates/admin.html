@@ -1,23 +1,11 @@
 {% extends "base.html" %}
+{% from "macros.html" import token_section %}
 {% block title %}dropit — admin{% endblock %}
 {% block extra_css %}<link rel="stylesheet" href="/static/css/admin.css">{% endblock %}
 {% block content %}
     <main class="main">
         <div class="auth-section">
-            <label>API token</label>
-            <div id="tokenField">
-                <form class="token-input-row" id="tokenForm">
-                    <input type="password" id="tokenInput" placeholder="your-api-token" autocomplete="off"
-                        spellcheck="false">
-                    <button type="submit" class="btn btn--accent" id="tokenConnectBtn">Connect</button>
-                </form>
-                <p class="token-hint" id="tokenHint" style="display:none"></p>
-            </div>
-            <div class="token-indicator" id="tokenIndicator" style="display:none">
-                <span class="token-badge">Admin</span>
-                <strong id="tokenName"></strong>
-                <button class="btn" id="tokenChangeBtn">disconnect</button>
-            </div>
+            {{ token_section(badge_text="Admin") }}
         </div>
 
         <div class="error" id="errorEl"></div>

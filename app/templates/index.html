@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "macros.html" import token_section %}
 {% block title %}dropit{% endblock %}
 {% block extra_css %}
 <link rel="stylesheet" href="/static/css/index.css">{% endblock %}
@@ -10,32 +11,20 @@
 <main class="main">
     <div class="row">
         <div class="field">
-            <label for="token">API token</label>
-            <div id="tokenField">
-                <form class="token-input-row" id="tokenForm">
-                    <input type="password" id="token" placeholder="your-api-token" autocomplete="off"
-                        spellcheck="false">
-                    <button type="submit" class="btn btn--accent" id="tokenConnectBtn">Connect</button>
-                </form>
-                <p class="token-hint" id="tokenHint" style="display:none"></p>
-            </div>
-            <div class="token-indicator" id="tokenIndicator" style="display:none">
-                <span class="token-badge">Connected</span>
-                <strong id="tokenName"></strong>
-                <button class="btn" id="tokenRegenBtn">regenerate</button>
-                <button class="btn" id="tokenChangeBtn">change</button>
-            </div>
+            {{ token_section(show_regen=True) }}
         </div>
         <div class="field">
             <label for="ttl">Expires in</label>
             <select id="ttl"></select>
         </div>
         <div class="field" id="collectionField" style="display:none">
-            <label for="collection">Collection (optional)</label>
-            <input type="text" id="collection" placeholder="collection name" maxlength="128" autocomplete="off"
-                spellcheck="false">
+            <label for="collectionSelect">Collection (optional)</label>
+            <select id="collectionSelect"></select>
+            <input type="text" id="newCollectionInput" placeholder="new collection name" maxlength="128"
+                autocomplete="off" spellcheck="false" style="display:none">
         </div>
     </div>
+    <p class="token-hint" id="noCollsHint" style="display:none">No collections yet — <a href="/files" class="hint-link">create one in Files</a></p>
     <p class="token-hint" id="breakGlassHint" style="display:none">Collections unavailable with break-glass token. Create a DB user to use collections.</p>
 
     <div class="drop-zone" id="dropZone" data-state="idle" tabindex="0" role="button" aria-label="Upload area — press Enter or Space to browse for a file">
@@ -65,7 +54,7 @@
             <p class="dz-success-label">Live &mdash; ready to share</p>
             <div class="dz-url-row">
                 <a class="dz-url" id="dzUrl" target="_blank" rel="noopener noreferrer"></a>
-                <button class="btn dz-copy-btn" id="dzCopyBtn">Copy</button>
+                <button class="btn dz-copy-btn" id="dzCopyBtn">Copy URL</button>
             </div>
             <p class="dz-expires" id="dzExpires"></p>
             <div class="dz-success-actions">

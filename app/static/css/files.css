@@ -1,6 +1,14 @@
-.site-nav,
 .files-main {
   max-width: 1000px;
+}
+
+.files-auth {
+  max-width: 1000px;
+  margin-bottom: 1.5rem;
+}
+
+.files-auth .token-indicator {
+  max-width: none;
 }
 
 .files-main {

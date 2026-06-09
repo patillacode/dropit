@@ -1,5 +1,8 @@
-import { getToken, initNav } from '/static/js/auth.js';
+import { getToken, clearToken, initNav } from '/static/js/auth.js';
+import { showConfirmModal, showInputModal } from '/static/js/token-modal.js';
 import { fmtExpiry } from '/static/js/utils.js';
+
+if (!getToken()) { window.location.href = '/'; }
 
 let collections = [];
 let activeFilter = 'all';
@@ -12,6 +15,14 @@ const panelTitle   = document.getElementById('panelTitle');
 const sidebarColls = document.getElementById('sidebarColls');
 const newCollForm  = document.getElementById('newCollForm');
 const newCollName  = document.getElementById('newCollName');
+const tokenIndicator = document.getElementById('tokenIndicator');
+const tokenName    = document.getElementById('tokenName');
+const tokenChangeBtn = document.getElementById('tokenChangeBtn');
+
+tokenChangeBtn.addEventListener('click', () => {
+  clearToken();
+  window.location.href = '/';
+});
 
 function authHeaders() {
   return { Authorization: `Bearer ${getToken()}` };
@@ -24,7 +35,18 @@ function showError(msg) {
 
 async function loadCollections() {
   const res = await fetch('/collections', { headers: authHeaders() });
+  if (res.status === 401) {
+    sidebarColls.innerHTML = '';
+    newCollForm.style.display = 'none';
+    const hint = document.createElement('p');
+    hint.className = 'token-hint';
+    hint.style.padding = '0.25rem 0';
+    hint.textContent = 'Collections unavailable with break-glass token. Create a DB user to use collections.';
+    sidebarColls.appendChild(hint);
+    return;
+  }
   if (!res.ok) { showError('Failed to load collections'); return; }
+  newCollForm.style.display = '';
   collections = await res.json();
   renderSidebar();
 }
@@ -126,10 +148,18 @@ function renderFiles(pages) {
 
     const tdAct = document.createElement('td');
     tdAct.className = 'td-actions';
+
     const copyBtn = document.createElement('button');
     copyBtn.className = 'btn';
-    copyBtn.textContent = 'Copy';
-    copyBtn.addEventListener('click', () => navigator.clipboard.writeText(p.url));
+    copyBtn.textContent = 'Copy URL';
+    copyBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(p.url);
+        copyBtn.textContent = 'Copied!';
+        setTimeout(() => { copyBtn.textContent = 'Copy URL'; }, 1500);
+      } catch { /* clipboard unavailable */ }
+    });
+
     const delBtn2 = document.createElement('button');
     delBtn2.className = 'btn btn--danger';
     delBtn2.textContent = 'Delete';
@@ -142,7 +172,13 @@ function renderFiles(pages) {
 }
 
 async function deleteFile(pageId, tr) {
-  if (!window.confirm('Delete this file?')) return;
+  const ok = await showConfirmModal({
+    title: 'Delete file?',
+    message: 'This will permanently remove the file and its public URL.',
+    confirmLabel: 'Delete',
+    danger: true,
+  });
+  if (!ok) return;
   const res = await fetch(`/me/pages/${pageId}`, { method: 'DELETE', headers: authHeaders() });
   if (!res.ok) { showError('Failed to delete file'); return; }
   tr.remove();
@@ -159,12 +195,16 @@ async function deleteFile(pageId, tr) {
 async function renameCollection(collId) {
   const coll = collections.find(c => c.id === collId);
   if (!coll) return;
-  const name = window.prompt('Rename collection:', coll.name);
-  if (!name || name.trim() === coll.name) return;
+  const name = await showInputModal({
+    title: 'Rename collection',
+    defaultValue: coll.name,
+    confirmLabel: 'Rename',
+  });
+  if (!name || name === coll.name) return;
   const res = await fetch(`/collections/${collId}`, {
     method: 'PATCH',
     headers: { ...authHeaders(), 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: name.trim() }),
+    body: JSON.stringify({ name }),
   });
   if (!res.ok) { showError('Failed to rename collection'); return; }
   await loadCollections();
@@ -172,7 +212,13 @@ async function renameCollection(collId) {
 }
 
 async function deleteCollection(collId) {
-  if (!window.confirm('Delete this collection? Files will be uncollected.')) return;
+  const ok = await showConfirmModal({
+    title: 'Delete collection?',
+    message: 'Files in this collection will become uncollected.',
+    confirmLabel: 'Delete',
+    danger: true,
+  });
+  if (!ok) return;
   const res = await fetch(`/collections/${collId}`, { method: 'DELETE', headers: authHeaders() });
   if (!res.ok) { showError('Failed to delete collection'); return; }
   if (activeFilter === collId) activeFilter = 'all';
@@ -207,6 +253,11 @@ document.querySelectorAll('.sidebar-filters .sidebar-btn').forEach(btn => {
 });
 
 initNav({
-  onLogin() { loadCollections(); loadFiles(); },
+  onLogin(user) {
+    tokenIndicator.style.display = '';
+    tokenName.textContent = user.name;
+    loadCollections();
+    loadFiles();
+  },
   onLogout() { window.location.href = '/'; },
 });

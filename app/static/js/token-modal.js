@@ -123,3 +123,57 @@ export function showNoticeModal(opts) {
   const { close } = buildModal({ title, bodyNodes: [msg], actions: [okBtn] });
   okBtn.addEventListener('click', close);
 }
+
+export function showInputModal(opts) {
+  const {
+    title = '',
+    message = '',
+    defaultValue = '',
+    confirmLabel = 'Save',
+    cancelLabel = 'Cancel',
+    placeholder = '',
+  } = opts || {};
+
+  return new Promise(resolve => {
+    const nodes = [];
+    if (message) {
+      const msg = document.createElement('p');
+      msg.className = 'token-modal-sub';
+      msg.textContent = message;
+      nodes.push(msg);
+    }
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = defaultValue;
+    input.placeholder = placeholder;
+    input.style.marginBottom = '0.25rem';
+    nodes.push(input);
+
+    const cancelBtn = mkBtn(cancelLabel, 'btn');
+    const confirmBtn = mkBtn(confirmLabel, 'btn btn--accent');
+
+    let done = false;
+    const finish = value => {
+      if (done) return;
+      done = true;
+      close();
+      resolve(value);
+    };
+
+    const { close } = buildModal({
+      title,
+      bodyNodes: nodes,
+      actions: [cancelBtn, confirmBtn],
+      onDismiss: () => finish(null),
+    });
+
+    setTimeout(() => { input.focus(); input.select(); }, 0);
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); finish(input.value.trim() || null); }
+      if (e.key === 'Escape') { e.preventDefault(); finish(null); }
+    });
+    cancelBtn.addEventListener('click', () => finish(null));
+    confirmBtn.addEventListener('click', () => finish(input.value.trim() || null));
+  });
+}

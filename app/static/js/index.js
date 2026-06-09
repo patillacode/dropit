@@ -3,25 +3,28 @@ import { showTokenModal, showConfirmModal, showNoticeModal } from '/static/js/to
 import { asUtc } from '/static/js/utils.js';
 import { getToken, setToken, clearToken, initNav } from '/static/js/auth.js';
 
-const tokenInputEl   = document.getElementById('token');
-const tokenFieldEl   = document.getElementById('tokenField');
-const tokenIndicator = document.getElementById('tokenIndicator');
-const tokenNameEl    = document.getElementById('tokenName');
-const tokenHintEl    = document.getElementById('tokenHint');
-const tokenChangeBtn = document.getElementById('tokenChangeBtn');
-const tokenRegenBtn  = document.getElementById('tokenRegenBtn');
-const tokenForm      = document.getElementById('tokenForm');
-const ttlSelect      = document.getElementById('ttl');
-const dropZone       = document.getElementById('dropZone');
-const fileInput      = document.getElementById('fileInput');
-const dzUrl          = document.getElementById('dzUrl');
-const dzExpires      = document.getElementById('dzExpires');
-const dzResetBtn     = document.getElementById('dzResetBtn');
-const dzCopyBtn      = document.getElementById('dzCopyBtn');
-const dzErrorMsg     = document.getElementById('dzErrorMsg');
-const srStatus       = document.getElementById('srStatus');
-const collectionField  = document.getElementById('collectionField');
-const breakGlassHint   = document.getElementById('breakGlassHint');
+const tokenInputEl      = document.getElementById('tokenInput');
+const tokenFieldEl      = document.getElementById('tokenField');
+const tokenIndicator    = document.getElementById('tokenIndicator');
+const tokenNameEl       = document.getElementById('tokenName');
+const tokenHintEl       = document.getElementById('tokenHint');
+const tokenChangeBtn    = document.getElementById('tokenChangeBtn');
+const tokenRegenBtn     = document.getElementById('tokenRegenBtn');
+const tokenForm         = document.getElementById('tokenForm');
+const ttlSelect         = document.getElementById('ttl');
+const dropZone          = document.getElementById('dropZone');
+const fileInput         = document.getElementById('fileInput');
+const dzUrl             = document.getElementById('dzUrl');
+const dzExpires         = document.getElementById('dzExpires');
+const dzResetBtn        = document.getElementById('dzResetBtn');
+const dzCopyBtn         = document.getElementById('dzCopyBtn');
+const dzErrorMsg        = document.getElementById('dzErrorMsg');
+const srStatus          = document.getElementById('srStatus');
+const collectionField   = document.getElementById('collectionField');
+const collectionSelect  = document.getElementById('collectionSelect');
+const newCollectionInput = document.getElementById('newCollectionInput');
+const noCollsHint       = document.getElementById('noCollsHint');
+const breakGlassHint    = document.getElementById('breakGlassHint');
 
 const _tokenEls     = { fieldEl: tokenFieldEl, indicatorEl: tokenIndicator, hintEl: tokenHintEl };
 const _indicatorEls = { fieldEl: tokenFieldEl, indicatorEl: tokenIndicator, nameEl: tokenNameEl };
@@ -48,22 +51,52 @@ async function onLogin(user) {
   const token = getToken();
   try {
     const res = await fetch('/collections', { headers: { Authorization: `Bearer ${token}` } });
-    if (res.ok) {
-      collectionField.style.display = '';
-      breakGlassHint.style.display = 'none';
-    } else {
+    if (res.status === 401) {
       collectionField.style.display = 'none';
+      noCollsHint.style.display = 'none';
       breakGlassHint.style.display = '';
+    } else if (res.ok) {
+      const colls = await res.json();
+      breakGlassHint.style.display = 'none';
+      if (colls.length === 0) {
+        collectionField.style.display = 'none';
+        noCollsHint.style.display = '';
+      } else {
+        noCollsHint.style.display = 'none';
+        collectionField.style.display = '';
+        populateCollectionSelect(colls);
+      }
     }
   } catch {
     collectionField.style.display = 'none';
   }
 }
 
+function populateCollectionSelect(colls) {
+  collectionSelect.innerHTML = '';
+  const noneOpt = document.createElement('option');
+  noneOpt.value = '';
+  noneOpt.textContent = '— no collection —';
+  collectionSelect.appendChild(noneOpt);
+  for (const c of colls) {
+    const opt = document.createElement('option');
+    opt.value = c.name;
+    opt.textContent = c.name;
+    collectionSelect.appendChild(opt);
+  }
+  const newOpt = document.createElement('option');
+  newOpt.value = '__new__';
+  newOpt.textContent = '＋ New collection…';
+  collectionSelect.appendChild(newOpt);
+  newCollectionInput.style.display = 'none';
+}
+
 function onLogout() {
   currentUser = null;
   collectionField.style.display = 'none';
+  noCollsHint.style.display = 'none';
   breakGlassHint.style.display = 'none';
+  newCollectionInput.style.display = 'none';
   showTokenField(_tokenEls);
   populateTTL(false);
 }
@@ -118,12 +151,20 @@ async function saveToken() {
   await checkToken(token);
 }
 
+collectionSelect.addEventListener('change', () => {
+  const isNew = collectionSelect.value === '__new__';
+  newCollectionInput.style.display = isNew ? '' : 'none';
+  if (isNew) newCollectionInput.focus();
+});
+
 tokenChangeBtn.addEventListener('click', () => {
   clearToken();
   currentUser = null;
   tokenInputEl.value = '';
   collectionField.style.display = 'none';
+  noCollsHint.style.display = 'none';
   breakGlassHint.style.display = 'none';
+  newCollectionInput.style.display = 'none';
   showTokenField(_tokenEls);
   populateTTL(false);
 });
@@ -163,7 +204,7 @@ dzCopyBtn.addEventListener('click', async () => {
   try {
     await navigator.clipboard.writeText(dzUrl.href);
     dzCopyBtn.textContent = 'Copied!';
-    setTimeout(() => { dzCopyBtn.textContent = 'Copy'; }, 1500);
+    setTimeout(() => { dzCopyBtn.textContent = 'Copy URL'; }, 1500);
   } catch {
     // clipboard API unavailable
   }
@@ -218,7 +259,14 @@ async function doUpload() {
   body.append('file', selectedFile);
 
   try {
-    const collectionValue = document.getElementById('collection')?.value.trim();
+    let collectionValue = '';
+    if (collectionSelect && collectionField.style.display !== 'none') {
+      if (collectionSelect.value === '__new__') {
+        collectionValue = newCollectionInput.value.trim();
+      } else {
+        collectionValue = collectionSelect.value;
+      }
+    }
     const collectionParam = collectionValue ? `&collection=${encodeURIComponent(collectionValue)}` : '';
     const res = await fetch(`/upload?ttl=${encodeURIComponent(ttlSelect.value)}${collectionParam}`, {
       method: 'POST',
