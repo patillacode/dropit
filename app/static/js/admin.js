@@ -1,3 +1,4 @@
+import { apiFetch } from '/static/js/api.js';
 import { clearToken, getToken, initNav, setToken } from '/static/js/auth.js';
 import { renderPagesTable } from '/static/js/pages-table.js';
 import { showConfirmModal, showTokenModal } from '/static/js/token-modal.js';
@@ -42,6 +43,11 @@ function fmtUtc(iso) {
   return `${d.toISOString().slice(0, 16).replace('T', ' ')} UTC`;
 }
 
+function showError(msg) {
+  errorEl.textContent = msg;
+  errorEl.classList.add('visible');
+}
+
 function showIndicator() {
   showTokenIndicator(
     { fieldEl: tokenFieldEl, indicatorEl: tokenInd, nameEl: tokenNameEl },
@@ -72,22 +78,15 @@ tokenRegenBtn.addEventListener('click', async () => {
     danger: true,
   });
   if (!ok) return;
-  const token = getToken();
   try {
-    const res = await fetch('/me/regenerate', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || `Error ${res.status}`);
+    const data = await apiFetch('/me/regenerate', { method: 'POST' });
     setToken(data.token);
     showTokenModal(data.token, {
       title: 'New token',
       subtitle: "Copy it now — it won't be shown again. The old token no longer works.",
     });
   } catch (err) {
-    errorEl.textContent = err.message;
-    errorEl.classList.add('visible');
+    showError(err.message);
   }
 });
 
@@ -150,35 +149,30 @@ async function connectFromNav(user) {
 }
 
 async function loadPages() {
-  const token = getToken();
-  if (!token) return;
+  if (!getToken()) return;
   errorEl.classList.remove('visible');
 
+  let pages;
   try {
-    const res = await fetch('/admin/pages', {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (res.status === 403 || res.status === 401) {
+    pages = await apiFetch('/admin/pages');
+  } catch (err) {
+    if (err.status === 401 || err.status === 403) {
       showTokenField(_tokenEls, 'This token does not have admin access');
       clearAll();
       return;
     }
-    if (!res.ok) throw new Error(`Error ${res.status}`);
-
-    const pages = await res.json();
-    updateStats(pages);
-    renderPagesTable(pages, {
-      tableWrap,
-      emptyEl,
-      errorEl,
-      showUploader: true,
-      deletePage: deletePageFetch,
-    });
-    pagesSection.classList.add('visible');
-  } catch (err) {
-    errorEl.textContent = err.message;
-    errorEl.classList.add('visible');
+    showError(err.message);
+    return;
   }
+  updateStats(pages);
+  renderPagesTable(pages, {
+    tableWrap,
+    emptyEl,
+    errorEl,
+    showUploader: true,
+    deletePage: deletePageFetch,
+  });
+  pagesSection.classList.add('visible');
 }
 
 function updateStats(pages) {
@@ -195,11 +189,7 @@ function updateStats(pages) {
 }
 
 async function deletePageFetch(p) {
-  const res = await fetch(`/admin/pages/${encodeURIComponent(p.id)}`, {
-    method: 'DELETE',
-    headers: { Authorization: `Bearer ${getToken()}` },
-  });
-  if (!res.ok) throw new Error(`Error ${res.status}`);
+  await apiFetch(`/admin/pages/${encodeURIComponent(p.id)}`, { method: 'DELETE' });
 }
 
 function clearAll() {
@@ -216,12 +206,9 @@ function clearAll() {
 }
 
 async function loadUsers() {
-  const token = getToken();
-  if (!token) return;
+  if (!getToken()) return;
   try {
-    const res = await fetch('/admin/users', { headers: { Authorization: `Bearer ${token}` } });
-    if (!res.ok) return;
-    renderUsers(await res.json());
+    renderUsers(await apiFetch('/admin/users'));
   } catch (_) {
     // non-critical
   }
@@ -277,16 +264,12 @@ userCreateForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const name = newUserNameEl.value.trim();
   if (!name) return;
-  const token = getToken();
   errorEl.classList.remove('visible');
   try {
-    const res = await fetch('/admin/users', {
+    const data = await apiFetch('/admin/users', {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, is_admin: newUserAdminEl.checked }),
+      json: { name, is_admin: newUserAdminEl.checked },
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || `Error ${res.status}`);
     newUserNameEl.value = '';
     newUserAdminEl.checked = false;
     showTokenModal(data.token, {
@@ -295,8 +278,7 @@ userCreateForm.addEventListener('submit', async (e) => {
     });
     await loadUsers();
   } catch (err) {
-    errorEl.textContent = err.message;
-    errorEl.classList.add('visible');
+    showError(err.message);
   }
 });
 
@@ -308,15 +290,9 @@ async function regenerateUser(u) {
     danger: true,
   });
   if (!ok) return;
-  const token = getToken();
   errorEl.classList.remove('visible');
   try {
-    const res = await fetch(`/admin/users/${u.id}/regenerate`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || `Error ${res.status}`);
+    const data = await apiFetch(`/admin/users/${u.id}/regenerate`, { method: 'POST' });
     // if an admin regenerated their own token, keep this session alive
     if (u.name === currentUserName) setToken(data.token);
     showTokenModal(data.token, {
@@ -324,8 +300,7 @@ async function regenerateUser(u) {
       subtitle: "Copy it now — it won't be shown again. The old token no longer works.",
     });
   } catch (err) {
-    errorEl.textContent = err.message;
-    errorEl.classList.add('visible');
+    showError(err.message);
   }
 }
 
@@ -337,21 +312,12 @@ async function deleteUser(u, tr) {
     danger: true,
   });
   if (!ok) return;
-  const token = getToken();
   errorEl.classList.remove('visible');
   try {
-    const res = await fetch(`/admin/users/${u.id}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      throw new Error(data.detail || `Error ${res.status}`);
-    }
+    await apiFetch(`/admin/users/${u.id}`, { method: 'DELETE' });
     tr.remove();
   } catch (err) {
-    errorEl.textContent = err.message;
-    errorEl.classList.add('visible');
+    showError(err.message);
   }
 }
 
@@ -365,14 +331,9 @@ function renderTriggeredBy(container, triggeredBy) {
 }
 
 async function loadCleanupStatus() {
-  const token = getToken();
-  if (!token) return;
+  if (!getToken()) return;
   try {
-    const res = await fetch('/admin/cleanup/status', {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!res.ok) return;
-    const data = await res.json();
+    const data = await apiFetch('/admin/cleanup/status');
 
     const lastRun = data.last_run;
     document.getElementById('cleanupLastRun').textContent = lastRun
@@ -392,14 +353,9 @@ async function loadCleanupStatus() {
 }
 
 async function loadCleanupHistory() {
-  const token = getToken();
-  if (!token) return;
+  if (!getToken()) return;
   try {
-    const res = await fetch('/admin/cleanup/history', {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!res.ok) return;
-    const runs = await res.json();
+    const runs = await apiFetch('/admin/cleanup/history');
 
     while (histBody.firstChild) histBody.removeChild(histBody.firstChild);
 
@@ -429,22 +385,16 @@ async function loadCleanupHistory() {
 }
 
 triggerBtn.addEventListener('click', async () => {
-  const token = getToken();
   triggerBtn.disabled = true;
   triggerBtn.textContent = 'Running…';
   errorEl.classList.remove('visible');
   try {
-    const res = await fetch('/admin/cleanup/trigger', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!res.ok) throw new Error(`Error ${res.status}`);
+    await apiFetch('/admin/cleanup/trigger', { method: 'POST' });
     await loadCleanupStatus();
     if (historyVisible) await loadCleanupHistory();
     await loadPages();
   } catch (err) {
-    errorEl.textContent = err.message;
-    errorEl.classList.add('visible');
+    showError(err.message);
   } finally {
     triggerBtn.disabled = false;
     triggerBtn.textContent = 'Run now';
