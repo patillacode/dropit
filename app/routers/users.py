@@ -71,8 +71,7 @@ def delete_user(
     settings = get_settings()
 
     pages = session.exec(select(Page).where(Page.user_id == user_id)).all()
-    for page in pages:
-        delete_page_file(page, session, settings.data_dir)
+    file_paths = [delete_page_file(page, session, settings.data_dir) for page in pages]
 
     collections = session.exec(select(Collection).where(Collection.user_id == user_id)).all()
     for coll in collections:
@@ -80,12 +79,18 @@ def delete_user(
 
     session.delete(user)
     session.commit()
+    for file_path in file_paths:
+        file_path.unlink(missing_ok=True)
     logger.info("user.deleted", user_id=user_id, actor=current_user.name)
     return {"deleted": user_id}
 
 
 @router.post("/{user_id}/regenerate")
-def regenerate_user_token(user_id: int, session: Session = Depends(get_session)):
+def regenerate_user_token(
+    user_id: int,
+    current_user: TokenUser = Depends(require_admin),
+    session: Session = Depends(get_session),
+):
     user = session.get(User, user_id)
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
@@ -93,4 +98,5 @@ def regenerate_user_token(user_id: int, session: Session = Depends(get_session))
     user.token_hash = hash_token(token)
     session.add(user)
     session.commit()
+    logger.info("user.token_regenerated", user_id=user_id, actor=current_user.name)
     return {"token": token}

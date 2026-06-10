@@ -46,7 +46,7 @@ def test_format_dt_with_microseconds():
     assert result == "2024-06-01T12:00:00.123456Z"
 
 
-def test_delete_page_file_removes_file_and_db_row(tmp_path):
+def test_delete_page_file_stages_row_and_returns_path(tmp_path):
     from sqlmodel import Session, create_engine
 
     from app.models import Page
@@ -68,8 +68,13 @@ def test_delete_page_file_removes_file_and_db_row(tmp_path):
         session.commit()
 
         assert file_path.exists()
-        delete_page_file(page, session, tmp_path)
+        returned = delete_page_file(page, session, tmp_path)
+        # The helper stages the row but does NOT touch the file — that's the caller's
+        # job, only after the commit succeeds.
+        assert returned == file_path
+        assert file_path.exists()
         session.commit()
+        returned.unlink(missing_ok=True)
 
     assert not file_path.exists()
 

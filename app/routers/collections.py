@@ -56,7 +56,7 @@ def create_collection(
     name = payload.name.lower().strip()
     if not name:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Name required"
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Name required"
         )
     if session.exec(
         select(Collection).where(Collection.user_id == user.user_id, Collection.name == name)
@@ -87,7 +87,7 @@ def rename_collection(
     name = payload.name.lower().strip()
     if not name:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Name required"
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Name required"
         )
     if session.exec(
         select(Collection).where(
