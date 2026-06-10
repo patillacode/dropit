@@ -167,7 +167,7 @@ just test           # run test suite
 just lint           # check Python with ruff
 just fix            # auto-fix lint + format (Python)
 just lint-web       # lint + format-check JS/CSS with Biome
-just fmt-web        # auto-format + safe-fix JS/CSS with Biome
+just format-web     # auto-format + safe-fix JS/CSS with Biome
 just reset-db       # delete dev database (forces fresh schema)
 just admin-token    # generate a random admin token
 ```
