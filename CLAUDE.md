@@ -30,8 +30,9 @@ Run a specific test: `uv run pytest tests/test_upload.py::test_name`
   standalone binary.
 - **Git hooks**: [prek](https://prek.j178.dev/) via `.pre-commit-config.yaml` — ruff, Biome,
   and file-hygiene hooks, lint/format only (no tests on commit).
-- **CI**: `.forgejo/workflows/ci.yml` (PRs) runs `test`, `web` (Biome), and `smoke` jobs;
-  `release.yml` (tags) gates the image build on `test` + `web`.
+- **CI**: `.forgejo/workflows/ci.yml` (PRs) runs `lint` (ruff + Biome), `test` (pytest +
+  pip-audit), and `smoke` (Docker build + `/health`) jobs; `release.yml` (tags) gates the
+  image build on `lint` + `test`.
 
 ## Architecture
 
