@@ -14,6 +14,8 @@ RUN addgroup --system --gid 1000 appuser && \
     mkdir -p /data/pages && \
     chown -R appuser:appuser /app /data
 
+RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
+
 LABEL org.opencontainers.image.source=https://github.com/patillacode/dropit
 
 USER appuser
