@@ -54,6 +54,7 @@ export function renderPagesTable(
 
     const tdUrl = document.createElement('td');
     tdUrl.className = 'td-url';
+    tdUrl.dataset.label = 'URL';
     const a = document.createElement('a');
     a.href = p.url;
     a.textContent = p.url;
@@ -64,6 +65,7 @@ export function renderPagesTable(
     const { text: expText, cls: expCls } = fmtExpiry(p.expires_at);
     const tdExp = document.createElement('td');
     tdExp.className = `td-expires ${expCls}`;
+    tdExp.dataset.label = 'Expires in';
     tdExp.textContent = expText;
 
     tr.append(tdUrl, tdExp);
@@ -71,12 +73,14 @@ export function renderPagesTable(
     if (showUploader) {
       const tdUp = document.createElement('td');
       tdUp.className = 'td-uploader';
+      tdUp.dataset.label = 'Uploaded by';
       tdUp.textContent = p.user_name || p.token_hint || '—';
       tr.appendChild(tdUp);
     }
 
     const tdColl = document.createElement('td');
     tdColl.className = 'td-collection';
+    tdColl.dataset.label = 'Collection';
     if (p.collection_name) {
       const badge = document.createElement('span');
       badge.className = 'coll-badge';

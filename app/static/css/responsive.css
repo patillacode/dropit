@@ -1,0 +1,147 @@
+/*
+ * Mobile / responsive overrides. Loaded last (after page CSS) so these rules
+ * win the cascade without needing !important.
+ */
+
+@media (max-width: 768px) {
+    /* Files: stack the sidebar above the file list */
+    .files-main {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        padding-top: 1rem;
+    }
+    .files-sidebar {
+        position: static;
+    }
+}
+
+@media (max-width: 640px) {
+    body {
+        padding: 0 1rem 2.5rem;
+    }
+
+    /* Nav shrinks to stay on one row */
+    .site-nav {
+        gap: 0.75rem;
+        padding: 0.7rem 1rem;
+    }
+    .nav-logo {
+        font-size: 1.6rem;
+    }
+    .nav-links {
+        gap: 0.05rem;
+    }
+    .nav-link {
+        padding: 0.3rem 0.35rem;
+        font-size: 0.66rem;
+    }
+
+    /* Connected-token row wraps instead of overflowing the viewport */
+    .token-indicator {
+        flex-wrap: wrap;
+    }
+    .token-indicator .btn:first-of-type {
+        margin-left: 0;
+    }
+
+    /* index: single-column field row */
+    .row {
+        grid-template-columns: 1fr;
+    }
+
+    /* admin: full-width create-user form */
+    .user-create input[type="text"] {
+        width: 100%;
+    }
+    .user-create button[type="submit"] {
+        margin-left: 0;
+    }
+
+    /* ── Tables → stacked cards ──────────────────────────────────── */
+    .table-wrap,
+    .cleanup-history-wrap {
+        overflow: visible;
+        border: none;
+    }
+    .table-wrap table,
+    .table-wrap tbody,
+    .table-wrap tr,
+    .table-wrap td,
+    .cleanup-history-wrap table,
+    .cleanup-history-wrap tbody,
+    .cleanup-history-wrap tr,
+    .cleanup-history-wrap td {
+        display: block;
+        width: 100%;
+    }
+    .table-wrap thead,
+    .cleanup-history-wrap thead {
+        display: none;
+    }
+
+    /* one card per row */
+    .table-wrap tbody tr:not(.page-detail),
+    .cleanup-history-wrap tbody tr {
+        border: 1px solid var(--border);
+        border-radius: var(--r);
+        background: var(--surface);
+        padding: 0.4rem 0.75rem;
+        margin-bottom: 0.6rem;
+    }
+
+    /* each cell: "LABEL ........ value" */
+    .table-wrap tbody tr:not(.page-detail) td,
+    .cleanup-history-wrap tbody tr td {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 1rem;
+        padding: 0.35rem 0;
+        border: none;
+        text-align: right;
+        word-break: break-all;
+    }
+    .table-wrap tbody td::before,
+    .cleanup-history-wrap tbody td::before {
+        content: attr(data-label);
+        flex-shrink: 0;
+        color: var(--muted);
+        font-size: 0.62rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        text-align: left;
+        white-space: nowrap;
+    }
+
+    /* action cells are a button row, no label */
+    .table-wrap td.page-actions,
+    .table-wrap td.user-actions {
+        justify-content: flex-end;
+        gap: 0.4rem;
+    }
+    .table-wrap td.page-actions::before,
+    .table-wrap td.user-actions::before {
+        content: none;
+    }
+
+    /* striping reads as noise once rows are cards */
+    #usersTableWrap tbody tr:nth-child(even) td {
+        background: transparent;
+    }
+
+    /* expandable page-detail row: hidden until toggled, full width when open */
+    .table-wrap tr.page-detail {
+        display: none;
+    }
+    .table-wrap tr.page-detail.open {
+        display: block;
+    }
+    .page-detail.open > td {
+        display: block;
+        padding: 0;
+    }
+    .detail-grid {
+        gap: 1.25rem;
+        padding: 0.75rem;
+    }
+}
