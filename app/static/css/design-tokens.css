@@ -1,0 +1,68 @@
+/*
+ * Design tokens — single source of truth for colour, radii and type.
+ * Values intentionally match the previously hardcoded ones; adopting these
+ * is a pure refactor with no visual change.
+ *
+ * Responsive breakpoints (used in media queries; CSS vars can't be used in
+ * @media conditions, so they live here only as documentation):
+ *   mobile  <= 640px
+ *   tablet  <= 880px
+ */
+:root {
+    /* Neutrals */
+    --bg: #09090a;
+    --surface: #111114;
+    --border: #222226;
+    --text: #ece9e0;
+    --muted: #8b8b94;
+
+    /* Accent (lime) */
+    --accent: #c8ff00;
+    --accent-d: rgba(200, 255, 0, 0.1);
+    --accent-soft: rgba(200, 255, 0, 0.08);
+    --accent-line: rgba(200, 255, 0, 0.15);
+    --accent-pulse: rgba(200, 255, 0, 0.3);
+    --accent-ring: rgba(200, 255, 0, 0.35);
+
+    /* Success (green) */
+    --ok: #00d68f;
+    --ok-d: rgba(0, 214, 143, 0.08);
+    --ok-soft: rgba(0, 214, 143, 0.1);
+    --ok-hover: rgba(0, 214, 143, 0.07);
+    --ok-line: rgba(0, 214, 143, 0.18);
+    --ok-glow: rgba(0, 214, 143, 0.12);
+
+    /* Warning */
+    --warn: #f5a623;
+
+    /* Error (red) */
+    --err: #ff5252;
+    --err-d: rgba(255, 82, 82, 0.07);
+    --err-soft: rgba(255, 82, 82, 0.1);
+    --err-line: rgba(255, 82, 82, 0.2);
+    --err-line-2: rgba(255, 82, 82, 0.25);
+    --err-border: rgba(255, 82, 82, 0.3);
+    --err-border-strong: rgba(255, 82, 82, 0.5);
+    --err-glow: rgba(255, 82, 82, 0.05);
+
+    /* Neutral overlays (white on dark) */
+    --overlay-1: rgba(255, 255, 255, 0.015);
+    --overlay-2: rgba(255, 255, 255, 0.018);
+    --overlay-3: rgba(255, 255, 255, 0.04);
+    --overlay-4: rgba(255, 255, 255, 0.06);
+
+    /* Typography */
+    --mono: "DM Mono", monospace;
+    --serif: "Cormorant Garamond", Georgia, serif;
+
+    /* Radii */
+    --r: 5px;
+    --r-sm: 2px;
+    --r-pill: 10px;
+
+    /* Focus ring (accessibility) */
+    --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+
+    /* Effects — current accent glow; pages may override per context */
+    --glow-color: rgba(200, 255, 0, 0.04);
+}

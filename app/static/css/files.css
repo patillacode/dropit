@@ -58,7 +58,7 @@
 }
 .sidebar-btn:hover {
     color: var(--text);
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--overlay-3);
 }
 .sidebar-btn--active {
     color: var(--accent);
@@ -98,8 +98,8 @@
     flex-shrink: 0;
     font-size: 0.7rem;
     color: var(--muted);
-    background: rgba(255, 255, 255, 0.06);
-    border-radius: 10px;
+    background: var(--overlay-4);
+    border-radius: var(--r-pill);
     padding: 0.05rem 0.4rem;
 }
 

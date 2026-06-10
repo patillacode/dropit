@@ -99,7 +99,7 @@ select:focus {
     opacity: 1;
 }
 .drop-zone[data-state="idle"]:hover {
-    border-color: rgba(200, 255, 0, 0.35);
+    border-color: var(--accent-ring);
     transform: translateY(-2px);
 }
 .drop-zone.drag-over {
@@ -115,7 +115,7 @@ select:focus {
         box-shadow: 0 0 0 0 transparent;
     }
     50% {
-        border-color: rgba(200, 255, 0, 0.3);
+        border-color: var(--accent-pulse);
         box-shadow: 0 0 18px 2px var(--accent-d);
     }
 }
@@ -134,7 +134,7 @@ select:focus {
     animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.3s forwards;
 }
 .drop-zone[data-state="success"]::before {
-    background: radial-gradient(ellipse at 50% 110%, rgba(0, 214, 143, 0.12) 0%, transparent 65%);
+    background: radial-gradient(ellipse at 50% 110%, var(--ok-glow) 0%, transparent 65%);
     opacity: 1;
 }
 
@@ -145,7 +145,7 @@ select:focus {
     animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.3s forwards;
 }
 .drop-zone[data-state="error"]::before {
-    background: radial-gradient(ellipse at 50% 110%, rgba(255, 82, 82, 0.1) 0%, transparent 65%);
+    background: radial-gradient(ellipse at 50% 110%, var(--err-soft) 0%, transparent 65%);
     opacity: 1;
 }
 
@@ -259,7 +259,7 @@ input[type="file"] {
     font-size: 0.85rem;
     padding: 0.48rem 0.65rem;
     background: rgba(0, 0, 0, 0.35);
-    border: 1px solid rgba(0, 214, 143, 0.18);
+    border: 1px solid var(--ok-line);
     border-radius: 3px;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -273,7 +273,7 @@ input[type="file"] {
 }
 .dz-url:hover {
     border-color: var(--ok);
-    background: rgba(0, 214, 143, 0.07);
+    background: var(--ok-hover);
 }
 .dz-expires {
     font-size: 0.75rem;
