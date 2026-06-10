@@ -125,15 +125,15 @@ input[type="password"] {
     letter-spacing: 0.08em;
     text-transform: uppercase;
     padding: 0.15rem 0.45rem;
-    border-radius: 2px;
+    border-radius: var(--r-sm);
 }
 .trigger-badge.scheduler {
     color: var(--ok);
-    background: rgba(0, 214, 143, 0.1);
+    background: var(--ok-soft);
 }
 .trigger-badge.manual {
     color: var(--accent);
-    background: rgba(200, 255, 0, 0.08);
+    background: var(--accent-soft);
 }
 
 .cleanup-actions {
@@ -186,10 +186,10 @@ input[type="password"] {
 }
 
 #usersTableWrap tbody tr:nth-child(even) td {
-    background: rgba(255, 255, 255, 0.018);
+    background: var(--overlay-2);
 }
 .table-wrap tbody tr:not(.page-detail):hover td {
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--overlay-3);
 }
 
 .td-uploader {
@@ -215,7 +215,7 @@ input[type="password"] {
     display: none;
     margin-bottom: 1.5rem;
     padding: 0.8rem 1rem;
-    border: 1px solid rgba(255, 82, 82, 0.25);
+    border: 1px solid var(--err-line-2);
     border-radius: var(--r);
     background: var(--err-d);
     font-size: 0.875rem;

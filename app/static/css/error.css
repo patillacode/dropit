@@ -1,5 +1,5 @@
 :root {
-    --glow-color: rgba(255, 82, 82, 0.05);
+    --glow-color: var(--err-glow);
 }
 
 body {
@@ -27,7 +27,7 @@ body {
 }
 
 .error-block {
-    border: 1px solid rgba(255, 82, 82, 0.2);
+    border: 1px solid var(--err-line);
     border-radius: var(--r);
     padding: 2.5rem 2rem;
     background: var(--err-d);
