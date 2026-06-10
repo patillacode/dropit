@@ -6,9 +6,11 @@ from sqlmodel import Session, select
 
 from app.auth import TokenUser, get_db_user
 from app.database import get_session
+from app.dependencies import get_owned_collection
 from app.limiter import limiter
 from app.models import Collection, Page
-from app.utils import format_dt
+from app.serializers import serialize_collection
+from app.validators import clean_required_name
 
 logger = structlog.get_logger()
 
@@ -34,15 +36,7 @@ def list_collections(
         .order_by(Collection.created_at)
     )
     rows = session.exec(stmt).all()
-    return [
-        {
-            "id": coll.id,
-            "name": coll.name,
-            "created_at": format_dt(coll.created_at),
-            "page_count": count,
-        }
-        for coll, count in rows
-    ]
+    return [serialize_collection(coll, count) for coll, count in rows]
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
@@ -53,11 +47,7 @@ def create_collection(
     user: TokenUser = Depends(get_db_user),
     session: Session = Depends(get_session),
 ):
-    name = payload.name.lower().strip()
-    if not name:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Name required"
-        )
+    name = clean_required_name(payload.name, lower=True)
     if session.exec(
         select(Collection).where(Collection.user_id == user.user_id, Collection.name == name)
     ).first():
@@ -69,31 +59,23 @@ def create_collection(
     session.commit()
     session.refresh(coll)
     logger.info("collection.created", collection_id=coll.id, user_id=user.user_id)
-    return {"id": coll.id, "name": coll.name, "created_at": format_dt(coll.created_at)}
+    return serialize_collection(coll)
 
 
 @router.patch("/{coll_id}")
 @limiter.limit("10/minute")
 def rename_collection(
     request: Request,
-    coll_id: int,
     payload: CollectionBody,
-    user: TokenUser = Depends(get_db_user),
+    coll: Collection = Depends(get_owned_collection),
     session: Session = Depends(get_session),
 ):
-    coll = session.get(Collection, coll_id)
-    if coll is None or coll.user_id != user.user_id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Collection not found")
-    name = payload.name.lower().strip()
-    if not name:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Name required"
-        )
+    name = clean_required_name(payload.name, lower=True)
     if session.exec(
         select(Collection).where(
-            Collection.user_id == user.user_id,
+            Collection.user_id == coll.user_id,
             Collection.name == name,
-            Collection.id != coll_id,
+            Collection.id != coll.id,
         )
     ).first():
         raise HTTPException(
@@ -103,23 +85,21 @@ def rename_collection(
     session.add(coll)
     session.commit()
     session.refresh(coll)
-    logger.info("collection.renamed", collection_id=coll.id, user_id=user.user_id)
-    return {"id": coll.id, "name": coll.name, "created_at": format_dt(coll.created_at)}
+    logger.info("collection.renamed", collection_id=coll.id, user_id=coll.user_id)
+    return serialize_collection(coll)
 
 
 @router.delete("/{coll_id}")
 @limiter.limit("10/minute")
 def delete_collection(
     request: Request,
-    coll_id: int,
-    user: TokenUser = Depends(get_db_user),
+    coll: Collection = Depends(get_owned_collection),
     session: Session = Depends(get_session),
 ):
-    coll = session.get(Collection, coll_id)
-    if coll is None or coll.user_id != user.user_id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Collection not found")
-    session.exec(update(Page).where(Page.collection_id == coll_id).values(collection_id=None))
+    session.exec(update(Page).where(Page.collection_id == coll.id).values(collection_id=None))
+    coll_id = coll.id
+    user_id = coll.user_id
     session.delete(coll)
     session.commit()
-    logger.info("collection.deleted", collection_id=coll_id, user_id=user.user_id)
+    logger.info("collection.deleted", collection_id=coll_id, user_id=user_id)
     return {"deleted": coll_id}
