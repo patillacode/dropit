@@ -1,6 +1,9 @@
+from pathlib import Path
+
 from sqlmodel import Session
 
-from app.models import Page
+from app.models import Collection, Page
+from app.settings import get_settings
 
 ADMIN = {"Authorization": "Bearer admin_tok_xyz"}
 
@@ -112,3 +115,69 @@ def test_create_user_empty_name(client):
     )
     assert res.status_code == 422
     assert "Name required" in res.json()["detail"]
+
+
+def test_delete_user_cascades_pages(client):
+    bob = client.post("/admin/users", headers=ADMIN, json={"name": "bob"}).json()
+    bob_token = bob["token"]
+    bob_id = bob["id"]
+
+    res = client.post(
+        "/upload",
+        headers={"Authorization": f"Bearer {bob_token}"},
+        files={"file": ("test.html", b"<!doctype html><html><body>hi</body></html>", "text/html")},
+    )
+    assert res.status_code == 200
+    page_id = res.json()["url"].split(".")[0].split("://")[-1]
+
+    res = client.delete(f"/admin/users/{bob_id}", headers=ADMIN)
+    assert res.status_code == 200
+    assert res.json() == {"deleted": bob_id}
+
+    pages = client.get("/admin/pages", headers=ADMIN).json()
+    assert not any(p["id"] == page_id for p in pages)
+
+
+def test_delete_user_cascades_collections(client):
+    bob = client.post("/admin/users", headers=ADMIN, json={"name": "bob"}).json()
+    bob_token = bob["token"]
+    bob_id = bob["id"]
+
+    res = client.post(
+        "/collections",
+        headers={"Authorization": f"Bearer {bob_token}"},
+        json={"name": "test collection"},
+    )
+    assert res.status_code == 201
+    coll_id = res.json()["id"]
+
+    res = client.delete(f"/admin/users/{bob_id}", headers=ADMIN)
+    assert res.status_code == 200
+
+    engine = client.app.state.engine
+    with Session(engine) as session:
+        collection = session.get(Collection, coll_id)
+        assert collection is None
+
+
+def test_delete_user_pages_removed_from_disk(client):
+    bob = client.post("/admin/users", headers=ADMIN, json={"name": "bob"}).json()
+    bob_token = bob["token"]
+    bob_id = bob["id"]
+
+    res = client.post(
+        "/upload",
+        headers={"Authorization": f"Bearer {bob_token}"},
+        files={"file": ("test.html", b"<!doctype html><html><body>hi</body></html>", "text/html")},
+    )
+    assert res.status_code == 200
+    page_id = res.json()["url"].split(".")[0].split("://")[-1]
+
+    settings = get_settings()
+    file_path = Path(settings.data_dir) / "pages" / page_id
+    assert file_path.exists()
+
+    res = client.delete(f"/admin/users/{bob_id}", headers=ADMIN)
+    assert res.status_code == 200
+
+    assert not file_path.exists()

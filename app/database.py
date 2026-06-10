@@ -80,7 +80,20 @@ def _migration_3(engine) -> None:
         conn.commit()
 
 
-_MIGRATIONS = [_migration_1, _migration_2, _migration_3]
+def _migration_4(engine) -> None:
+    with engine.connect() as conn:
+        rows = conn.execute(text("PRAGMA table_info(page)")).fetchall()
+        existing = {r[1] for r in rows}
+        if "user_id" not in existing:
+            conn.execute(text("ALTER TABLE page ADD COLUMN user_id INTEGER REFERENCES user(id)"))
+        if "collection_id" not in existing:
+            conn.execute(
+                text("ALTER TABLE page ADD COLUMN collection_id INTEGER REFERENCES collection(id)")
+            )
+        conn.commit()
+
+
+_MIGRATIONS = [_migration_1, _migration_2, _migration_3, _migration_4]
 
 
 def _run_migrations(engine) -> None:

@@ -1,28 +1,11 @@
 {% extends "base.html" %}
+{% from "macros.html" import token_section %}
 {% block title %}dropit — admin{% endblock %}
 {% block extra_css %}<link rel="stylesheet" href="/static/css/admin.css">{% endblock %}
 {% block content %}
     <main class="main">
-        <header class="header">
-            <h1 class="logo">drop<span class="logo-dot">•</span>it</h1>
-            <span class="logo-suffix">Admin</span>
-        </header>
-
         <div class="auth-section">
-            <label>API token</label>
-            <div id="tokenField">
-                <form class="token-input-row" id="tokenForm">
-                    <input type="password" id="tokenInput" placeholder="your-api-token" autocomplete="off"
-                        spellcheck="false">
-                    <button type="submit" class="btn btn--accent" id="tokenConnectBtn">Connect</button>
-                </form>
-                <p class="token-hint" id="tokenHint" style="display:none"></p>
-            </div>
-            <div class="token-indicator" id="tokenIndicator" style="display:none">
-                <span class="token-badge">Admin</span>
-                <strong id="tokenName"></strong>
-                <button class="btn" id="tokenChangeBtn">disconnect</button>
-            </div>
+            {{ token_section(badge_text="Admin") }}
         </div>
 
         <div class="error" id="errorEl"></div>
@@ -63,19 +46,7 @@
 
         <section class="adm-sec" id="pagesSection">
             <div class="sec-head"><span class="sec-title">Pages</span><span class="sec-line"></span></div>
-            <div class="table-wrap" id="tableWrap">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>URL</th>
-                            <th>Expires in</th>
-                            <th>Uploaded by</th>
-                            <th class="th-actions"></th>
-                        </tr>
-                    </thead>
-                    <tbody id="tableBody"></tbody>
-                </table>
-            </div>
+            <div class="table-wrap" id="tableWrap"></div>
             <div class="empty" id="emptyEl">No pages yet.</div>
         </section>
 
@@ -119,7 +90,7 @@
             </div>
         </section>
 
-        <a href="/" class="back-link">&larr; Back to dropit</a>
+        <a href="/upload" class="back-link">&larr; Back to dropit</a>
     </main>
 {% endblock %}
 {% block scripts %}

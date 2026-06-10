@@ -1,6 +1,8 @@
-import { getToken as _getToken, showTokenField, showTokenIndicator } from '/static/js/token-shared.js';
+import { getToken, setToken, clearToken, initNav } from '/static/js/auth.js';
+import { showTokenField, showTokenIndicator } from '/static/js/token-shared.js';
 import { showTokenModal, showConfirmModal } from '/static/js/token-modal.js';
-import { asUtc, fmtExpiry } from '/static/js/utils.js';
+import { asUtc, fmtDate, fmtSize } from '/static/js/utils.js';
+import { renderPagesTable } from '/static/js/pages-table.js';
 
 const tokenInputEl   = document.getElementById('tokenInput');
 const tokenFieldEl   = document.getElementById('tokenField');
@@ -8,6 +10,7 @@ const tokenInd       = document.getElementById('tokenIndicator');
 const tokenHintEl    = document.getElementById('tokenHint');
 const tokenNameEl    = document.getElementById('tokenName');
 const tokenChgBtn    = document.getElementById('tokenChangeBtn');
+const tokenRegenBtn  = document.getElementById('tokenRegenBtn');
 const tokenForm      = document.getElementById('tokenForm');
 const usersCardEl    = document.getElementById('usersCard');
 const usersBodyEl    = document.getElementById('usersBody');
@@ -17,7 +20,6 @@ const newUserAdminEl = document.getElementById('newUserAdmin');
 const errorEl        = document.getElementById('errorEl');
 const statsEl        = document.getElementById('stats');
 const tableWrap      = document.getElementById('tableWrap');
-const tableBody      = document.getElementById('tableBody');
 const pagesSection   = document.getElementById('pagesSection');
 const emptyEl        = document.getElementById('emptyEl');
 const statTotal      = document.getElementById('statTotal');
@@ -30,22 +32,9 @@ const histToggleBtn  = document.getElementById('historyToggleBtn');
 const histWrap       = document.getElementById('cleanupHistoryWrap');
 const histBody       = document.getElementById('cleanupHistoryBody');
 
-const STORAGE_KEY = 'dropit_token';
 const _tokenEls = { fieldEl: tokenFieldEl, indicatorEl: tokenInd, hintEl: tokenHintEl };
 let historyVisible = false;
 let currentUserName = null;
-
-function fmtSize(bytes) {
-  if (bytes < 1024) return bytes + ' B';
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-}
-
-function fmtDate(iso) {
-  if (!iso) return null;
-  const d = new Date(iso);
-  return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
 
 function fmtUtc(iso) {
   const d = asUtc(iso);
@@ -65,11 +54,38 @@ function showIndicator() {
 tokenForm.addEventListener('submit', e => { e.preventDefault(); tryConnect(); });
 
 tokenChgBtn.addEventListener('click', () => {
-  localStorage.removeItem(STORAGE_KEY);
+  clearToken();
   tokenInputEl.value = '';
   currentUserName = null;
   showTokenField(_tokenEls);
   clearAll();
+});
+
+tokenRegenBtn.addEventListener('click', async () => {
+  const ok = await showConfirmModal({
+    title: 'Regenerate your token?',
+    message: 'Your current token stops working everywhere immediately.',
+    confirmLabel: 'Regenerate',
+    danger: true,
+  });
+  if (!ok) return;
+  const token = getToken();
+  try {
+    const res = await fetch('/me/regenerate', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || `Error ${res.status}`);
+    setToken(data.token);
+    showTokenModal(data.token, {
+      title: 'New token',
+      subtitle: "Copy it now — it won't be shown again. The old token no longer works.",
+    });
+  } catch (err) {
+    errorEl.textContent = err.message;
+    errorEl.classList.add('visible');
+  }
 });
 
 async function tryConnect() {
@@ -79,14 +95,14 @@ async function tryConnect() {
 }
 
 async function connect(tokenArg) {
-  const token = tokenArg ?? _getToken(STORAGE_KEY);
+  const token = tokenArg ?? getToken();
   if (!token) { showTokenField(_tokenEls); return; }
   errorEl.classList.remove('visible');
   let me;
   try {
     const res = await fetch('/me', { headers: { Authorization: `Bearer ${token}` } });
     if (res.status === 401) {
-      localStorage.removeItem(STORAGE_KEY);
+      clearToken();
       showTokenField(_tokenEls, 'Invalid token');
       clearAll();
       return;
@@ -104,7 +120,23 @@ async function connect(tokenArg) {
     clearAll();
     return;
   }
-  localStorage.setItem(STORAGE_KEY, token);
+  setToken(token);
+  showIndicator();
+  await loadPages();
+  await loadCleanupStatus();
+  await loadUsers();
+}
+
+async function connectFromNav(user) {
+  const token = getToken();
+  if (!user.is_admin) {
+    clearToken();
+    showTokenField(_tokenEls, 'This token does not have admin access');
+    clearAll();
+    return;
+  }
+  tokenInputEl.value = token;
+  currentUserName = user.name;
   showIndicator();
   await loadPages();
   await loadCleanupStatus();
@@ -112,7 +144,7 @@ async function connect(tokenArg) {
 }
 
 async function loadPages() {
-  const token = _getToken(STORAGE_KEY);
+  const token = getToken();
   if (!token) return;
   errorEl.classList.remove('visible');
 
@@ -128,15 +160,38 @@ async function loadPages() {
     if (!res.ok) throw new Error(`Error ${res.status}`);
 
     const pages = await res.json();
-    renderTable(pages);
+    updateStats(pages);
+    renderPagesTable(pages, { tableWrap, emptyEl, errorEl, showUploader: true, deletePage: deletePageFetch });
+    pagesSection.classList.add('visible');
   } catch (err) {
     errorEl.textContent = err.message;
     errorEl.classList.add('visible');
   }
 }
 
+function updateStats(pages) {
+  let totalSize = 0;
+  let permanentCount = 0;
+  for (const p of pages) {
+    totalSize += p.file_size || 0;
+    if (!p.expires_at) permanentCount++;
+  }
+  statTotal.textContent = pages.length;
+  statPermanent.textContent = permanentCount;
+  statSize.textContent = fmtSize(totalSize);
+  statsEl.classList.add('visible');
+}
+
+async function deletePageFetch(p) {
+  const res = await fetch(`/admin/pages/${encodeURIComponent(p.id)}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${getToken()}` },
+  });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+}
+
 function clearAll() {
-  while (tableBody.firstChild) tableBody.removeChild(tableBody.firstChild);
+  while (tableWrap.firstChild) tableWrap.removeChild(tableWrap.firstChild);
   tableWrap.classList.remove('visible');
   pagesSection.classList.remove('visible');
   statsEl.classList.remove('visible');
@@ -148,141 +203,9 @@ function clearAll() {
   histToggleBtn.textContent = 'Show history';
 }
 
-function renderTable(pages) {
-  while (tableBody.firstChild) tableBody.removeChild(tableBody.firstChild);
-  tableWrap.classList.remove('visible');
-  statsEl.classList.remove('visible');
-  emptyEl.classList.remove('visible');
-
-  let totalSize = 0;
-  let permanentCount = 0;
-
-  pages.forEach(p => {
-    totalSize += p.file_size || 0;
-    if (!p.expires_at) permanentCount++;
-  });
-
-  statTotal.textContent = pages.length;
-  statPermanent.textContent = permanentCount;
-  statSize.textContent = fmtSize(totalSize);
-  statsEl.classList.add('visible');
-  pagesSection.classList.add('visible');
-
-  if (!pages.length) {
-    emptyEl.classList.add('visible');
-    return;
-  }
-
-  pages.forEach(p => {
-    const tr = document.createElement('tr');
-    tr.className = 'page-row';
-
-    const tdUrl = document.createElement('td');
-    tdUrl.className = 'td-url';
-    const a = document.createElement('a');
-    a.href = p.url;
-    a.textContent = p.url;
-    a.target = '_blank';
-    a.rel = 'noopener noreferrer';
-    tdUrl.appendChild(a);
-
-    const tdExp = document.createElement('td');
-    const { text: expText, cls: expCls } = fmtExpiry(p.expires_at);
-    tdExp.className = `td-expires ${expCls}`;
-    tdExp.textContent = expText;
-
-    const tdUp = document.createElement('td');
-    tdUp.className = 'td-uploader';
-    tdUp.textContent = p.token_hint;
-
-    const tdAct = document.createElement('td');
-    tdAct.className = 'page-actions';
-
-    const detailsBtn = document.createElement('button');
-    detailsBtn.className = 'btn';
-    detailsBtn.textContent = 'Details';
-
-    const delBtn = document.createElement('button');
-    delBtn.className = 'btn btn--danger';
-    delBtn.textContent = 'Delete';
-
-    tdAct.appendChild(detailsBtn);
-    tdAct.appendChild(delBtn);
-
-    tr.appendChild(tdUrl);
-    tr.appendChild(tdExp);
-    tr.appendChild(tdUp);
-    tr.appendChild(tdAct);
-
-    const detailTr = document.createElement('tr');
-    detailTr.className = 'page-detail';
-    const detailTd = document.createElement('td');
-    detailTd.colSpan = 4;
-    const grid = document.createElement('div');
-    grid.className = 'detail-grid';
-    grid.appendChild(detailItem('File', p.filename || '—'));
-    grid.appendChild(detailItem('Uploaded', p.created_at ? fmtDate(p.created_at) : '—'));
-    grid.appendChild(detailItem('Expires', p.expires_at ? fmtDate(p.expires_at) : 'never'));
-    grid.appendChild(detailItem('Size', fmtSize(p.file_size || 0)));
-    detailTd.appendChild(grid);
-    detailTr.appendChild(detailTd);
-
-    detailsBtn.addEventListener('click', () => {
-      const open = detailTr.classList.toggle('open');
-      detailsBtn.textContent = open ? 'Hide' : 'Details';
-    });
-    delBtn.addEventListener('click', () => deletePage(p.id, tr, detailTr));
-
-    tableBody.appendChild(tr);
-    tableBody.appendChild(detailTr);
-  });
-
-  tableWrap.classList.add('visible');
-}
-
-function detailItem(key, value) {
-  const item = document.createElement('div');
-  item.className = 'detail-item';
-  const k = document.createElement('span');
-  k.className = 'detail-key';
-  k.textContent = key;
-  const v = document.createElement('span');
-  v.className = 'detail-val';
-  v.textContent = value;
-  item.appendChild(k);
-  item.appendChild(v);
-  return item;
-}
-
-async function deletePage(id, tr, detailTr) {
-  const ok = await showConfirmModal({
-    title: 'Delete this page?',
-    message: 'The file and its link will be permanently removed. This cannot be undone.',
-    confirmLabel: 'Delete',
-    danger: true,
-  });
-  if (!ok) return;
-  const token = _getToken(STORAGE_KEY);
-  try {
-    const res = await fetch(`/admin/pages/${encodeURIComponent(id)}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!res.ok) throw new Error(`Error ${res.status}`);
-    tr.remove();
-    detailTr.remove();
-    if (!tableBody.firstChild) {
-      tableWrap.classList.remove('visible');
-      emptyEl.classList.add('visible');
-    }
-  } catch (err) {
-    errorEl.textContent = err.message;
-    errorEl.classList.add('visible');
-  }
-}
 
 async function loadUsers() {
-  const token = _getToken(STORAGE_KEY);
+  const token = getToken();
   if (!token) return;
   try {
     const res = await fetch('/admin/users', { headers: { Authorization: `Bearer ${token}` } });
@@ -340,7 +263,7 @@ userCreateForm.addEventListener('submit', async e => {
   e.preventDefault();
   const name = newUserNameEl.value.trim();
   if (!name) return;
-  const token = _getToken(STORAGE_KEY);
+  const token = getToken();
   errorEl.classList.remove('visible');
   try {
     const res = await fetch('/admin/users', {
@@ -371,7 +294,7 @@ async function regenerateUser(u) {
     danger: true,
   });
   if (!ok) return;
-  const token = _getToken(STORAGE_KEY);
+  const token = getToken();
   errorEl.classList.remove('visible');
   try {
     const res = await fetch(`/admin/users/${u.id}/regenerate`, {
@@ -381,7 +304,7 @@ async function regenerateUser(u) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || `Error ${res.status}`);
     // if an admin regenerated their own token, keep this session alive
-    if (u.name === currentUserName) localStorage.setItem(STORAGE_KEY, data.token);
+    if (u.name === currentUserName) setToken(data.token);
     showTokenModal(data.token, {
       title: `New token for ${u.name}`,
       subtitle: "Copy it now — it won't be shown again. The old token no longer works.",
@@ -395,12 +318,12 @@ async function regenerateUser(u) {
 async function deleteUser(u, tr) {
   const ok = await showConfirmModal({
     title: `Delete user ${u.name}?`,
-    message: 'Their uploaded pages are kept. This cannot be undone.',
+    message: 'All their pages and collections will be permanently deleted. This cannot be undone.',
     confirmLabel: 'Delete',
     danger: true,
   });
   if (!ok) return;
-  const token = _getToken(STORAGE_KEY);
+  const token = getToken();
   errorEl.classList.remove('visible');
   try {
     const res = await fetch(`/admin/users/${u.id}`, {
@@ -428,7 +351,7 @@ function renderTriggeredBy(container, triggeredBy) {
 }
 
 async function loadCleanupStatus() {
-  const token = _getToken(STORAGE_KEY);
+  const token = getToken();
   if (!token) return;
   try {
     const res = await fetch('/admin/cleanup/status', {
@@ -448,7 +371,7 @@ async function loadCleanupStatus() {
 }
 
 async function loadCleanupHistory() {
-  const token = _getToken(STORAGE_KEY);
+  const token = getToken();
   if (!token) return;
   try {
     const res = await fetch('/admin/cleanup/history', {
@@ -482,7 +405,7 @@ async function loadCleanupHistory() {
 }
 
 triggerBtn.addEventListener('click', async () => {
-  const token = _getToken(STORAGE_KEY);
+  const token = getToken();
   triggerBtn.disabled = true;
   triggerBtn.textContent = 'Running…';
   errorEl.classList.remove('visible');
@@ -517,10 +440,8 @@ histToggleBtn.addEventListener('click', async () => {
 });
 
 // Boot
-const stored = localStorage.getItem(STORAGE_KEY);
-if (stored) {
-  tokenInputEl.value = stored;
-  connect();
-} else {
-  showTokenField(_tokenEls);
-}
+initNav({
+  onLogin: connectFromNav,
+  onLogout: () => { clearAll(); showTokenField(_tokenEls); },
+});
+if (!getToken()) showTokenField(_tokenEls);

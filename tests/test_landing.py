@@ -3,8 +3,18 @@ def test_landing_page_renders(client):
     assert res.status_code == 200
 
 
+def test_upload_page_renders(client):
+    res = client.get("/upload")
+    assert res.status_code == 200
+
+
 def test_admin_page_renders(client):
     res = client.get("/admin")
+    assert res.status_code == 200
+
+
+def test_files_page_renders(client):
+    res = client.get("/files")
     assert res.status_code == 200
 
 

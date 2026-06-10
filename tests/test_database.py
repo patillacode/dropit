@@ -65,7 +65,7 @@ def test_init_db_creates_schema_version(tmp_path, monkeypatch):
         engine = db_mod.get_engine()
         with engine.connect() as conn:
             version = conn.execute(text("SELECT version FROM schema_version")).scalar()
-        assert version == 3
+        assert version == 4
     finally:
         if db_mod._engine is not None:
             db_mod._engine.dispose()
@@ -84,7 +84,7 @@ def test_init_db_is_idempotent(tmp_path, monkeypatch):
         engine = db_mod.get_engine()
         with engine.connect() as conn:
             version = conn.execute(text("SELECT version FROM schema_version")).scalar()
-        assert version == 3
+        assert version == 4
     finally:
         if db_mod._engine is not None:
             db_mod._engine.dispose()
@@ -120,10 +120,12 @@ def test_run_migrations_upgrades_old_install():
         version = conn.execute(text("SELECT version FROM schema_version")).scalar()
         cols = {r[1] for r in conn.execute(text("PRAGMA table_info(page)")).fetchall()}
 
-    assert version == 3
+    assert version == 4
     assert "filename" in cols
     assert "created_at" in cols
     assert "file_size" in cols
+    assert "user_id" in cols
+    assert "collection_id" in cols
     engine.dispose()
 
 
@@ -175,3 +177,191 @@ def test_get_session_yields_session():
         next(gen)
     except StopIteration:
         pass
+
+
+def test_migration_4_adds_user_id_and_collection_id(tmp_path):
+    from sqlalchemy import create_engine as sa_engine
+    from sqlmodel.pool import StaticPool
+
+    from app.database import _migration_4
+
+    engine = sa_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    with engine.connect() as conn:
+        conn.execute(
+            text(
+                "CREATE TABLE user ("
+                "id INTEGER NOT NULL PRIMARY KEY, "
+                "name TEXT NOT NULL, "
+                "token_hash TEXT NOT NULL, "
+                "is_admin INTEGER NOT NULL, "
+                "created_at DATETIME NOT NULL"
+                ")"
+            )
+        )
+        conn.execute(
+            text(
+                "CREATE TABLE collection ("
+                "id INTEGER NOT NULL PRIMARY KEY, "
+                "name TEXT NOT NULL, "
+                "user_id INTEGER NOT NULL, "
+                "created_at DATETIME NOT NULL"
+                ")"
+            )
+        )
+        conn.execute(
+            text(
+                "CREATE TABLE page ("
+                "id TEXT NOT NULL PRIMARY KEY, "
+                "expires_at DATETIME, "
+                "token_hint TEXT NOT NULL, "
+                "filename TEXT, "
+                "created_at DATETIME, "
+                "file_size INTEGER"
+                ")"
+            )
+        )
+        conn.commit()
+
+    _migration_4(engine)
+
+    with engine.connect() as conn:
+        rows = conn.execute(text("PRAGMA table_info(page)")).fetchall()
+    cols = {r[1] for r in rows}
+    assert "user_id" in cols
+    assert "collection_id" in cols
+    engine.dispose()
+
+
+def test_migration_4_is_idempotent():
+    from sqlalchemy import create_engine as sa_engine
+    from sqlmodel.pool import StaticPool
+
+    from app.database import _migration_4
+
+    engine = sa_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    with engine.connect() as conn:
+        conn.execute(
+            text(
+                "CREATE TABLE user ("
+                "id INTEGER NOT NULL PRIMARY KEY, "
+                "name TEXT NOT NULL, "
+                "token_hash TEXT NOT NULL, "
+                "is_admin INTEGER NOT NULL, "
+                "created_at DATETIME NOT NULL"
+                ")"
+            )
+        )
+        conn.execute(
+            text(
+                "CREATE TABLE collection ("
+                "id INTEGER NOT NULL PRIMARY KEY, "
+                "name TEXT NOT NULL, "
+                "user_id INTEGER NOT NULL, "
+                "created_at DATETIME NOT NULL"
+                ")"
+            )
+        )
+        conn.execute(
+            text(
+                "CREATE TABLE page ("
+                "id TEXT NOT NULL PRIMARY KEY, "
+                "expires_at DATETIME, "
+                "token_hint TEXT NOT NULL, "
+                "filename TEXT, "
+                "created_at DATETIME, "
+                "file_size INTEGER"
+                ")"
+            )
+        )
+        conn.commit()
+
+    _migration_4(engine)
+    _migration_4(engine)  # must not raise
+
+    engine.dispose()
+
+
+def test_migration_4_preserves_existing_pages():
+    from datetime import UTC, datetime
+
+    from sqlalchemy import create_engine as sa_engine
+    from sqlmodel.pool import StaticPool
+
+    from app.database import _migration_4
+
+    engine = sa_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    with engine.connect() as conn:
+        conn.execute(
+            text(
+                "CREATE TABLE user ("
+                "id INTEGER NOT NULL PRIMARY KEY, "
+                "name TEXT NOT NULL, "
+                "token_hash TEXT NOT NULL, "
+                "is_admin INTEGER NOT NULL, "
+                "created_at DATETIME NOT NULL"
+                ")"
+            )
+        )
+        conn.execute(
+            text(
+                "CREATE TABLE collection ("
+                "id INTEGER NOT NULL PRIMARY KEY, "
+                "name TEXT NOT NULL, "
+                "user_id INTEGER NOT NULL, "
+                "created_at DATETIME NOT NULL"
+                ")"
+            )
+        )
+        conn.execute(
+            text(
+                "CREATE TABLE page ("
+                "id TEXT NOT NULL PRIMARY KEY, "
+                "expires_at DATETIME, "
+                "token_hint TEXT NOT NULL, "
+                "filename TEXT, "
+                "created_at DATETIME, "
+                "file_size INTEGER"
+                ")"
+            )
+        )
+        conn.execute(
+            text(
+                "INSERT INTO page (id, expires_at, token_hint, filename, created_at, file_size) "
+                "VALUES (:id, :exp, :hint, :fn, :ca, :fs)"
+            ),
+            {
+                "id": "abc123",
+                "exp": datetime(2099, 1, 1, tzinfo=UTC),
+                "hint": "alice",
+                "fn": "test.html",
+                "ca": datetime(2026, 1, 1, tzinfo=UTC),
+                "fs": 1024,
+            },
+        )
+        conn.commit()
+
+    _migration_4(engine)
+
+    with engine.connect() as conn:
+        row = conn.execute(
+            text("SELECT id, token_hint, filename, file_size FROM page WHERE id = 'abc123'")
+        ).first()
+
+    assert row is not None
+    assert row[0] == "abc123"
+    assert row[1] == "alice"
+    assert row[2] == "test.html"
+    assert row[3] == 1024
+    engine.dispose()

@@ -55,3 +55,12 @@ def require_admin(user: TokenUser = Depends(get_current_user)) -> TokenUser:
         logger.warning("auth.failure", reason="not_admin", user=user.name)
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
     return user
+
+
+def get_db_user(user: TokenUser = Depends(get_current_user)) -> TokenUser:
+    if user.user_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="DB user required",
+        )
+    return user

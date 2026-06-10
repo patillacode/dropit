@@ -1,11 +1,12 @@
 from pathlib import Path
 
 from fastapi import APIRouter, Request
-from fastapi.responses import Response
+from fastapi.responses import FileResponse, Response
 from fastapi.templating import Jinja2Templates
 
 router = APIRouter()
 _TEMPLATES = Jinja2Templates(directory=Path(__file__).parent.parent / "templates")
+_STATIC = Path(__file__).parent.parent / "static"
 
 _ROBOTS_TXT = """\
 User-agent: *
@@ -26,10 +27,20 @@ def robots():
 
 
 @router.get("/")
-def landing(request: Request):
+def landing():
+    return FileResponse(_STATIC / "landing.html")
+
+
+@router.get("/upload")
+def upload_ui(request: Request):
     return _TEMPLATES.TemplateResponse(request, "index.html")
 
 
 @router.get("/admin")
 def admin_ui(request: Request):
     return _TEMPLATES.TemplateResponse(request, "admin.html")
+
+
+@router.get("/files")
+def files_ui(request: Request):
+    return _TEMPLATES.TemplateResponse(request, "files.html")

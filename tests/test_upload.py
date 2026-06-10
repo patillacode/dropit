@@ -2,10 +2,10 @@ import secrets
 from datetime import UTC, datetime
 
 from fastapi.testclient import TestClient
-from sqlmodel import Session
+from sqlmodel import Session, select
 from structlog.testing import capture_logs
 
-from app.models import Page
+from app.models import Collection, Page
 from app.settings import get_settings
 from tests.conftest import ADMIN_TOKEN, USER_TOKEN
 
@@ -270,3 +270,91 @@ def test_upload_invalid_content_is_logged(client):
     failures = [entry for entry in cap if entry.get("event") == "upload.failure"]
     assert len(failures) == 1
     assert failures[0]["reason"] == "invalid_content"
+
+
+def test_upload_with_collection(client):
+    content = b"<!doctype html><html><body>hi</body></html>"
+    response = client.post(
+        "/upload?collection=work",
+        headers={"Authorization": f"Bearer {USER_TOKEN}"},
+        files={"file": ("test.html", content, "text/html")},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["collection"] == "work"
+    assert "url" in data
+    assert "expires_at" in data
+
+    with Session(client.app.state.engine) as session:
+        colls = session.exec(select(Collection).where(Collection.name == "work")).all()
+        assert len(colls) == 1
+        assert colls[0].name == "work"
+
+
+def test_upload_with_existing_collection(client):
+    content = b"<!doctype html><html><body>hi</body></html>"
+    headers = {"Authorization": f"Bearer {USER_TOKEN}"}
+
+    r1 = client.post(
+        "/upload?collection=archive",
+        headers=headers,
+        files={"file": ("test1.html", content, "text/html")},
+    )
+    assert r1.status_code == 200
+
+    r2 = client.post(
+        "/upload?collection=archive",
+        headers=headers,
+        files={"file": ("test2.html", content, "text/html")},
+    )
+    assert r2.status_code == 200
+
+    with Session(client.app.state.engine) as session:
+        colls = session.exec(select(Collection).where(Collection.name == "archive")).all()
+        assert len(colls) == 1
+
+
+def test_upload_normalizes_collection_name(client):
+    content = b"<!doctype html><html><body>hi</body></html>"
+    response = client.post(
+        "/upload?collection=MyCollection",
+        headers={"Authorization": f"Bearer {USER_TOKEN}"},
+        files={"file": ("test.html", content, "text/html")},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["collection"] == "mycollection"
+
+
+def test_upload_without_collection(client):
+    content = b"<!doctype html><html><body>hi</body></html>"
+    response = client.post(
+        "/upload",
+        headers={"Authorization": f"Bearer {USER_TOKEN}"},
+        files={"file": ("test.html", content, "text/html")},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["collection"] is None
+
+
+def test_upload_collection_requires_db_user(client):
+    content = b"<!doctype html><html><body>hi</body></html>"
+    response = client.post(
+        "/upload?collection=foo",
+        headers={"Authorization": f"Bearer {ADMIN_TOKEN}"},
+        files={"file": ("test.html", content, "text/html")},
+    )
+    assert response.status_code == 401
+    assert "DB user required" in response.json()["detail"]
+
+
+def test_upload_collection_empty_name_rejected(client):
+    content = b"<!doctype html><html><body>hi</body></html>"
+    response = client.post(
+        "/upload?collection=   ",
+        headers={"Authorization": f"Bearer {USER_TOKEN}"},
+        files={"file": ("test.html", content, "text/html")},
+    )
+    assert response.status_code == 422
+    assert "Collection name cannot be empty" in response.json()["detail"]

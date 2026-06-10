@@ -1,4 +1,6 @@
 import os
+import sqlite3
+from datetime import datetime
 
 import pytest
 from fastapi.testclient import TestClient
@@ -12,6 +14,9 @@ from app.limiter import limiter
 from app.main import create_app
 from app.models import User
 from app.settings import get_settings
+
+sqlite3.register_adapter(datetime, lambda d: d.isoformat())
+sqlite3.register_converter("DATETIME", lambda b: datetime.fromisoformat(b.decode()))
 
 USER_TOKEN = "tok_test123"
 ADMIN_TOKEN = "admin_tok_xyz"
@@ -66,7 +71,8 @@ def client(tmp_path, monkeypatch):
 
     with TestClient(app) as c:
         yield c
-    # lifespan teardown calls dispose_engine() which disposes and nulls db_mod._engine
+    # lifespan teardown calls dispose_engine(); also dispose the local ref explicitly
+    engine.dispose()
 
 
 @pytest.fixture(autouse=True)

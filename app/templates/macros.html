@@ -1,0 +1,16 @@
+{% macro token_section(badge_text="Connected") %}
+<label for="tokenInput">API token</label>
+<div id="tokenField">
+    <form class="token-input-row" id="tokenForm">
+        <input type="password" id="tokenInput" placeholder="your-api-token" autocomplete="off" spellcheck="false">
+        <button type="submit" class="btn btn--accent" id="tokenConnectBtn">Connect</button>
+    </form>
+    <p class="token-hint" id="tokenHint" style="display:none"></p>
+</div>
+<div class="token-indicator" id="tokenIndicator" style="display:none">
+    <span class="token-badge">{{ badge_text }}</span>
+    <strong id="tokenName"></strong>
+    <button class="btn" id="tokenRegenBtn">regenerate</button>
+    <button class="btn" id="tokenChangeBtn">disconnect</button>
+</div>
+{% endmacro %}
