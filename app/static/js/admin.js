@@ -234,12 +234,15 @@ function renderUsers(users) {
     const tr = document.createElement('tr');
 
     const tdName = document.createElement('td');
+    tdName.dataset.label = 'Name';
     tdName.textContent = u.name;
 
     const tdAdmin = document.createElement('td');
+    tdAdmin.dataset.label = 'Admin';
     tdAdmin.textContent = u.is_admin ? 'yes' : '—';
 
     const tdCreated = document.createElement('td');
+    tdCreated.dataset.label = 'Created';
     tdCreated.textContent = u.created_at ? fmtDate(u.created_at) : '—';
 
     const tdAct = document.createElement('td');
@@ -404,12 +407,15 @@ async function loadCleanupHistory() {
       const tr = document.createElement('tr');
 
       const tdTime = document.createElement('td');
+      tdTime.dataset.label = 'Ran at';
       tdTime.textContent = fmtUtc(run.ran_at);
 
       const tdCount = document.createElement('td');
+      tdCount.dataset.label = 'Deleted';
       tdCount.textContent = run.deleted_count;
 
       const tdBy = document.createElement('td');
+      tdBy.dataset.label = 'Triggered by';
       renderTriggeredBy(tdBy, run.triggered_by);
 
       tr.appendChild(tdTime);
