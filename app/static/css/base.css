@@ -38,7 +38,9 @@
     border-radius: var(--r);
     overflow: hidden;
 }
-.table-wrap.visible { display: block; }
+.table-wrap.visible {
+    display: block;
+}
 
 .table-wrap table {
     width: 100%;
@@ -62,20 +64,46 @@
     border-bottom: 1px solid var(--border);
     color: var(--muted);
 }
-.table-wrap tr:last-child td { border-bottom: none; }
+.table-wrap tr:last-child td {
+    border-bottom: none;
+}
 
-.table-wrap td a { color: var(--text); text-decoration: none; }
-.table-wrap td a:hover { color: var(--accent); }
+.table-wrap td a {
+    color: var(--text);
+    text-decoration: none;
+}
+.table-wrap td a:hover {
+    color: var(--accent);
+}
 
-.th-actions { width: 1%; white-space: nowrap; text-align: right; }
+.th-actions {
+    width: 1%;
+    white-space: nowrap;
+    text-align: right;
+}
 
-.td-expires { font-size: 0.8rem; white-space: nowrap; }
+.td-expires {
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
 
-.page-actions { display: flex; gap: 0.4rem; justify-content: flex-end; }
+.page-actions {
+    display: flex;
+    gap: 0.4rem;
+    justify-content: flex-end;
+}
 
-.page-detail { display: none; }
-.page-detail.open { display: table-row; }
-.page-detail > td { padding: 0; text-align: left; background: rgba(255, 255, 255, 0.015); }
+.page-detail {
+    display: none;
+}
+.page-detail.open {
+    display: table-row;
+}
+.page-detail > td {
+    padding: 0;
+    text-align: left;
+    background: rgba(255, 255, 255, 0.015);
+}
 
 .detail-grid {
     display: flex;
@@ -83,14 +111,22 @@
     flex-wrap: wrap;
     padding: 0.9rem;
 }
-.detail-item { display: flex; flex-direction: column; gap: 0.25rem; }
+.detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
 .detail-key {
     font-size: 0.7rem;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--muted);
 }
-.detail-val { font-size: 0.82rem; color: var(--text); word-break: break-all; }
+.detail-val {
+    font-size: 0.82rem;
+    color: var(--text);
+    word-break: break-all;
+}
 
 .exp-permanent {
     color: var(--ok);

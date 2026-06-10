@@ -1,5 +1,7 @@
 set dotenv-load
 
+biome_version := "2.4.16"
+
 # List available recipes
 default:
     @just --list
@@ -34,6 +36,18 @@ fix:
 # Check formatting (CI-safe, no writes)
 format-check:
     uv run ruff format --check app/ tests/
+
+# Lint & format-check web assets (JS/CSS) with Biome
+lint-web:
+    npx --yes @biomejs/biome@{{biome_version}} ci app/static/js app/static/css
+
+# Auto-format and apply safe fixes to web assets (JS/CSS) with Biome
+fmt-web:
+    npx --yes @biomejs/biome@{{biome_version}} check --write app/static/js app/static/css
+
+# Install git hooks (prek)
+hooks:
+    prek install
 
 # Generate a random admin token
 admin-token:

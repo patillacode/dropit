@@ -1,0 +1,32 @@
+# Managed by prek (https://prek.j178.dev/). Install hooks with: just hooks
+# Lint/format only — the test suite + 100% coverage gate run in CI, not on commit.
+exclude: '\.(woff2|png|svg|ico)$|^uv\.lock$'
+
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.15
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+        files: ^(app|tests)/.*\.py$
+      - id: ruff-format
+        files: ^(app|tests)/.*\.py$
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-added-large-files
+        args: [--maxkb=600]
+
+  - repo: local
+    hooks:
+      - id: biome-check
+        name: biome check (JS/CSS)
+        entry: npx --yes @biomejs/biome@2.4.16 check --write --no-errors-on-unmatched
+        language: system
+        files: ^app/static/(js|css)/.*\.(js|css)$
+        pass_filenames: true

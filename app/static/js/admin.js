@@ -1,36 +1,36 @@
-import { getToken, setToken, clearToken, initNav } from '/static/js/auth.js';
-import { showTokenField, showTokenIndicator } from '/static/js/token-shared.js';
-import { showTokenModal, showConfirmModal } from '/static/js/token-modal.js';
-import { asUtc, fmtDate, fmtSize } from '/static/js/utils.js';
+import { clearToken, getToken, initNav, setToken } from '/static/js/auth.js';
 import { renderPagesTable } from '/static/js/pages-table.js';
+import { showConfirmModal, showTokenModal } from '/static/js/token-modal.js';
+import { showTokenField, showTokenIndicator } from '/static/js/token-shared.js';
+import { asUtc, fmtDate, fmtSize } from '/static/js/utils.js';
 
-const tokenInputEl   = document.getElementById('tokenInput');
-const tokenFieldEl   = document.getElementById('tokenField');
-const tokenInd       = document.getElementById('tokenIndicator');
-const tokenHintEl    = document.getElementById('tokenHint');
-const tokenNameEl    = document.getElementById('tokenName');
-const tokenChgBtn    = document.getElementById('tokenChangeBtn');
-const tokenRegenBtn  = document.getElementById('tokenRegenBtn');
-const tokenForm      = document.getElementById('tokenForm');
-const usersCardEl    = document.getElementById('usersCard');
-const usersBodyEl    = document.getElementById('usersBody');
+const tokenInputEl = document.getElementById('tokenInput');
+const tokenFieldEl = document.getElementById('tokenField');
+const tokenInd = document.getElementById('tokenIndicator');
+const tokenHintEl = document.getElementById('tokenHint');
+const tokenNameEl = document.getElementById('tokenName');
+const tokenChgBtn = document.getElementById('tokenChangeBtn');
+const tokenRegenBtn = document.getElementById('tokenRegenBtn');
+const tokenForm = document.getElementById('tokenForm');
+const usersCardEl = document.getElementById('usersCard');
+const usersBodyEl = document.getElementById('usersBody');
 const userCreateForm = document.getElementById('userCreateForm');
-const newUserNameEl  = document.getElementById('newUserName');
+const newUserNameEl = document.getElementById('newUserName');
 const newUserAdminEl = document.getElementById('newUserAdmin');
-const errorEl        = document.getElementById('errorEl');
-const statsEl        = document.getElementById('stats');
-const tableWrap      = document.getElementById('tableWrap');
-const pagesSection   = document.getElementById('pagesSection');
-const emptyEl        = document.getElementById('emptyEl');
-const statTotal      = document.getElementById('statTotal');
-const statPermanent  = document.getElementById('statPermanent');
-const statSize       = document.getElementById('statSize');
-const statUsers      = document.getElementById('statUsers');
-const cleanupCardEl  = document.getElementById('cleanupCard');
-const triggerBtn     = document.getElementById('triggerBtn');
-const histToggleBtn  = document.getElementById('historyToggleBtn');
-const histWrap       = document.getElementById('cleanupHistoryWrap');
-const histBody       = document.getElementById('cleanupHistoryBody');
+const errorEl = document.getElementById('errorEl');
+const statsEl = document.getElementById('stats');
+const tableWrap = document.getElementById('tableWrap');
+const pagesSection = document.getElementById('pagesSection');
+const emptyEl = document.getElementById('emptyEl');
+const statTotal = document.getElementById('statTotal');
+const statPermanent = document.getElementById('statPermanent');
+const statSize = document.getElementById('statSize');
+const statUsers = document.getElementById('statUsers');
+const cleanupCardEl = document.getElementById('cleanupCard');
+const triggerBtn = document.getElementById('triggerBtn');
+const histToggleBtn = document.getElementById('historyToggleBtn');
+const histWrap = document.getElementById('cleanupHistoryWrap');
+const histBody = document.getElementById('cleanupHistoryBody');
 
 const _tokenEls = { fieldEl: tokenFieldEl, indicatorEl: tokenInd, hintEl: tokenHintEl };
 let historyVisible = false;
@@ -39,19 +39,22 @@ let currentUserName = null;
 function fmtUtc(iso) {
   const d = asUtc(iso);
   if (!d) return '—';
-  return d.toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
+  return `${d.toISOString().slice(0, 16).replace('T', ' ')} UTC`;
 }
 
 function showIndicator() {
   showTokenIndicator(
     { fieldEl: tokenFieldEl, indicatorEl: tokenInd, nameEl: tokenNameEl },
-    currentUserName || 'admin'
+    currentUserName || 'admin',
   );
   cleanupCardEl.classList.add('visible');
   usersCardEl.classList.add('visible');
 }
 
-tokenForm.addEventListener('submit', e => { e.preventDefault(); tryConnect(); });
+tokenForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  tryConnect();
+});
 
 tokenChgBtn.addEventListener('click', () => {
   clearToken();
@@ -96,7 +99,10 @@ async function tryConnect() {
 
 async function connect(tokenArg) {
   const token = tokenArg ?? getToken();
-  if (!token) { showTokenField(_tokenEls); return; }
+  if (!token) {
+    showTokenField(_tokenEls);
+    return;
+  }
   errorEl.classList.remove('visible');
   let me;
   try {
@@ -161,7 +167,13 @@ async function loadPages() {
 
     const pages = await res.json();
     updateStats(pages);
-    renderPagesTable(pages, { tableWrap, emptyEl, errorEl, showUploader: true, deletePage: deletePageFetch });
+    renderPagesTable(pages, {
+      tableWrap,
+      emptyEl,
+      errorEl,
+      showUploader: true,
+      deletePage: deletePageFetch,
+    });
     pagesSection.classList.add('visible');
   } catch (err) {
     errorEl.textContent = err.message;
@@ -203,7 +215,6 @@ function clearAll() {
   histToggleBtn.textContent = 'Show history';
 }
 
-
 async function loadUsers() {
   const token = getToken();
   if (!token) return;
@@ -219,7 +230,7 @@ async function loadUsers() {
 function renderUsers(users) {
   statUsers.textContent = users.length;
   while (usersBodyEl.firstChild) usersBodyEl.removeChild(usersBodyEl.firstChild);
-  users.forEach(u => {
+  users.forEach((u) => {
     const tr = document.createElement('tr');
 
     const tdName = document.createElement('td');
@@ -259,7 +270,7 @@ function renderUsers(users) {
   });
 }
 
-userCreateForm.addEventListener('submit', async e => {
+userCreateForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const name = newUserNameEl.value.trim();
   if (!name) return;
@@ -345,7 +356,7 @@ function renderTriggeredBy(container, triggeredBy) {
   while (container.firstChild) container.removeChild(container.firstChild);
   if (!triggeredBy) return;
   const badge = document.createElement('span');
-  badge.className = 'trigger-badge ' + (triggeredBy === 'scheduler' ? 'scheduler' : 'manual');
+  badge.className = `trigger-badge ${triggeredBy === 'scheduler' ? 'scheduler' : 'manual'}`;
   badge.textContent = triggeredBy;
   container.appendChild(badge);
 }
@@ -361,10 +372,17 @@ async function loadCleanupStatus() {
     const data = await res.json();
 
     const lastRun = data.last_run;
-    document.getElementById('cleanupLastRun').textContent   = lastRun ? fmtUtc(lastRun.ran_at) : 'No runs yet';
-    document.getElementById('cleanupDeletedCount').textContent = lastRun ? lastRun.deleted_count : '—';
-    renderTriggeredBy(document.getElementById('cleanupTriggeredBy'), lastRun ? lastRun.triggered_by : null);
-    document.getElementById('cleanupNextRun').textContent   = fmtUtc(data.next_run);
+    document.getElementById('cleanupLastRun').textContent = lastRun
+      ? fmtUtc(lastRun.ran_at)
+      : 'No runs yet';
+    document.getElementById('cleanupDeletedCount').textContent = lastRun
+      ? lastRun.deleted_count
+      : '—';
+    renderTriggeredBy(
+      document.getElementById('cleanupTriggeredBy'),
+      lastRun ? lastRun.triggered_by : null,
+    );
+    document.getElementById('cleanupNextRun').textContent = fmtUtc(data.next_run);
   } catch (_) {
     // cleanup status is non-critical — fail silently
   }
@@ -382,7 +400,7 @@ async function loadCleanupHistory() {
 
     while (histBody.firstChild) histBody.removeChild(histBody.firstChild);
 
-    runs.forEach(run => {
+    runs.forEach((run) => {
       const tr = document.createElement('tr');
 
       const tdTime = document.createElement('td');
@@ -442,6 +460,9 @@ histToggleBtn.addEventListener('click', async () => {
 // Boot
 initNav({
   onLogin: connectFromNav,
-  onLogout: () => { clearAll(); showTokenField(_tokenEls); },
+  onLogout: () => {
+    clearAll();
+    showTokenField(_tokenEls);
+  },
 });
 if (!getToken()) showTokenField(_tokenEls);

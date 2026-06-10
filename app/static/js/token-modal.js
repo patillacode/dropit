@@ -20,17 +20,17 @@ function buildModal({ title, bodyNodes = [], actions = [], onDismiss }) {
   h.textContent = title;
   modal.appendChild(h);
 
-  bodyNodes.forEach(n => modal.appendChild(n));
+  for (const n of bodyNodes) modal.appendChild(n);
 
   const act = document.createElement('div');
   act.className = 'token-modal-actions';
-  actions.forEach(b => act.appendChild(b));
+  for (const b of actions) act.appendChild(b);
   modal.appendChild(act);
 
   overlay.appendChild(modal);
 
   const close = () => overlay.remove();
-  overlay.addEventListener('click', e => {
+  overlay.addEventListener('click', (e) => {
     if (e.target === overlay) {
       close();
       if (onDismiss) onDismiss();
@@ -44,7 +44,12 @@ function buildModal({ title, bodyNodes = [], actions = [], onDismiss }) {
 async function copyToken(codeEl, btn, token) {
   let copied = false;
   if (navigator.clipboard && window.isSecureContext) {
-    try { await navigator.clipboard.writeText(token); copied = true; } catch { /* fall through */ }
+    try {
+      await navigator.clipboard.writeText(token);
+      copied = true;
+    } catch {
+      /* fall through */
+    }
   }
   if (!copied) {
     const range = document.createRange();
@@ -52,14 +57,19 @@ async function copyToken(codeEl, btn, token) {
     const sel = window.getSelection();
     sel.removeAllRanges();
     sel.addRange(range);
-    try { copied = document.execCommand('copy'); } catch { copied = false; }
+    try {
+      copied = document.execCommand('copy');
+    } catch {
+      copied = false;
+    }
     sel.removeAllRanges();
   }
   btn.textContent = copied ? 'Copied!' : 'Copy failed';
 }
 
 export function showTokenModal(token, opts) {
-  const { title = 'New token', subtitle = "Copy this token — it won't be shown again." } = opts || {};
+  const { title = 'New token', subtitle = "Copy this token — it won't be shown again." } =
+    opts || {};
 
   const sub = document.createElement('p');
   sub.className = 'token-modal-sub';
@@ -86,7 +96,7 @@ export function showConfirmModal(opts) {
     danger = false,
   } = opts || {};
 
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     const msg = document.createElement('p');
     msg.className = 'token-modal-sub';
     msg.textContent = message;
@@ -95,7 +105,7 @@ export function showConfirmModal(opts) {
     const confirmBtn = mkBtn(confirmLabel, danger ? 'btn btn--danger' : 'btn btn--accent');
 
     let done = false;
-    const finish = value => {
+    const finish = (value) => {
       if (done) return;
       done = true;
       close();
@@ -134,7 +144,7 @@ export function showInputModal(opts) {
     placeholder = '',
   } = opts || {};
 
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     const nodes = [];
     if (message) {
       const msg = document.createElement('p');
@@ -154,7 +164,7 @@ export function showInputModal(opts) {
     const confirmBtn = mkBtn(confirmLabel, 'btn btn--accent');
 
     let done = false;
-    const finish = value => {
+    const finish = (value) => {
       if (done) return;
       done = true;
       close();
@@ -168,10 +178,19 @@ export function showInputModal(opts) {
       onDismiss: () => finish(null),
     });
 
-    setTimeout(() => { input.focus(); input.select(); }, 0);
-    input.addEventListener('keydown', e => {
-      if (e.key === 'Enter') { e.preventDefault(); finish(input.value.trim() || null); }
-      if (e.key === 'Escape') { e.preventDefault(); finish(null); }
+    setTimeout(() => {
+      input.focus();
+      input.select();
+    }, 0);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        finish(input.value.trim() || null);
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        finish(null);
+      }
     });
     cancelBtn.addEventListener('click', () => finish(null));
     confirmBtn.addEventListener('click', () => finish(input.value.trim() || null));

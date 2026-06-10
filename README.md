@@ -164,11 +164,27 @@ docker compose up
 
 ```bash
 just test           # run test suite
-just lint           # check with ruff
-just fix            # auto-fix lint + format
+just lint           # check Python with ruff
+just fix            # auto-fix lint + format (Python)
+just lint-web       # lint + format-check JS/CSS with Biome
+just fmt-web        # auto-format + safe-fix JS/CSS with Biome
 just reset-db       # delete dev database (forces fresh schema)
 just admin-token    # generate a random admin token
 ```
+
+### Git hooks
+
+Lint/format runs on every commit via [prek](https://prek.j178.dev/) (a fast drop-in for
+pre-commit). Install the hooks once:
+
+```bash
+uv tool install prek   # if not already installed
+just hooks             # prek install
+```
+
+Hooks run ruff (lint + format), Biome (JS/CSS), and file-hygiene checks — no tests, so commits
+stay fast. The test suite and 100% coverage gate run in CI. JS/CSS tooling uses Biome (pinned
+in `biome.json`); CI runs it as a separate `web` job.
 
 ## Configuration
 

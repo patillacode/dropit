@@ -32,6 +32,22 @@ jobs:
           uv export --format requirements-txt --no-hashes --no-emit-project -o /tmp/reqs.txt
           uvx pip-audit -r /tmp/reqs.txt
 
+  web:
+    runs-on: docker
+    container:
+      image: catthehacker/ubuntu:act-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Biome
+        run: |
+          curl -fsSL https://github.com/biomejs/biome/releases/download/@biomejs/biome@2.4.16/biome-linux-x64 -o /usr/local/bin/biome
+          chmod +x /usr/local/bin/biome
+
+      - name: Lint & format check (JS/CSS)
+        run: biome ci app/static/js app/static/css
+
   smoke:
     needs: test
     runs-on: docker
