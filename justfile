@@ -1,12 +1,16 @@
 set dotenv-load
 
+biome_version := "2.4.16"
+
 # List available recipes
 default:
     @just --list
 
-# Install dependencies
+# Install dependencies + git hooks (needs Node for web linting via npx)
 install:
     uv sync --all-extras
+    command -v prek >/dev/null 2>&1 || uv tool install prek
+    prek install
 
 # Run dev server with hot reload on :8000
 dev:
@@ -27,13 +31,25 @@ cov: test-cov
 lint:
     uv run ruff check app/ tests/
 
-# Auto-fix lint and format issues
-fix:
+# Auto-fix lint and format issues (Python + web)
+fix: format-web
     uv run ruff check --fix app/ tests/ && uv run ruff format app/ tests/
 
 # Check formatting (CI-safe, no writes)
 format-check:
     uv run ruff format --check app/ tests/
+
+# Lint & format-check web assets (JS/CSS) with Biome
+lint-web:
+    npx --yes @biomejs/biome@{{biome_version}} ci app/static/js app/static/css
+
+# Auto-format and apply safe fixes to web assets (JS/CSS) with Biome
+format-web:
+    npx --yes @biomejs/biome@{{biome_version}} check --write app/static/js app/static/css
+
+# Install git hooks (prek)
+hooks:
+    prek install
 
 # Generate a random admin token
 admin-token:

@@ -26,15 +26,15 @@ export function initNav({ onLogin, onLogout } = {}) {
   const navAdminEl = document.querySelector('.nav-admin');
 
   const path = window.location.pathname;
-  document.querySelectorAll('.nav-link').forEach(link => {
+  document.querySelectorAll('.nav-link').forEach((link) => {
     const href = link.getAttribute('href');
-    const active = path === href || path.startsWith(href + '/');
+    const active = path === href || path.startsWith(`${href}/`);
     link.classList.toggle('nav-link--active', active);
   });
 
   const token = getToken();
   if (token) {
-    fetchMe(token).then(user => {
+    fetchMe(token).then((user) => {
       if (user) {
         if (navAdminEl) navAdminEl.style.display = user.is_admin ? '' : 'none';
         if (onLogin) onLogin(user);

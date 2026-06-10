@@ -1,37 +1,37 @@
+import { clearToken, getToken, initNav, setToken } from '/static/js/auth.js';
+import { showConfirmModal, showNoticeModal, showTokenModal } from '/static/js/token-modal.js';
 import { showTokenField, showTokenIndicator } from '/static/js/token-shared.js';
-import { showTokenModal, showConfirmModal, showNoticeModal } from '/static/js/token-modal.js';
 import { asUtc } from '/static/js/utils.js';
-import { getToken, setToken, clearToken, initNav } from '/static/js/auth.js';
 
-const tokenInputEl      = document.getElementById('tokenInput');
-const tokenFieldEl      = document.getElementById('tokenField');
-const tokenIndicator    = document.getElementById('tokenIndicator');
-const tokenNameEl       = document.getElementById('tokenName');
-const tokenHintEl       = document.getElementById('tokenHint');
-const tokenChangeBtn    = document.getElementById('tokenChangeBtn');
-const tokenRegenBtn     = document.getElementById('tokenRegenBtn');
-const tokenForm         = document.getElementById('tokenForm');
-const ttlSelect         = document.getElementById('ttl');
-const dropZone          = document.getElementById('dropZone');
-const fileInput         = document.getElementById('fileInput');
-const dzUrl             = document.getElementById('dzUrl');
-const dzExpires         = document.getElementById('dzExpires');
-const dzResetBtn        = document.getElementById('dzResetBtn');
-const dzCopyBtn         = document.getElementById('dzCopyBtn');
-const dzErrorMsg        = document.getElementById('dzErrorMsg');
-const srStatus          = document.getElementById('srStatus');
-const collectionField   = document.getElementById('collectionField');
-const collectionSelect  = document.getElementById('collectionSelect');
+const tokenInputEl = document.getElementById('tokenInput');
+const tokenFieldEl = document.getElementById('tokenField');
+const tokenIndicator = document.getElementById('tokenIndicator');
+const tokenNameEl = document.getElementById('tokenName');
+const tokenHintEl = document.getElementById('tokenHint');
+const tokenChangeBtn = document.getElementById('tokenChangeBtn');
+const tokenRegenBtn = document.getElementById('tokenRegenBtn');
+const tokenForm = document.getElementById('tokenForm');
+const ttlSelect = document.getElementById('ttl');
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+const dzUrl = document.getElementById('dzUrl');
+const dzExpires = document.getElementById('dzExpires');
+const dzResetBtn = document.getElementById('dzResetBtn');
+const dzCopyBtn = document.getElementById('dzCopyBtn');
+const dzErrorMsg = document.getElementById('dzErrorMsg');
+const srStatus = document.getElementById('srStatus');
+const collectionField = document.getElementById('collectionField');
+const collectionSelect = document.getElementById('collectionSelect');
 const newCollectionInput = document.getElementById('newCollectionInput');
-const noCollsHint       = document.getElementById('noCollsHint');
-const breakGlassHint    = document.getElementById('breakGlassHint');
+const noCollsHint = document.getElementById('noCollsHint');
+const breakGlassHint = document.getElementById('breakGlassHint');
 
-const _tokenEls     = { fieldEl: tokenFieldEl, indicatorEl: tokenIndicator, hintEl: tokenHintEl };
+const _tokenEls = { fieldEl: tokenFieldEl, indicatorEl: tokenIndicator, hintEl: tokenHintEl };
 const _indicatorEls = { fieldEl: tokenFieldEl, indicatorEl: tokenIndicator, nameEl: tokenNameEl };
 
 let selectedFile = null;
-let currentUser  = null;
-let appConfig    = null;
+let currentUser = null;
+let appConfig = null;
 
 function setState(state) {
   dropZone.dataset.state = state;
@@ -102,7 +102,7 @@ function onLogout() {
 }
 
 async function init() {
-  appConfig = await fetch('/config').then(r => r.json());
+  appConfig = await fetch('/config').then((r) => r.json());
   populateTTL(false);
   if (!getToken()) showTokenField(_tokenEls, 'Contact your admin to get a token');
   initNav({ onLogin, onLogout });
@@ -134,7 +134,7 @@ function populateTTL(isAdmin) {
   const ttls = isAdmin ? appConfig.allowed_ttls : appConfig.user_ttls;
   const defaultTtl = isAdmin ? appConfig.default_ttl : appConfig.user_default_ttl;
   while (ttlSelect.firstChild) ttlSelect.removeChild(ttlSelect.firstChild);
-  ttls.forEach(t => {
+  ttls.forEach((t) => {
     const opt = document.createElement('option');
     opt.value = t;
     opt.textContent = t;
@@ -143,7 +143,10 @@ function populateTTL(isAdmin) {
   });
 }
 
-tokenForm.addEventListener('submit', e => { e.preventDefault(); saveToken(); });
+tokenForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  saveToken();
+});
 
 async function saveToken() {
   const token = tokenInputEl.value.trim();
@@ -174,7 +177,8 @@ tokenRegenBtn.addEventListener('click', async () => {
   if (!token) return;
   const ok = await showConfirmModal({
     title: 'Regenerate your token?',
-    message: 'Your current token stops working everywhere immediately — other devices, the CLI, and other browsers.',
+    message:
+      'Your current token stops working everywhere immediately — other devices, the CLI, and other browsers.',
     confirmLabel: 'Regenerate',
     danger: true,
   });
@@ -185,11 +189,12 @@ tokenRegenBtn.addEventListener('click', async () => {
       headers: { Authorization: `Bearer ${token}` },
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(
-      res.status === 429
-        ? 'Rate limit reached — wait a minute before regenerating your token'
-        : (data.detail || `Error ${res.status}`)
-    );
+    if (!res.ok)
+      throw new Error(
+        res.status === 429
+          ? 'Rate limit reached — wait a minute before regenerating your token'
+          : data.detail || `Error ${res.status}`,
+      );
     setToken(data.token);
     showTokenModal(data.token, {
       title: 'Your new token',
@@ -204,7 +209,9 @@ dzCopyBtn.addEventListener('click', async () => {
   try {
     await navigator.clipboard.writeText(dzUrl.href);
     dzCopyBtn.textContent = 'Copied!';
-    setTimeout(() => { dzCopyBtn.textContent = 'Copy URL'; }, 1500);
+    setTimeout(() => {
+      dzCopyBtn.textContent = 'Copy URL';
+    }, 1500);
   } catch {
     // clipboard API unavailable
   }
@@ -214,24 +221,31 @@ dropZone.addEventListener('click', () => {
   const state = dropZone.dataset.state;
   if (state === 'idle' || state === 'error') fileInput.click();
 });
-dropZone.addEventListener('keydown', e => {
-  if ((e.key === 'Enter' || e.key === ' ') &&
-      (dropZone.dataset.state === 'idle' || dropZone.dataset.state === 'error')) {
+dropZone.addEventListener('keydown', (e) => {
+  if (
+    (e.key === 'Enter' || e.key === ' ') &&
+    (dropZone.dataset.state === 'idle' || dropZone.dataset.state === 'error')
+  ) {
     e.preventDefault();
     fileInput.click();
   }
 });
-dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
-dropZone.addEventListener('dragleave', e => {
+dropZone.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  dropZone.classList.add('drag-over');
+});
+dropZone.addEventListener('dragleave', (e) => {
   if (!dropZone.contains(e.relatedTarget)) dropZone.classList.remove('drag-over');
 });
-dropZone.addEventListener('drop', e => {
+dropZone.addEventListener('drop', (e) => {
   e.preventDefault();
   dropZone.classList.remove('drag-over');
   const f = e.dataTransfer.files[0];
   if (f) pick(f);
 });
-fileInput.addEventListener('change', () => { if (fileInput.files[0]) pick(fileInput.files[0]); });
+fileInput.addEventListener('change', () => {
+  if (fileInput.files[0]) pick(fileInput.files[0]);
+});
 
 function pick(f) {
   selectedFile = f;
@@ -267,23 +281,29 @@ async function doUpload() {
         collectionValue = collectionSelect.value;
       }
     }
-    const collectionParam = collectionValue ? `&collection=${encodeURIComponent(collectionValue)}` : '';
-    const res = await fetch(`/upload?ttl=${encodeURIComponent(ttlSelect.value)}${collectionParam}`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-      body,
-    });
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(
-      res.status === 429
-        ? 'Too many uploads — wait a minute before trying again'
-        : (data.detail || `Error ${res.status}`)
+    const collectionParam = collectionValue
+      ? `&collection=${encodeURIComponent(collectionValue)}`
+      : '';
+    const res = await fetch(
+      `/upload?ttl=${encodeURIComponent(ttlSelect.value)}${collectionParam}`,
+      {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body,
+      },
     );
 
+    const data = await res.json();
+    if (!res.ok)
+      throw new Error(
+        res.status === 429
+          ? 'Too many uploads — wait a minute before trying again'
+          : data.detail || `Error ${res.status}`,
+      );
+
     dzUrl.textContent = data.url;
-    dzUrl.href        = data.url;
-    dzUrl.title       = data.url;
+    dzUrl.href = data.url;
+    dzUrl.title = data.url;
     dzExpires.textContent = data.expires_at
       ? `Expires ${asUtc(data.expires_at).toLocaleString()}`
       : 'Never expires — permanent';
@@ -296,7 +316,7 @@ async function doUpload() {
   }
 }
 
-dzResetBtn.addEventListener('click', e => {
+dzResetBtn.addEventListener('click', (e) => {
   e.stopPropagation();
   selectedFile = null;
   fileInput.value = '';

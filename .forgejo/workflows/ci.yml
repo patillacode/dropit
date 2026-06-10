@@ -4,7 +4,7 @@ on:
   pull_request:
 
 jobs:
-  test:
+  lint:
     runs-on: docker
     container:
       image: catthehacker/ubuntu:act-22.04
@@ -18,11 +18,33 @@ jobs:
       - name: Install dependencies
         run: uv sync --all-extras --frozen
 
-      - name: Lint
+      - name: Ruff lint (Python)
         run: uv run ruff check app/ tests/
 
-      - name: Check formatting
+      - name: Ruff format check (Python)
         run: uv run ruff format --check app/ tests/
+
+      - name: Install Biome
+        run: |
+          curl -fsSL https://github.com/biomejs/biome/releases/download/@biomejs/biome@2.4.16/biome-linux-x64 -o /usr/local/bin/biome
+          chmod +x /usr/local/bin/biome
+
+      - name: Biome lint & format check (JS/CSS)
+        run: biome ci app/static/js app/static/css
+
+  test:
+    runs-on: docker
+    container:
+      image: catthehacker/ubuntu:act-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        run: pip install uv --no-cache-dir
+
+      - name: Install dependencies
+        run: uv sync --all-extras --frozen
 
       - name: Run tests with coverage
         run: uv run pytest --cov=app --cov-fail-under=100
