@@ -17,6 +17,30 @@ export function asUtc(iso) {
   return new Date(normalized);
 }
 
+export async function copyToClipboard(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      /* fall through to legacy path */
+    }
+  }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
 export function fmtExpiry(isoStr) {
   if (!isoStr) return { text: 'permanent', cls: 'exp-permanent' };
   const diff = new Date(isoStr) - Date.now();
