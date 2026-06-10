@@ -92,7 +92,8 @@ def delete_page(
     page = session.exec(select(Page).where(Page.id == page_id)).first()
     if page is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Page not found")
-    delete_page_file(page, session, settings.data_dir)
+    file_path = delete_page_file(page, session, settings.data_dir)
     session.commit()
+    file_path.unlink(missing_ok=True)
     logger.info("page.deleted", page_id=page_id, actor=user.name)
     return {"deleted": page_id}

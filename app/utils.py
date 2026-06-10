@@ -20,7 +20,10 @@ def format_dt(dt: datetime | None) -> str | None:
     return dt.isoformat() + "Z"
 
 
-def delete_page_file(page: "Page", session: Session, data_dir: str | Path) -> None:
+def delete_page_file(page: "Page", session: Session, data_dir: str | Path) -> Path:
+    # Stage the DB row for deletion and return its file path. The caller commits,
+    # then unlinks the returned path, so the file is only removed once the DB
+    # deletion is durable.
     file_path = Path(data_dir) / "pages" / page.id
-    file_path.unlink(missing_ok=True)
     session.delete(page)
+    return file_path

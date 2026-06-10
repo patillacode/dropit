@@ -91,6 +91,7 @@ def delete_my_page(
     if page is None or page.user_id != user.user_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Page not found")
     settings = get_settings()
-    delete_page_file(page, session, settings.data_dir)
+    file_path = delete_page_file(page, session, settings.data_dir)
     session.commit()
+    file_path.unlink(missing_ok=True)
     return {"deleted": page_id}

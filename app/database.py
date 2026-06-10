@@ -93,7 +93,14 @@ def _migration_4(engine) -> None:
         conn.commit()
 
 
-_MIGRATIONS = [_migration_1, _migration_2, _migration_3, _migration_4]
+def _migration_5(engine) -> None:
+    # Index expires_at — the cleanup job scans for expired pages on every run.
+    with engine.connect() as conn:
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_page_expires_at ON page (expires_at)"))
+        conn.commit()
+
+
+_MIGRATIONS = [_migration_1, _migration_2, _migration_3, _migration_4, _migration_5]
 
 
 def _run_migrations(engine) -> None:
