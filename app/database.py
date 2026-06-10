@@ -31,7 +31,18 @@ def get_engine():
     return _engine
 
 
+def _add_column_if_missing(conn, table: str, column: str, ddl_type: str) -> None:
+    existing = {r[1] for r in conn.execute(text(f"PRAGMA table_info({table})")).fetchall()}
+    if column not in existing:
+        conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {ddl_type}"))
+
+
+def _create_index_if_missing(conn, name: str, table: str, columns: str) -> None:
+    conn.execute(text(f"CREATE INDEX IF NOT EXISTS {name} ON {table} ({columns})"))
+
+
 def _migration_1(engine) -> None:
+    # Relax the original NOT NULL constraint on page.expires_at (rebuild table).
     with engine.connect() as conn:
         rows = conn.execute(text("PRAGMA table_info(page)")).fetchall()
     if not rows:
@@ -61,42 +72,32 @@ def _migration_1(engine) -> None:
 
 
 def _migration_2(engine) -> None:
+    # Add filename + created_at columns to page.
     with engine.connect() as conn:
-        rows = conn.execute(text("PRAGMA table_info(page)")).fetchall()
-        existing = {r[1] for r in rows}
-        if "filename" not in existing:
-            conn.execute(text("ALTER TABLE page ADD COLUMN filename TEXT"))
-        if "created_at" not in existing:
-            conn.execute(text("ALTER TABLE page ADD COLUMN created_at DATETIME"))
+        _add_column_if_missing(conn, "page", "filename", "TEXT")
+        _add_column_if_missing(conn, "page", "created_at", "DATETIME")
         conn.commit()
 
 
 def _migration_3(engine) -> None:
+    # Add file_size column to page.
     with engine.connect() as conn:
-        rows = conn.execute(text("PRAGMA table_info(page)")).fetchall()
-        existing = {r[1] for r in rows}
-        if "file_size" not in existing:
-            conn.execute(text("ALTER TABLE page ADD COLUMN file_size INTEGER"))
+        _add_column_if_missing(conn, "page", "file_size", "INTEGER")
         conn.commit()
 
 
 def _migration_4(engine) -> None:
+    # Add user_id + collection_id foreign keys to page.
     with engine.connect() as conn:
-        rows = conn.execute(text("PRAGMA table_info(page)")).fetchall()
-        existing = {r[1] for r in rows}
-        if "user_id" not in existing:
-            conn.execute(text("ALTER TABLE page ADD COLUMN user_id INTEGER REFERENCES user(id)"))
-        if "collection_id" not in existing:
-            conn.execute(
-                text("ALTER TABLE page ADD COLUMN collection_id INTEGER REFERENCES collection(id)")
-            )
+        _add_column_if_missing(conn, "page", "user_id", "INTEGER REFERENCES user(id)")
+        _add_column_if_missing(conn, "page", "collection_id", "INTEGER REFERENCES collection(id)")
         conn.commit()
 
 
 def _migration_5(engine) -> None:
     # Index expires_at — the cleanup job scans for expired pages on every run.
     with engine.connect() as conn:
-        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_page_expires_at ON page (expires_at)"))
+        _create_index_if_missing(conn, "ix_page_expires_at", "page", "expires_at")
         conn.commit()
 
 

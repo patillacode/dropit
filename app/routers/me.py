@@ -3,11 +3,12 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import func
 from sqlmodel import Session, col, select
 
-from app.auth import TokenUser, generate_token, get_current_user, get_db_user, hash_token
+from app.auth import TokenUser, get_current_user, get_db_user
 from app.database import get_session
 from app.limiter import limiter
 from app.models import Collection, Page, User
 from app.settings import get_settings
+from app.token_ops import regenerate_token
 from app.utils import delete_page_file, format_dt
 
 logger = structlog.get_logger()
@@ -36,10 +37,7 @@ def regenerate_own_token(
     db_user = session.get(User, user.user_id)
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
-    token = generate_token()
-    db_user.token_hash = hash_token(token)
-    session.add(db_user)
-    session.commit()
+    token = regenerate_token(db_user, session)
     logger.info("token.regenerated", user_id=user.user_id, user=db_user.name)
     return {"token": token}
 

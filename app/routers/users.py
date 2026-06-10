@@ -6,8 +6,11 @@ from sqlmodel import Session, select
 from app.auth import TokenUser, generate_token, get_current_user, hash_token, require_admin
 from app.database import get_session
 from app.models import Collection, Page, User
+from app.serializers import serialize_user
 from app.settings import get_settings
-from app.utils import delete_page_file, format_dt
+from app.token_ops import regenerate_token
+from app.utils import delete_page_file
+from app.validators import clean_required_name
 
 logger = structlog.get_logger()
 
@@ -19,28 +22,15 @@ class CreateUser(BaseModel):
     is_admin: bool = False
 
 
-def _serialize(user: User) -> dict:
-    return {
-        "id": user.id,
-        "name": user.name,
-        "is_admin": user.is_admin,
-        "created_at": format_dt(user.created_at),
-    }
-
-
 @router.get("")
 def list_users(session: Session = Depends(get_session)):
     users = session.exec(select(User).order_by(User.created_at)).all()
-    return [_serialize(user) for user in users]
+    return [serialize_user(user) for user in users]
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 def create_user(payload: CreateUser, session: Session = Depends(get_session)):
-    name = payload.name.strip()
-    if not name:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Name required"
-        )
+    name = clean_required_name(payload.name)
     if name.lower() == "admin":
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, detail="'admin' is reserved for break-glass"
@@ -53,7 +43,7 @@ def create_user(payload: CreateUser, session: Session = Depends(get_session)):
     session.commit()
     session.refresh(user)
     logger.info("user.created", user_id=user.id, name=user.name, is_admin=user.is_admin)
-    return {**_serialize(user), "token": token}
+    return {**serialize_user(user), "token": token}
 
 
 @router.delete("/{user_id}")
@@ -94,9 +84,6 @@ def regenerate_user_token(
     user = session.get(User, user_id)
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    token = generate_token()
-    user.token_hash = hash_token(token)
-    session.add(user)
-    session.commit()
+    token = regenerate_token(user, session)
     logger.info("user.token_regenerated", user_id=user_id, actor=current_user.name)
     return {"token": token}

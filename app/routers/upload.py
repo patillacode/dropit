@@ -1,6 +1,5 @@
 import secrets
 from datetime import timedelta
-from pathlib import Path
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, status
@@ -10,8 +9,9 @@ from app.auth import TokenUser, get_current_user
 from app.database import get_session
 from app.limiter import limiter
 from app.models import Collection, Page
-from app.settings import get_settings, parse_ttl_duration
-from app.utils import format_dt, utcnow
+from app.settings import get_settings
+from app.utils import format_dt, utcnow, write_page_file
+from app.validators import validate_ttl, validate_upload_content, validate_upload_filename
 
 logger = structlog.get_logger()
 
@@ -56,36 +56,9 @@ async def upload(
         except ValueError:
             pass
 
-    effective_ttl = ttl or settings.default_ttl
-    if effective_ttl != "forever" and effective_ttl not in settings.ttl_list:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail=f"Invalid TTL. Allowed: {settings.ttl_list}",
-        )
+    effective_ttl, ttl_seconds = validate_ttl(ttl, user, settings)
 
-    ttl_seconds = parse_ttl_duration(effective_ttl)
-
-    if not user.is_admin:
-        if ttl_seconds is None:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="forever TTL requires admin token",
-            )
-        max_secs = parse_ttl_duration(settings.max_user_ttl)
-        if max_secs is not None and ttl_seconds > max_secs:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"TTL exceeds maximum allowed for your token ({settings.max_user_ttl})",
-            )
-
-    filename = file.filename or ""
-    is_html_ext = filename.endswith(".html") or filename.endswith(".htm")
-    is_html_ct = file.content_type in ("text/html", "application/octet-stream")
-    if not is_html_ext and not is_html_ct:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="Only HTML files are accepted",
-        )
+    validate_upload_filename(file)
 
     buf = bytearray()
     while True:
@@ -106,23 +79,7 @@ async def upload(
             )
     content = bytes(buf)
 
-    try:
-        content.decode("utf-8")
-    except UnicodeDecodeError:
-        logger.warning("upload.failure", reason="invalid_content", user=user.name)
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="Only UTF-8 encoded HTML files are accepted",
-        ) from None
-
-    stripped = content.strip().lower()
-    html_starts = (b"<!doctype", b"<html", b"<head", b"<body", b"<!--")
-    if not any(stripped.startswith(s) for s in html_starts):
-        logger.warning("upload.failure", reason="invalid_content", user=user.name)
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="Only HTML files are accepted",
-        )
+    validate_upload_content(content, user.name)
 
     collection_id = None
     collection_name = None
@@ -157,15 +114,13 @@ async def upload(
         raise
     expires_at = None if ttl_seconds is None else utcnow() + timedelta(seconds=ttl_seconds)
 
-    pages_dir = Path(settings.data_dir) / "pages"
-    pages_dir.mkdir(parents=True, exist_ok=True)
-    (pages_dir / page_id).write_bytes(content)
+    write_page_file(page_id, content, settings.data_dir)
 
     page = Page(
         id=page_id,
         expires_at=expires_at,
         token_hint=user.name,
-        filename=filename or None,
+        filename=file.filename or None,
         created_at=utcnow(),
         file_size=len(content),
         user_id=user.user_id,
