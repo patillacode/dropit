@@ -6,9 +6,11 @@ biome_version := "2.4.16"
 default:
     @just --list
 
-# Install dependencies
+# Install dependencies + git hooks (needs Node for web linting via npx)
 install:
     uv sync --all-extras
+    command -v prek >/dev/null 2>&1 || uv tool install prek
+    prek install
 
 # Run dev server with hot reload on :8000
 dev:

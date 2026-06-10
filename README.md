@@ -14,9 +14,14 @@ Drop an HTML file. Get a link.
 
 ```bash
 cp .env.example .env        # set ADMIN_TOKEN
-just install                # create venv and install deps
+just install                # venv + deps, install prek, set up git hooks
 just dev                    # run on http://localhost:8000
 ```
+
+`just install` syncs Python deps, installs [prek](https://prek.j178.dev/) (via `uv tool
+install`) and sets up the git hooks. Linting/formatting of JS & CSS uses
+[Biome](https://biomejs.dev/), fetched on demand via `npx`, so **Node is required** for the
+`*-web` recipes locally (CI installs the Biome standalone binary instead).
 
 1. Open `http://localhost:8000/admin` and sign in with your `ADMIN_TOKEN`
 2. Create a user — their token is shown once, copy it
@@ -174,17 +179,12 @@ just admin-token    # generate a random admin token
 
 ### Git hooks
 
-Lint/format runs on every commit via [prek](https://prek.j178.dev/) (a fast drop-in for
-pre-commit). Install the hooks once:
+`just install` sets up the [prek](https://prek.j178.dev/) git hooks (a fast drop-in for
+pre-commit). If you need to (re)install them manually, run `just hooks`.
 
-```bash
-uv tool install prek   # if not already installed
-just hooks             # prek install
-```
-
-Hooks run ruff (lint + format), Biome (JS/CSS), and file-hygiene checks — no tests, so commits
-stay fast. The test suite and 100% coverage gate run in CI. JS/CSS tooling uses Biome (pinned
-in `biome.json`); CI runs it as a separate `web` job.
+On every commit the hooks run ruff (lint + format), Biome (JS/CSS), and file-hygiene checks —
+no tests, so commits stay fast. The test suite and 100% coverage gate run in CI. JS/CSS tooling
+is pinned in `biome.json`; CI runs it as a separate `web` job.
 
 ## Configuration
 

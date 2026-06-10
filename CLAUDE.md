@@ -6,18 +6,32 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 cp .env.example .env  # first-time setup — set ADMIN_TOKEN before running
-just install        # create venv and install all deps (uv sync --all-extras)
+just install        # uv sync --all-extras + install prek + set up git hooks
 just dev            # run dev server with hot reload on :8000
 just test           # run test suite
 just test-cov       # run tests with coverage — must reach 100%
-just lint           # ruff check
-just fix            # ruff check --fix + ruff format
+just lint           # ruff check (Python)
+just fix            # ruff check --fix + ruff format + format-web (JS/CSS)
+just lint-web       # Biome ci on app/static/js + css (lint + format-check)
+just format-web     # Biome check --write on app/static/js + css
+just hooks          # (re)install prek git hooks
 just reset-db       # delete dev database
 just admin-token    # generate a random admin token
 ```
 
 Run a single test file: `uv run pytest tests/test_upload.py`
 Run a specific test: `uv run pytest tests/test_upload.py::test_name`
+
+## Tooling
+
+- **Python**: ruff (lint + format), config in `pyproject.toml`. 100% test coverage enforced.
+- **JS/CSS**: [Biome](https://biomejs.dev/), pinned to 2.4.16 in `biome.json` (only
+  `app/static/js` and `app/static/css`). Run via `npx` locally (needs Node); CI uses the
+  standalone binary.
+- **Git hooks**: [prek](https://prek.j178.dev/) via `.pre-commit-config.yaml` — ruff, Biome,
+  and file-hygiene hooks, lint/format only (no tests on commit).
+- **CI**: `.forgejo/workflows/ci.yml` (PRs) runs `test`, `web` (Biome), and `smoke` jobs;
+  `release.yml` (tags) gates the image build on `test` + `web`.
 
 ## Architecture
 
