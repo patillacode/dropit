@@ -6,6 +6,8 @@ from fastapi.exceptions import HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from slowapi.errors import RateLimitExceeded
+from starlette.responses import Response
+from starlette.types import Scope
 
 from app.errors import error_response
 from app.lifecycle import create_lifespan
@@ -14,6 +16,19 @@ from app.logging import configure_logging
 from app.middleware import register_middleware
 from app.routers import admin, collections, config, health, landing, me, upload, users
 from app.settings import get_settings
+
+
+class RevalidatingStaticFiles(StaticFiles):
+    """Serve static assets with `Cache-Control: no-cache` so browsers always
+    revalidate against the ETag/Last-Modified Starlette already emits. Without a
+    Cache-Control header browsers heuristically cache and serve stale JS/CSS after
+    a deploy; this gives cheap 304s when unchanged and fresh files the moment one
+    changes — no build step or filename fingerprinting required."""
+
+    async def get_response(self, path: str, scope: Scope) -> Response:
+        response = await super().get_response(path, scope)
+        response.headers.setdefault("Cache-Control", "no-cache")
+        return response
 
 
 def create_app(engine=None) -> FastAPI:
@@ -31,7 +46,11 @@ def create_app(engine=None) -> FastAPI:
         return response
 
     app.add_exception_handler(RateLimitExceeded, _rate_limit_handler)
-    app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
+    app.mount(
+        "/static",
+        RevalidatingStaticFiles(directory=Path(__file__).parent / "static"),
+        name="static",
+    )
     app.include_router(landing.router)
     app.include_router(config.router)
     app.include_router(health.router)
