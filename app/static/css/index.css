@@ -28,10 +28,6 @@ body {
     gap: 0.38rem;
 }
 
-.field select {
-    flex: 1;
-}
-
 label {
     margin-bottom: 0;
 }
@@ -60,6 +56,10 @@ select {
     background-repeat: no-repeat;
     background-position: right 0.7rem center;
     padding-right: 2rem;
+}
+
+.field select {
+    flex: 1;
 }
 select:focus {
     border-color: var(--accent);
