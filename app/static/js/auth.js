@@ -12,6 +12,10 @@ export function clearToken() {
   localStorage.removeItem(STORAGE_KEY);
 }
 
+export function authHeaders(extra = {}) {
+  return { Authorization: `Bearer ${getToken()}`, ...extra };
+}
+
 export async function fetchMe(token) {
   try {
     const res = await fetch('/me', { headers: { Authorization: `Bearer ${token}` } });

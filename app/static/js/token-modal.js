@@ -1,4 +1,6 @@
 // Shared modals: show-once token reveal, confirmation, and notice.
+import { copyToClipboard } from '/static/js/utils.js';
+
 function mkBtn(label, cls) {
   const b = document.createElement('button');
   b.className = cls;
@@ -41,29 +43,8 @@ function buildModal({ title, bodyNodes = [], actions = [], onDismiss }) {
   return { overlay, close };
 }
 
-async function copyToken(codeEl, btn, token) {
-  let copied = false;
-  if (navigator.clipboard && window.isSecureContext) {
-    try {
-      await navigator.clipboard.writeText(token);
-      copied = true;
-    } catch {
-      /* fall through */
-    }
-  }
-  if (!copied) {
-    const range = document.createRange();
-    range.selectNodeContents(codeEl);
-    const sel = window.getSelection();
-    sel.removeAllRanges();
-    sel.addRange(range);
-    try {
-      copied = document.execCommand('copy');
-    } catch {
-      copied = false;
-    }
-    sel.removeAllRanges();
-  }
+async function copyToken(btn, token) {
+  const copied = await copyToClipboard(token);
   btn.textContent = copied ? 'Copied!' : 'Copy failed';
 }
 
@@ -83,7 +64,7 @@ export function showTokenModal(token, opts) {
   const closeBtn = mkBtn('Done', 'btn');
 
   const { close } = buildModal({ title, bodyNodes: [sub, codeEl], actions: [copyBtn, closeBtn] });
-  copyBtn.addEventListener('click', () => copyToken(codeEl, copyBtn, token));
+  copyBtn.addEventListener('click', () => copyToken(copyBtn, token));
   closeBtn.addEventListener('click', close);
 }
 

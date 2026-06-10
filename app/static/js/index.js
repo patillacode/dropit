@@ -1,7 +1,7 @@
-import { clearToken, getToken, initNav, setToken } from '/static/js/auth.js';
+import { authHeaders, clearToken, getToken, initNav, setToken } from '/static/js/auth.js';
 import { showConfirmModal, showNoticeModal, showTokenModal } from '/static/js/token-modal.js';
 import { showTokenField, showTokenIndicator } from '/static/js/token-shared.js';
-import { asUtc } from '/static/js/utils.js';
+import { asUtc, copyToClipboard } from '/static/js/utils.js';
 
 const tokenInputEl = document.getElementById('tokenInput');
 const tokenFieldEl = document.getElementById('tokenField');
@@ -48,9 +48,8 @@ async function onLogin(user) {
   currentUser = user;
   showTokenIndicator(_indicatorEls, user.name);
   populateTTL(user.is_admin);
-  const token = getToken();
   try {
-    const res = await fetch('/collections', { headers: { Authorization: `Bearer ${token}` } });
+    const res = await fetch('/collections', { headers: authHeaders() });
     if (res.status === 401) {
       collectionField.style.display = 'none';
       noCollsHint.style.display = 'none';
@@ -206,15 +205,11 @@ tokenRegenBtn.addEventListener('click', async () => {
 });
 
 dzCopyBtn.addEventListener('click', async () => {
-  try {
-    await navigator.clipboard.writeText(dzUrl.href);
-    dzCopyBtn.textContent = 'Copied!';
-    setTimeout(() => {
-      dzCopyBtn.textContent = 'Copy URL';
-    }, 1500);
-  } catch {
-    // clipboard API unavailable
-  }
+  const ok = await copyToClipboard(dzUrl.href);
+  dzCopyBtn.textContent = ok ? 'Copied!' : 'Copy failed';
+  setTimeout(() => {
+    dzCopyBtn.textContent = 'Copy URL';
+  }, 1500);
 });
 
 dropZone.addEventListener('click', () => {

@@ -1,3 +1,4 @@
+import { apiFetch } from '/static/js/api.js';
 import { clearToken, getToken, initNav, setToken } from '/static/js/auth.js';
 import { renderPagesTable } from '/static/js/pages-table.js';
 import { showConfirmModal, showInputModal, showTokenModal } from '/static/js/token-modal.js';
@@ -36,13 +37,11 @@ tokenRegenBtn.addEventListener('click', async () => {
     danger: true,
   });
   if (!ok) return;
-  const res = await fetch('/me/regenerate', {
-    method: 'POST',
-    headers: authHeaders(),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    showError(data.detail || 'Failed to regenerate token');
+  let data;
+  try {
+    data = await apiFetch('/me/regenerate', { method: 'POST' });
+  } catch (err) {
+    showError(err.message);
     return;
   }
   setToken(data.token);
@@ -52,34 +51,32 @@ tokenRegenBtn.addEventListener('click', async () => {
   });
 });
 
-function authHeaders() {
-  return { Authorization: `Bearer ${getToken()}` };
-}
-
 function showError(msg) {
   errorEl.textContent = msg;
   errorEl.classList.toggle('visible', !!msg);
 }
 
 async function loadCollections() {
-  const res = await fetch('/collections', { headers: authHeaders() });
-  if (res.status === 401) {
-    sidebarColls.innerHTML = '';
-    newCollForm.style.display = 'none';
-    const hint = document.createElement('p');
-    hint.className = 'token-hint';
-    hint.style.padding = '0.25rem 0';
-    hint.textContent =
-      'Collections unavailable with break-glass token. Create a DB user to use collections.';
-    sidebarColls.appendChild(hint);
-    return;
-  }
-  if (!res.ok) {
+  let data;
+  try {
+    data = await apiFetch('/collections');
+  } catch (err) {
+    if (err.status === 401) {
+      sidebarColls.innerHTML = '';
+      newCollForm.style.display = 'none';
+      const hint = document.createElement('p');
+      hint.className = 'token-hint';
+      hint.style.padding = '0.25rem 0';
+      hint.textContent =
+        'Collections unavailable with break-glass token. Create a DB user to use collections.';
+      sidebarColls.appendChild(hint);
+      return;
+    }
     showError('Failed to load collections');
     return;
   }
   newCollForm.style.display = '';
-  collections = await res.json();
+  collections = data;
   renderSidebar();
 }
 
@@ -97,13 +94,15 @@ async function loadFiles() {
     }
   }
   panelTitle.textContent = title;
-  const res = await fetch(url, { headers: authHeaders() });
-  if (!res.ok) {
+  let pages;
+  try {
+    pages = await apiFetch(url);
+  } catch {
     showError('Failed to load files');
     return;
   }
   showError('');
-  renderPagesTable(await res.json(), {
+  renderPagesTable(pages, {
     tableWrap,
     emptyEl,
     errorEl,
@@ -162,8 +161,7 @@ function renderSidebar() {
 
 async function deleteFileFetch(p) {
   const pageId = new URL(p.url).hostname.split('.')[0];
-  const res = await fetch(`/me/pages/${pageId}`, { method: 'DELETE', headers: authHeaders() });
-  if (!res.ok) throw new Error('Failed to delete file');
+  await apiFetch(`/me/pages/${pageId}`, { method: 'DELETE' });
   if (typeof activeFilter === 'number') {
     const coll = collections.find((c) => c.id === activeFilter);
     if (coll) {
@@ -182,13 +180,10 @@ async function renameCollection(collId) {
     confirmLabel: 'Rename',
   });
   if (!name || name === coll.name) return;
-  const res = await fetch(`/collections/${collId}`, {
-    method: 'PATCH',
-    headers: { ...authHeaders(), 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name }),
-  });
-  if (!res.ok) {
-    showError('Failed to rename collection');
+  try {
+    await apiFetch(`/collections/${collId}`, { method: 'PATCH', json: { name } });
+  } catch (err) {
+    showError(err.message);
     return;
   }
   await loadCollections();
@@ -203,8 +198,9 @@ async function deleteCollection(collId) {
     danger: true,
   });
   if (!ok) return;
-  const res = await fetch(`/collections/${collId}`, { method: 'DELETE', headers: authHeaders() });
-  if (!res.ok) {
+  try {
+    await apiFetch(`/collections/${collId}`, { method: 'DELETE' });
+  } catch {
     showError('Failed to delete collection');
     return;
   }
@@ -217,14 +213,10 @@ newCollForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const name = newCollName.value.trim();
   if (!name) return;
-  const res = await fetch('/collections', {
-    method: 'POST',
-    headers: { ...authHeaders(), 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name }),
-  });
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    showError(data.detail || 'Failed to create collection');
+  try {
+    await apiFetch('/collections', { method: 'POST', json: { name } });
+  } catch (err) {
+    showError(err.message);
     return;
   }
   newCollName.value = '';
