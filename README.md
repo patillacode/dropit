@@ -2,8 +2,6 @@
 
 Drop an HTML file. Get a link.
 
-> **Live demo:** [the dropit feature page, served by dropit itself](https://c81920cc.dropit.patilla.es/)
-
 <p align="center">
   <img src="app/static/images/screenshot-index.png" alt="Landing page" width="48%">
   &nbsp;
